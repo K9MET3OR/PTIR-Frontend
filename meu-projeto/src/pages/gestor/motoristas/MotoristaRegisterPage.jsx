@@ -66,20 +66,20 @@ export default function MotoristaRegisterPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    const e2 = validate();
-    if (Object.keys(e2).length) { setErrors(e2); return; }
+    // ... validações ...
 
-    setLoading(true);
-    setApiError("");
     try {
+      setLoading(true);
+      // 1. O Gestor cria o motorista no Firebase (necessita de lógica extra ou Cloud Function)
+      // Para simplificar o teu rascunho, vamos assumir que o Django trata disso:
       await motoristaService.create({
         ...form,
-        n_carta: form.n_carta.toUpperCase(),
-        taxi_id: form.taxi_id || null,
+        role: 'motorista'
       });
+      
       navigate("/gestor/motoristas");
     } catch (err) {
-      setApiError(err.message ?? "Erro ao registar motorista.");
+      setApiError(err.message);
     } finally {
       setLoading(false);
     }

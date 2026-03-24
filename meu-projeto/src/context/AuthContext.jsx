@@ -1,83 +1,51 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import {
-  signInWithEmailAndPassword,
-  signOut,
-  onAuthStateChanged,
-} from "firebase/auth";
-import { auth } from "../services/firebase";
 
 const AuthContext = createContext(null);
 
-// Mapeamento de email → role (em produção isto vem do backend)
-// O Django devolve o role no token ou num endpoint /me
-const ROLE_KEY = "taxigest_role";
-
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);   // Firebase user object
-  const [role, setRole]       = useState(null);   // "gestor" | "motorista" | "cliente"
-  const [token, setToken]     = useState(null);   // JWT para enviar ao Django
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
+  const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Observa mudanças de auth (refresh de página, logout, etc.)
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const idToken = await firebaseUser.getIdToken();
-        setUser(firebaseUser);
-        setToken(idToken);
-
-        // Recupera role guardada localmente (definida no login)
-        const savedRole = localStorage.getItem(ROLE_KEY);
-        setRole(savedRole);
-      } else {
-        setUser(null);
-        setToken(null);
-        setRole(null);
-        localStorage.removeItem(ROLE_KEY);
-      }
-      setLoading(false);
-    });
-
-    return unsubscribe;
+    const savedToken = localStorage.getItem("taxigest_token");
+    const savedUser = localStorage.getItem("taxigest_user");
+    if (savedToken && savedUser) {
+      const u = JSON.parse(savedUser);
+      setToken(savedToken); setUser(u); setRole(u.role);
+    }
+    setLoading(false);
   }, []);
 
-  // Login: recebe email, password e role escolhida pelo utilizador
   async function login(email, password, selectedRole) {
-    const credential = await signInWithEmailAndPassword(auth, email, password);
-    const idToken = await credential.user.getIdToken();
+    const res = await fetch("http://localhost:8000/api/user/login/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier: email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
 
-    // Guarda role localmente e no state
-    localStorage.setItem(ROLE_KEY, selectedRole);
-    setRole(selectedRole);
-    setToken(idToken);
+    if (data.user.role !== selectedRole) 
+      throw new Error(`Conta sem permissão de ${selectedRole}`);
 
-    return { user: credential.user, role: selectedRole, token: idToken };
+    setUser(data.user); setRole(data.user.role); setToken(data.token);
+    localStorage.setItem("hermez_token", data.token);
+    localStorage.setItem("hermez_user", JSON.stringify(data.user));
+    return data;
   }
 
-  async function logout() {
-    await signOut(auth);
-    localStorage.removeItem(ROLE_KEY);
-  }
-
-  // Renova o token antes de expirar (o Firebase faz isto automaticamente,
-  // mas este helper garante que tens sempre o token mais recente)
-  async function getToken() {
-    if (!user) return null;
-    return await user.getIdToken();
-  }
-
-  const value = { user, role, token, loading, login, logout, getToken };
+  const logout = () => {
+    setUser(null); setRole(null); setToken(null);
+    localStorage.clear();
+  };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, role, token, loading, login, logout }}>
       {!loading && children}
     </AuthContext.Provider>
   );
 }
 
-// Hook de conveniência
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth deve ser usado dentro de <AuthProvider>");
-  return ctx;
-}
+export const useAuth = () => useContext(AuthContext);

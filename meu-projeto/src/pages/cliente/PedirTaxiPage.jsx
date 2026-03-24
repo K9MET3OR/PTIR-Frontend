@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
-import MapaBase from "../../../components/MapaBase";
-import { geocodificar } from "../../../services/geocodingService";
-import { TAXIS_MOCK, COR_ESTADO } from "../../../services/mockData";
+import MapaBase from "../../components/MapaBase";
+import { geocodificar } from "../../services/geocodingService";
+import { TAXIS_MOCK, COR_ESTADO } from "../../services/mockData";
 import styles from "./PedirTaxiPage.module.css";
 
 const CONFORTO_OPTS = ["Standard", "Conforto", "Premium"];
