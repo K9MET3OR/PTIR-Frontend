@@ -1,0 +1,263 @@
+/* ── Root ─────────────────────────────────────── */
+.root {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+/* ── Sidebar ──────────────────────────────────── */
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebarLogo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 14px 14px;
+  border-bottom: 0.5px solid rgba(255,255,255,.08);
+  margin-bottom: 8px;
+}
+
+.logoMark {
+  width: 28px;
+  height: 28px;
+  background: #facc15;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  flex-shrink: 0;
+}
+
+.logoName {
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+}
+
+/* Nav items */
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px;
+  flex: 1;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  font-size: 13px;
+  color: rgba(255,255,255,.55);
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+
+.navItem:hover {
+  background: rgba(255,255,255,.07);
+  color: #fff;
+}
+
+.navActive {
+  background: rgba(250,204,21,.13);
+  color: #facc15;
+}
+
+.navIcon {
+  font-size: 15px;
+  width: 16px;
+  text-align: center;
+}
+
+/* Footer */
+.sidebarFooter {
+  padding: 12px 14px;
+  border-top: 0.5px solid rgba(255,255,255,.08);
+}
+
+.userRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #facc15;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #0f172a;
+  flex-shrink: 0;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.userName {
+  font-size: 11.5px;
+  color: #fff;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userRole {
+  font-size: 10px;
+  color: rgba(255,255,255,.4);
+  text-transform: capitalize;
+}
+
+.logoutBtn {
+  display: block;
+  font-size: 10.5px;
+  color: rgba(255,255,255,.35);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-top: 6px;
+  transition: color 0.12s;
+}
+
+.logoutBtn:hover {
+  color: rgba(255,255,255,.65);
+}
+
+/* ── Main ─────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.content {
+  flex: 1;
+  padding: 1.5rem;
+}
+
+/* ── Mobile ───────────────────────────────────── */
+.mobileTopbar {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #0f172a;
+  border-bottom: 0.5px solid rgba(255,255,255,.08);
+}
+
+.mobileLogoRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #fff;
+}
+
+.menuBtn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 40;
+}
+
+.bottomNav {
+  display: none;
+  background: #fff;
+  border-top: 0.5px solid #e2e8f0;
+}
+
+.bottomNavItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px 6px;
+  text-decoration: none;
+  color: #94a3b8;
+  font-size: 10px;
+  transition: color 0.12s;
+}
+
+.bottomNavActive {
+  color: #0f172a;
+}
+
+.bottomNavIcon {
+  font-size: 18px;
+}
+
+.bottomNavLabel {
+  font-size: 9.5px;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    height: 100vh;
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+  }
+
+  .overlay {
+    display: block;
+  }
+
+  .mobileTopbar {
+    display: flex;
+  }
+
+  .content {
+    padding: 1rem;
+    padding-bottom: 5rem; /* espaço para bottom nav */
+  }
+
+  .bottomNav {
+    display: flex;
+    position: sticky;
+    bottom: 0;
+  }
+}
