@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../services/firebase";
 
 const AuthContext = createContext(null);
 
@@ -19,21 +21,28 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function login(email, password, selectedRole) {
-    const res = await fetch("http://localhost:8000/api/user/login/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ identifier: email, password })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseToken = await userCredential.user.getIdToken();
 
-    if (data.user.role !== selectedRole) 
-      throw new Error(`Conta sem permissão de ${selectedRole}`);
+      const res = await fetch("/api/user/login/", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${firebaseToken}`
+        },
+        body: JSON.stringify({ selectedRole })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
 
-    setUser(data.user); setRole(data.user.role); setToken(data.token);
-    localStorage.setItem("hermez_token", data.token);
-    localStorage.setItem("hermez_user", JSON.stringify(data.user));
-    return data;
+      setUser(data.user); setRole(data.user.role); setToken(firebaseToken);
+      localStorage.setItem("taxigest_token", firebaseToken);
+      localStorage.setItem("taxigest_user", JSON.stringify(data.user));
+      return data;
+    } catch (err) {
+      throw err;
+    }
   }
 
   const logout = () => {
