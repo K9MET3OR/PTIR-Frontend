@@ -1,6 +1,9 @@
 import { auth } from "./firebase";
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+const RAW_API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const BASE_URL = RAW_API_URL.endsWith("/api")
+  ? RAW_API_URL
+  : `${RAW_API_URL.replace(/\/+$/, "")}/api`;
 
 async function apiFetch(path, options = {}) {
   // 1. Pede o token atual ao Firebase

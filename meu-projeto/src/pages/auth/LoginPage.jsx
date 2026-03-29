@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import styles from "./LoginPage.module.css";
 
 const ROLES = [
-  { id: "gestor",     label: "Manger",     icon: "🏢" },
+  { id: "admin",     label: "Manager",     icon: "🏢" },
   { id: "motorista",  label: "Driver",  icon: "🚗" },
   { id: "cliente",    label: "Client",    icon: "👤" },
 ];
@@ -13,7 +13,7 @@ export default function LoginPage() {
   const { login }    = useAuth();
   const navigate     = useNavigate();
 
-  const [selectedRole, setSelectedRole] = useState("gestor");
+  const [selectedRole, setSelectedRole] = useState("admin");
   const [email,        setEmail]        = useState("");
   const [password,     setPassword]     = useState("");
   const [error,        setError]        = useState("");
@@ -25,9 +25,15 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login(email, password, selectedRole);
-      // Redireciona para o dashboard da role escolhida
-      navigate(`/${selectedRole}`, { replace: true });
+      const result = await login(email, password, selectedRole);
+      // Redireciona para uma rota existente para cada role
+      const routeByRole = {
+        admin: "/gestor",
+        motorista: "/motorista/mapa",
+        cliente: "/cliente/pedir",
+      };
+      const routePath = routeByRole[result?.user?.role] || "/login";
+      navigate(routePath, { replace: true });
     } catch (err) {
       // Mensagens legíveis em vez dos códigos Firebase
       const messages = {
@@ -108,6 +114,14 @@ export default function LoginPage() {
             {loading ? "Loading..." : "Sign In →"}
           </button>
         </form>
+
+        {/* Link para signup */}
+        <p className={styles.linkRow}>
+          Don't have an account?{" "}
+          <Link to="/signup" className={styles.link}>
+            Sign Up
+          </Link>
+        </p>
       </div>
     </div>
   );

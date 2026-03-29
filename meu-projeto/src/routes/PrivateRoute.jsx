@@ -16,7 +16,13 @@ export default function PrivateRoute({ allowedRoles }) {
 
   // Está autenticado mas a role não é permitida → vai para o seu dashboard
   if (allowedRoles && !allowedRoles.includes(role)) {
-    return <Navigate to={`/${role}`} replace />;
+    const fallbackByRole = {
+      admin: "/gestor",
+      gestor: "/gestor",
+      motorista: "/motorista/mapa",
+      cliente: "/cliente/pedir",
+    };
+    return <Navigate to={fallbackByRole[role] || "/login"} replace />;
   }
 
   // Tudo ok → renderiza a rota pedida

@@ -19,7 +19,7 @@ export default function TaxiListPage() {
 
   useEffect(() => {
     taxiService.list()
-      .then(setTaxis)
+      .then((response) => setTaxis(Array.isArray(response?.taxis) ? response.taxis : []))
       .catch(() => setError("Não foi possível carregar a lista de táxis."))
       .finally(() => setLoading(false));
   }, []);
@@ -76,6 +76,7 @@ export default function TaxiListPage() {
                   <th>Marca</th>
                   <th>Modelo</th>
                   <th>Ano</th>
+                  <th>Consumo médio</th>
                   <th>Motor</th>
                   <th>Conforto</th>
                   <th>Estado</th>
@@ -85,7 +86,7 @@ export default function TaxiListPage() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className={styles.empty}>
+                    <td colSpan={9} className={styles.empty}>
                       {search ? "Nenhum resultado para a pesquisa." : "Nenhum táxi registado ainda."}
                     </td>
                   </tr>
@@ -98,6 +99,7 @@ export default function TaxiListPage() {
                         <td>{taxi.marca}</td>
                         <td>{taxi.modelo}</td>
                         <td>{taxi.ano_compra}</td>
+                        <td>{taxi.consumo_medio} L/100km</td>
                         <td>{taxi.tipo_motor}</td>
                         <td>{taxi.nivel_conforto}</td>
                         <td>
