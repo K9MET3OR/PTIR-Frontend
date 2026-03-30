@@ -25,8 +25,7 @@ export function AuthProvider({ children }) {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseToken = await userCredential.user.getIdToken();
 
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-      const res = await fetch(`${apiUrl}/api/user/login/`, {
+      const res = await fetch(`/api/user/login/`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
@@ -65,8 +64,7 @@ export function AuthProvider({ children }) {
       const firebaseToken = await userCredential.user.getIdToken();
 
       // 2. Criar utilizador no Django
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-      const res = await fetch(`${apiUrl}/api/user/`, {
+      const res = await fetch(`/api/user/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
