@@ -161,6 +161,75 @@
   padding: 1.5rem;
 }
 
+/* ── Client topbar ───────────────────────────────────── */
+.clientTopbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  background: #0f172a;
+  border-bottom: 0.5px solid rgba(255,255,255,.08);
+  color: #fff;
+}
+
+.clientLogoRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.clientTitle {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.profileMenuWrapper {
+  position: relative;
+}
+
+.profileBtn {
+  min-width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(255,255,255,.08);
+  color: #fff;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.profileMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  min-width: 170px;
+  background: #111827;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.35);
+  z-index: 50;
+  overflow: hidden;
+}
+
+.profileMenuItem {
+  width: 100%;
+  display: block;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  color: #fff;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.profileMenuItem:hover {
+  background: rgba(255,255,255,.06);
+}
+
 /* ── Mobile ───────────────────────────────────── */
 .mobileTopbar {
   display: none;

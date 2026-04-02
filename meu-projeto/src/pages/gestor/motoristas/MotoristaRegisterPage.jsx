@@ -10,8 +10,8 @@ function validateNIF(nif) {
 }
 
 function validateCarta(carta) {
-  // Formato: A-12345-PT (letra, hífen, 5 dígitos, hífen, 2 letras)
-  return /^[A-Z]-\d{5}-[A-Z]{2}$/.test(carta.toUpperCase());
+  // Aceita qualquer valor não vazio para o número da carta.
+  return carta.trim().length > 0;
 }
 
 export default function MotoristaRegisterPage() {
@@ -37,8 +37,8 @@ export default function MotoristaRegisterPage() {
   // Carrega lista de táxis disponíveis para atribuição
   useEffect(() => {
     taxiService.list()
-      .then(setTaxis)
-      .catch(() => {}); // silencia — atribuição é opcional
+      .then((response) => setTaxis(Array.isArray(response?.taxis) ? response.taxis : []))
+      .catch(() => setTaxis([])); // silencia — atribuição é opcional
   }, []);
 
   function set(field, value) {
@@ -57,7 +57,7 @@ export default function MotoristaRegisterPage() {
     }
     if (!form.email.includes("@")) e.email = "Email inválido.";
     if (!form.telefone.match(/^\d{9}$/)) e.telefone = "Telefone inválido (9 dígitos).";
-    if (!validateCarta(form.n_carta))    e.n_carta  = "Formato inválido. Ex: A-12345-PT";
+    if (!validateCarta(form.n_carta))    e.n_carta  = "Número de carta de condução obrigatório.";
     if (!form.validade_carta)            e.validade_carta = "Validade da carta obrigatória.";
     else if (new Date(form.validade_carta) < new Date())
       e.validade_carta = "A carta de condução está expirada.";
@@ -66,7 +66,11 @@ export default function MotoristaRegisterPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    // ... validações ...
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length) {
+      setErrors(validationErrors);
+      return;
+    }
 
     try {
       setLoading(true);

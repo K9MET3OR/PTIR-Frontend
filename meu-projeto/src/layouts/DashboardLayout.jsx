@@ -14,57 +14,66 @@ export default function DashboardLayout() {
   const { user, role, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   async function handleLogout() {
+    setProfileMenuOpen(false);
     await logout();
     navigate("/login", { replace: true });
   }
 
+  function handleProfileToggle() {
+    setProfileMenuOpen((value) => !value);
+  }
+
   // Iniciais do email para o avatar
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
+  const showSidebar = role !== "cliente";
 
   return (
     <div className={styles.root}>
       {/* ── SIDEBAR (desktop) ── */}
-      <aside className={`${styles.sidebar} ${mobileMenuOpen ? styles.sidebarOpen : ""}`}>
-        <div className={styles.sidebarLogo}>
-          <div className={styles.logoMark}>H</div>
-          <span className={styles.logoName}>Hermez</span>
-        </div>
-
-        <nav className={styles.nav}>
-          {NAV_ITEMS.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `${styles.navItem} ${isActive ? styles.navActive : ""}`
-              }
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <span className={styles.navIcon}>{item.icon}</span>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className={styles.sidebarFooter}>
-          <div className={styles.userRow}>
-            <div className={styles.avatar}>{initials}</div>
-            <div className={styles.userInfo}>
-              <span className={styles.userName}>{user?.email}</span>
-              <span className={styles.userRole}>{role}</span>
-            </div>
+      {showSidebar && (
+        <aside className={`${styles.sidebar} ${mobileMenuOpen ? styles.sidebarOpen : ""}`}>
+          <div className={styles.sidebarLogo}>
+            <div className={styles.logoMark}>H</div>
+            <span className={styles.logoName}>Hermez</span>
           </div>
-          <button className={styles.logoutBtn} onClick={handleLogout}>
-            ← Sair
-          </button>
-        </div>
-      </aside>
+
+          <nav className={styles.nav}>
+            {NAV_ITEMS.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `${styles.navItem} ${isActive ? styles.navActive : ""}`
+                }
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <span className={styles.navIcon}>{item.icon}</span>
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+
+          <div className={styles.sidebarFooter}>
+            <div className={styles.userRow}>
+              <div className={styles.avatar}>{initials}</div>
+              <div className={styles.userInfo}>
+                <span className={styles.userName}>{user?.email}</span>
+                <span className={styles.userRole}>{role}</span>
+              </div>
+            </div>
+            <button className={styles.logoutBtn} onClick={handleLogout}>
+              ← Sair
+            </button>
+          </div>
+        </aside>
+      )}
 
       {/* Overlay para fechar sidebar no mobile */}
-      {mobileMenuOpen && (
+      {showSidebar && mobileMenuOpen && (
         <div
           className={styles.overlay}
           onClick={() => setMobileMenuOpen(false)}
@@ -73,18 +82,49 @@ export default function DashboardLayout() {
 
       {/* ── MAIN ── */}
       <div className={styles.main}>
+        {role === "cliente" && (
+          <header className={styles.clientTopbar}>
+            <div className={styles.clientLogoRow}>
+              <div className={styles.logoMark} style={{ width: 28, height: 28, fontSize: 12 }}>H</div>
+              <span className={styles.clientTitle}>Hermez</span>
+            </div>
+            <div className={styles.profileMenuWrapper}>
+              <button
+                className={styles.profileBtn}
+                aria-label="Perfil"
+                aria-haspopup="true"
+                aria-expanded={profileMenuOpen}
+                onClick={handleProfileToggle}
+              >
+                {initials}
+              </button>
+              {profileMenuOpen && (
+                <div className={styles.profileMenu}>
+                  <button className={styles.profileMenuItem} type="button">
+                    Editar perfil
+                  </button>
+                  <button className={styles.profileMenuItem} type="button" onClick={handleLogout}>
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          </header>
+        )}
         {/* Topbar mobile */}
         <header className={styles.mobileTopbar}>
-          <button
-            className={styles.menuBtn}
-            onClick={() => setMobileMenuOpen((v) => !v)}
-            aria-label="Menu"
-          >
-            ☰
-          </button>
+          {showSidebar && (
+            <button
+              className={styles.menuBtn}
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label="Menu"
+            >
+              ☰
+            </button>
+          )}
           <div className={styles.mobileLogoRow}>
-            <div className={styles.logoMark} style={{ width: 24, height: 24, fontSize: 11 }}>TG</div>
-            <span style={{ fontSize: 14, fontWeight: 500 }}>TaxiGest</span>
+            <div className={styles.logoMark} style={{ width: 24, height: 24, fontSize: 11 }}>H</div>
+            <span style={{ fontSize: 14, fontWeight: 500 }}>Hermez</span>
           </div>
           <div className={styles.avatar} style={{ width: 28, height: 28, fontSize: 11 }}>
             {initials}
@@ -97,21 +137,23 @@ export default function DashboardLayout() {
         </main>
 
         {/* Bottom nav mobile */}
-        <nav className={styles.bottomNav}>
-          {NAV_ITEMS.slice(0, 4).map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `${styles.bottomNavItem} ${isActive ? styles.bottomNavActive : ""}`
-              }
-            >
-              <span className={styles.bottomNavIcon}>{item.icon}</span>
-              <span className={styles.bottomNavLabel}>{item.label}</span>
-            </NavLink>
-          ))}
-        </nav>
+        {showSidebar && (
+          <nav className={styles.bottomNav}>
+            {NAV_ITEMS.slice(0, 4).map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `${styles.bottomNavItem} ${isActive ? styles.bottomNavActive : ""}`
+                }
+              >
+                <span className={styles.bottomNavIcon}>{item.icon}</span>
+                <span className={styles.bottomNavLabel}>{item.label}</span>
+              </NavLink>
+            ))}
+          </nav>
+        )}
       </div>
     </div>
   );

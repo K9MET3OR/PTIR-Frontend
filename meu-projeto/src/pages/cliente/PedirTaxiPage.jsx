@@ -5,6 +5,32 @@ import { TAXIS_MOCK, COR_ESTADO } from "../../services/mockData";
 import styles from "./PedirTaxiPage.module.css";
 
 const CONFORTO_OPTS = ["Standard", "Conforto", "Premium"];
+const RIDE_OPTIONS = [
+  {
+    id: "standard",
+    title: "Hermez Standard",
+    subtitle: "Viagens diárias económicas",
+    duration: "4 min",
+    price: "10,94 €",
+    nivel: "Standard",
+  },
+  {
+    id: "conforto",
+    title: "Hermez Conforto",
+    subtitle: "Viagens mais rápidas e confortáveis",
+    duration: "3 min",
+    price: "13,99 €",
+    nivel: "Conforto",
+  },
+  {
+    id: "premium",
+    title: "Hermez Premium",
+    subtitle: "Viagens com serviço premium e melhor espaço",
+    duration: "4 min",
+    price: "18,98 €",
+    nivel: "Premium",
+  },
+];
 
 export default function PedirTaxiPage() {
   const [origemInput,    setOrigemInput]    = useState("");
@@ -15,7 +41,8 @@ export default function PedirTaxiPage() {
   const [sugestoesDestino, setSugestoesDestino] = useState([]);
   const [nPessoas,       setNPessoas]       = useState(1);
   const [conforto,       setConforto]       = useState("Standard");
-  const [step,           setStep]           = useState("form"); // form | confirmacao | aguardar
+  const [selectedRide,   setSelectedRide]   = useState(RIDE_OPTIONS[0].id);
+  const [step,           setStep]           = useState("form"); // form | opcoes | aguardar
   const [loading,        setLoading]        = useState(false);
   const [erro,           setErro]           = useState("");
 
@@ -30,10 +57,10 @@ export default function PedirTaxiPage() {
       color: COR_ESTADO.disponivel,
     })),
     ...(origemCoords
-      ? [{ id: "origem",  lon: origemCoords.lon,  lat: origemCoords.lat,  label: "Origem",  color: "#2563eb" }]
+      ? [{ id: "origem",  lon: origemCoords.lon,  lat: origemCoords.lat,  label: "Origem",  color: "#a855f7" }]
       : []),
     ...(destinoCoords
-      ? [{ id: "destino", lon: destinoCoords.lon, lat: destinoCoords.lat, label: "Destino", color: "#7c3aed" }]
+      ? [{ id: "destino", lon: destinoCoords.lon, lat: destinoCoords.lat, label: "Destino", color: "#c084fc" }]
       : []),
   ];
 
@@ -93,7 +120,7 @@ export default function PedirTaxiPage() {
     if (!destinoCoords) { setErro("Seleciona um local de destino válido."); return; }
     if (nPessoas < 1 || nPessoas > 4) { setErro("Número de pessoas entre 1 e 4."); return; }
 
-    setStep("confirmacao");
+    setStep("opcoes");
   }
 
   function confirmarPedido() {
@@ -111,6 +138,7 @@ export default function PedirTaxiPage() {
     setDestinoInput("");
     setOrigemCoords(null);
     setDestinoCoords(null);
+    setSelectedRide(RIDE_OPTIONS[0].id);
     setErro("");
   }
 
@@ -122,7 +150,7 @@ export default function PedirTaxiPage() {
         {step === "form" && (
           <>
             <div className={styles.sidebarHeader}>
-              <h2 className={styles.title}>Pedir táxi</h2>
+              <h2 className={styles.title}>Pedir Hermez</h2>
               <p className={styles.subtitle}>Introduz a tua rota</p>
             </div>
 
@@ -130,7 +158,7 @@ export default function PedirTaxiPage() {
               {/* Origem */}
               <div className={styles.fieldWrap}>
                 <label className={styles.fieldLabel}>
-                  <span className={styles.fieldDot} style={{ background: "#2563eb" }} />
+                  <span className={styles.fieldDot} style={{ background: "#a855f7" }} />
                   Origem
                 </label>
                 <input
@@ -154,7 +182,7 @@ export default function PedirTaxiPage() {
               {/* Destino */}
               <div className={styles.fieldWrap}>
                 <label className={styles.fieldLabel}>
-                  <span className={styles.fieldDot} style={{ background: "#7c3aed" }} />
+                  <span className={styles.fieldDot} style={{ background: "#c084fc" }} />
                   Destino
                 </label>
                 <input
@@ -225,35 +253,63 @@ export default function PedirTaxiPage() {
           </>
         )}
 
-        {step === "confirmacao" && (
-          <div className={styles.confirmacao}>
-            <h2 className={styles.title}>Confirmar pedido</h2>
+        {step === "opcoes" && (
+          <div className={styles.opcoes}>
+            <div className={styles.sidebarHeader}>
+              <h2 className={styles.title}>Escolher uma viagem</h2>
+              <p className={styles.subtitle}>Viagens que acreditamos que gostarás</p>
+            </div>
 
-            <div className={styles.rotaCard}>
-              <div className={styles.rotaItem}>
-                <div className={styles.rotaDot} style={{ background: "#2563eb" }} />
-                <div>
-                  <div className={styles.rotaLabel}>Origem</div>
-                  <div className={styles.rotaVal}>{origemInput}</div>
+            <div className={styles.routeSummary}>
+              <div className={styles.rotaCard}>
+                <div className={styles.rotaItem}>
+                  <div className={styles.rotaDot} style={{ background: "#a855f7" }} />
+                  <div>
+                    <div className={styles.rotaLabel}>Origem</div>
+                    <div className={styles.rotaVal}>{origemInput}</div>
+                  </div>
+                </div>
+                <div className={styles.rotaLine} />
+                <div className={styles.rotaItem}>
+                  <div className={styles.rotaDot} style={{ background: "#c084fc" }} />
+                  <div>
+                    <div className={styles.rotaLabel}>Destino</div>
+                    <div className={styles.rotaVal}>{destinoInput}</div>
+                  </div>
                 </div>
               </div>
-              <div className={styles.rotaLine} />
-              <div className={styles.rotaItem}>
-                <div className={styles.rotaDot} style={{ background: "#7c3aed" }} />
-                <div>
-                  <div className={styles.rotaLabel}>Destino</div>
-                  <div className={styles.rotaVal}>{destinoInput}</div>
-                </div>
+
+              <div className={styles.metaRow}>
+                <span className={styles.metaLabel}>Pessoas</span>
+                <span>{nPessoas}</span>
+              </div>
+              <div className={styles.metaRow}>
+                <span className={styles.metaLabel}>Filtrar por conforto</span>
+                <span>{conforto}</span>
               </div>
             </div>
 
-            <div className={styles.metaRow}>
-              <span className={styles.metaLabel}>Pessoas</span>
-              <span>{nPessoas}</span>
-            </div>
-            <div className={styles.metaRow}>
-              <span className={styles.metaLabel}>Conforto</span>
-              <span>{conforto}</span>
+            <div className={styles.rideList}>
+              {RIDE_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={`${styles.rideCard} ${selectedRide === option.id ? styles.rideCardAtivo : ""}`}
+                  onClick={() => {
+                    setSelectedRide(option.id);
+                    setConforto(option.nivel);
+                  }}
+                >
+                  <div className={styles.rideInfo}>
+                    <div className={styles.rideTitle}>{option.title}</div>
+                    <div className={styles.rideSubtitle}>{option.subtitle}</div>
+                  </div>
+                  <div className={styles.rideMeta}>
+                    <span className={styles.ridePrice}>{option.price}</span>
+                    <span className={styles.rideDuration}>{option.duration}</span>
+                  </div>
+                </button>
+              ))}
             </div>
 
             <button
@@ -261,10 +317,10 @@ export default function PedirTaxiPage() {
               onClick={confirmarPedido}
               disabled={loading}
             >
-              {loading ? "A enviar…" : "Confirmar pedido →"}
+              {loading ? "A enviar…" : `Pedir ${RIDE_OPTIONS.find((o) => o.id === selectedRide)?.title}`}
             </button>
             <button className={styles.cancelBtn} onClick={cancelar}>
-              Cancelar
+              Voltar
             </button>
           </div>
         )}

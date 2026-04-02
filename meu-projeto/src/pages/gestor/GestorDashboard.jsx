@@ -20,10 +20,22 @@ export default function GestorDashboard() {
   useEffect(() => {
     async function loadStats() {
       try {
-        const [taxis, motoristas] = await Promise.all([
+        const [taxisResponse, motoristasResponse] = await Promise.all([
           taxiService.list(),
           motoristaService.list(),
         ]);
+
+        const taxis = Array.isArray(taxisResponse)
+          ? taxisResponse
+          : Array.isArray(taxisResponse?.taxis)
+          ? taxisResponse.taxis
+          : [];
+
+        const motoristas = Array.isArray(motoristasResponse)
+          ? motoristasResponse
+          : Array.isArray(motoristasResponse?.motoristas)
+          ? motoristasResponse.motoristas
+          : [];
 
         setStats({
           totalTaxis:          taxis.length,
