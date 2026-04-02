@@ -1,6 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import MapaBase from "../../components/MapaBase";
-import { geocodificar } from "../../services/geocodingService";
+import { geocodificar, calcularRota } from "../../services/geocodingService";
 import { TAXIS_MOCK, COR_ESTADO } from "../../services/mockData";
 import styles from "./PedirTaxiPage.module.css";
 
@@ -45,6 +45,7 @@ export default function PedirTaxiPage() {
   const [step,           setStep]           = useState("form"); // form | opcoes | aguardar
   const [loading,        setLoading]        = useState(false);
   const [erro,           setErro]           = useState("");
+  const [routePoints,    setRoutePoints]    = useState([]);
 
   const origemTimer  = useRef(null);
   const destinoTimer = useRef(null);
@@ -64,10 +65,56 @@ export default function PedirTaxiPage() {
       : []),
   ];
 
-  // Centro do mapa — se origem definida, centra lá
-  const mapCenter = origemCoords
+  const rotaSelecionada = origemCoords && destinoCoords;
+
+  useEffect(() => {
+    let cancel = false;
+
+    if (!rotaSelecionada) {
+      setRoutePoints([]);
+      return;
+    }
+
+    async function buscarRota() {
+      try {
+        const rota = await calcularRota(origemCoords, destinoCoords);
+        if (cancel) return;
+        if (rota && rota.length) {
+          setRoutePoints(rota);
+        } else {
+          setRoutePoints([
+            [origemCoords.lon, origemCoords.lat],
+            [destinoCoords.lon, destinoCoords.lat],
+          ]);
+        }
+      } catch {
+        if (!cancel) {
+          setRoutePoints([
+            [origemCoords.lon, origemCoords.lat],
+            [destinoCoords.lon, destinoCoords.lat],
+          ]);
+        }
+      }
+    }
+
+    buscarRota();
+
+    return () => {
+      cancel = true;
+    };
+  }, [origemCoords, destinoCoords, rotaSelecionada]);
+
+  // Centro do mapa — se origem e destino definidos, centraliza entre os dois pontos
+  const mapCenter = rotaSelecionada
+    ? [
+        (origemCoords.lon + destinoCoords.lon) / 2,
+        (origemCoords.lat + destinoCoords.lat) / 2,
+      ]
+    : origemCoords
     ? [origemCoords.lon, origemCoords.lat]
     : [-9.1393, 38.7223];
+
+  const mapZoom = rotaSelecionada ? 12 : origemCoords ? 15 : 13;
 
   async function pesquisar(valor, tipo) {
     if (valor.length < 3) {
@@ -341,9 +388,10 @@ export default function PedirTaxiPage() {
       <div className={styles.mapaWrap}>
         <MapaBase
           markers={markers}
+          routePoints={routePoints}
           height="100%"
           center={mapCenter}
-          zoom={origemCoords ? 15 : 13}
+          zoom={mapZoom}
         />
       </div>
     </div>

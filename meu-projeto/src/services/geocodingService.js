@@ -50,3 +50,25 @@ export async function geocodificarInverso(lon, lat) {
   const data = await res.json();
   return data.display_name ?? null;
 }
+
+const OSRM_BASE = "https://router.project-osrm.org/route/v1/driving";
+
+export async function calcularRota(origem, destino) {
+  const params = new URLSearchParams({
+    overview:   "full",
+    geometries: "geojson",
+    alternatives: "false",
+    steps:      "false",
+  });
+
+  const res = await fetch(
+    `${OSRM_BASE}/${origem.lon},${origem.lat};${destino.lon},${destino.lat}?${params}`
+  );
+
+  if (!res.ok) throw new Error("Erro ao calcular rota");
+
+  const data = await res.json();
+  if (!data.routes?.length) return null;
+
+  return data.routes[0].geometry.coordinates;
+}

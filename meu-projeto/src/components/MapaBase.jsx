@@ -2,11 +2,12 @@ import { useEffect, useRef } from "react";
 import Map from "ol/Map";
 import View from "ol/View";
 import TileLayer from "ol/layer/Tile";
-import OSM from "ol/source/OSM";
+import XYZ from "ol/source/XYZ";
 import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import Feature from "ol/Feature";
 import Point from "ol/geom/Point";
+import LineString from "ol/geom/LineString";
 import { fromLonLat } from "ol/proj";
 import { Style, Circle, Fill, Stroke, Text } from "ol/style";
 import "ol/ol.css";
@@ -27,6 +28,7 @@ const DEFAULT_ZOOM  = 13;
  */
 export default function MapaBase({
   markers = [],
+  routePoints = [],
   height = "100%",
   zoom = DEFAULT_ZOOM,
   center = LISBOA_CENTER,
@@ -48,7 +50,13 @@ export default function MapaBase({
     const map = new Map({
       target: mapRef.current,
       layers: [
-        new TileLayer({ source: new OSM() }),
+        new TileLayer({
+          opacity: 0.86,
+          source: new XYZ({
+            url: "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png",
+            crossOrigin: "anonymous",
+          }),
+        }),
         vectorLayer,
       ],
       view: new View({
@@ -81,11 +89,28 @@ export default function MapaBase({
     };
   }, []);
 
-  // Atualiza marcadores quando mudam
+  // Atualiza marcadores e rota quando mudam
   useEffect(() => {
     if (!vectorRef.current) return;
 
     vectorRef.current.clear();
+
+    if (routePoints?.length >= 2) {
+      const route = new Feature({
+        geometry: new LineString(routePoints.map((pt) => fromLonLat(pt))),
+      });
+
+      route.setStyle(
+        new Style({
+          stroke: new Stroke({
+            color: "#a855f7",
+            width: 5,
+          }),
+        })
+      );
+
+      vectorRef.current.addFeature(route);
+    }
 
     markers.forEach((m) => {
       const feature = new Feature({
@@ -98,22 +123,22 @@ export default function MapaBase({
         new Style({
           image: new Circle({
             radius: 10,
-            fill:   new Fill({ color: m.color ?? "#0f172a" }),
-            stroke: new Stroke({ color: "#fff", width: 2 }),
+            fill:   new Fill({ color: m.color ?? "#7c3aed" }),
+            stroke: new Stroke({ color: "#f8fafc", width: 2 }),
           }),
           text: new Text({
             text:         m.label ?? "",
             offsetY:      -20,
             font:         "bold 12px sans-serif",
-            fill:         new Fill({ color: "#0f172a" }),
-            stroke:       new Stroke({ color: "#fff", width: 3 }),
+            fill:         new Fill({ color: "#f8fafc" }),
+            stroke:       new Stroke({ color: "#1f2937", width: 3 }),
           }),
         })
       );
 
       vectorRef.current.addFeature(feature);
     });
-  }, [markers]);
+  }, [markers, routePoints]);
 
   // Atualiza centro/zoom quando mudam
   useEffect(() => {
