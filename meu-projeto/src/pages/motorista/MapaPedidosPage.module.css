@@ -1,239 +1,335 @@
 .root {
   display: flex;
-  height: calc(100vh - 60px);
-  gap: 0;
-  margin: -1.5rem;
+  height: 100vh;
+
+  
+  background: #09040f;
 }
 
 .sidebar {
-  width: 280px;
+  width: 330px;
   flex-shrink: 0;
-  background: #fff;
-  border-right: 0.5px solid #e2e8f0;
+  background: linear-gradient(180deg, #190b2d 0%, #0c0520 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1.5rem;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  padding: 1rem;
 }
 
-.sidebarHeader { margin-bottom: 1rem; }
+.sidebarHeader {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
 
 .title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #0f172a;
-  margin-bottom: 2px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 4px;
 }
 
 .subtitle {
   font-size: 12px;
-  color: #64748b;
+  color: #b9a7ff;
 }
 
-.filtros {
+/* Stats Card */
+.statsCard {
   display: flex;
-  gap: 5px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.filtroBtn {
-  padding: 4px 10px;
-  font-size: 11px;
-  border: 0.5px solid #e2e8f0;
-  border-radius: 20px;
-  background: #fff;
-  cursor: pointer;
-  color: #64748b;
-  transition: all 0.12s;
-}
-
-.filtroBtn:hover { background: #f8fafc; }
-
-.filtroAtivo {
-  background: #0f172a;
-  color: #facc15;
-  border-color: #0f172a;
-}
-
-.legenda {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.legendaItem {
-  display: flex;
+  gap: 1rem;
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
   align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  color: #64748b;
 }
 
-.legendaDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.divider {
-  height: 0.5px;
-  background: #e2e8f0;
-  margin: 10px 0;
-}
-
-.listTitle {
-  font-size: 11px;
-  font-weight: 500;
-  color: #94a3b8;
-  margin-bottom: 8px;
-  letter-spacing: 0.04em;
-}
-
-.lista {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-/* Taxi items */
-.taxiItem {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
-  border: 0.5px solid #e2e8f0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.12s;
-}
-
-.taxiItem:hover { background: #f8fafc; }
-
-.taxiItemAtivo {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-}
-
-.taxiDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.taxiInfo {
+.statItem {
   flex: 1;
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
-.taxiMatricula {
-  font-size: 12px;
-  font-weight: 500;
-  color: #0f172a;
-  font-family: monospace;
-}
-
-.taxiMotorista {
-  font-size: 11px;
-  color: #64748b;
-}
-
-.taxiConforto {
+.statLabel {
   font-size: 10px;
-  color: #94a3b8;
+  font-weight: 500;
+  color: #b7a7ff;
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.statValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: #7c3aed;
+}
+
+.statDivider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: #b7a7ff;
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Dividers */
+.divider {
+  height: 0.5px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 14px 0;
 }
 
 /* Pedido items */
 .pedidoItem {
-  padding: 10px;
-  border: 0.5px solid #e2e8f0;
-  border-radius: 8px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
   cursor: pointer;
-  transition: background 0.12s;
+  transition: all 0.12s;
+  background: rgba(255, 255, 255, 0.04);
 }
 
-.pedidoItem:hover { background: #f8fafc; }
+.pedidoItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
 
 .pedidoAtivo {
-  background: #f1f5f9;
-  border-color: #0f172a;
+  background: rgba(124, 58, 237, 0.15);
+  border-color: #7c3aed;
 }
 
 .pedidoCliente {
-  font-size: 12px;
-  font-weight: 500;
-  color: #0f172a;
-  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f8f7ff;
+  margin-bottom: 6px;
 }
 
 .pedidoRota {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   font-size: 11px;
-  color: #475569;
-  margin-bottom: 3px;
+  color: #d8c8ff;
+  margin-bottom: 6px;
 }
 
 .rotaArrow {
-  color: #94a3b8;
+  color: #b7a7ff;
   font-size: 10px;
 }
 
 .pedidoMeta {
   font-size: 10px;
-  color: #94a3b8;
+  color: #b7a7ff;
+  margin-bottom: 8px;
 }
 
 .pedidoActions {
   display: flex;
-  gap: 6px;
-  margin-top: 8px;
+  gap: 8px;
+  margin-top: 10px;
 }
 
 .btnAceitar {
   flex: 1;
-  padding: 5px;
-  background: #0f172a;
-  color: #facc15;
-  font-size: 11px;
-  font-weight: 500;
+  padding: 8px;
+  background: #7c3aed;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnAceitar:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 16px rgba(124, 58, 237, 0.2);
 }
 
 .btnRejeitar {
   flex: 1;
-  padding: 5px;
-  background: none;
-  color: #dc2626;
-  font-size: 11px;
-  border: 0.5px solid #fecaca;
-  border-radius: 6px;
+  padding: 8px;
+  background: transparent;
+  color: #ffb3c6;
+  font-size: 12px;
+  border: 1px solid rgba(255, 179, 198, 0.3);
+  border-radius: 8px;
   cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btnRejeitar:hover {
+  background: rgba(255, 71, 125, 0.1);
+  border-color: rgba(255, 179, 198, 0.6);
+  transform: translateY(-1px);
+}
+
+/* Histórico de Viagens */
+.historicList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 1rem;
+}
+
+.historicoItem {
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  transition: all 0.12s;
+  cursor: pointer;
+}
+
+.historicoItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.historicoHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.historicoCliente {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f8f7ff;
+}
+
+.historicoGanho {
+  font-size: 13px;
+  font-weight: 700;
+  color: #7c3aed;
+}
+
+.historicoRota {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #d8c8ff;
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.historicoMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: #b7a7ff;
+}
+
+.metaDot {
+  color: #b7a7ff;
 }
 
 /* Mapa */
 .mapaWrap {
   flex: 1;
   position: relative;
+  height: 100%;
+
 }
+
+/* Profile Card */
+.profileCardWrapper {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+}
+
+.profileBtn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%; /* 🔥 chave aqui */
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.profileBtn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);
+}
+
+.profileMenu {
+  position: absolute;
+  top: 110%;
+  right: 0;
+  background: rgba(18, 8, 35, 0.98);
+  border-radius: 12px;
+  overflow: hidden;
+  min-width: 180px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.profileMenuItem {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #f8f7ff;
+  cursor: pointer;
+  transition: background 0.15s;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+}
+
+
+.profileMenuItem:hover {
+  background: rgba(124, 58, 237, 0.15);
+}
+.profileMenuItem:last-child {
+  border-bottom: none;
+}
+
+
 
 /* Popup */
 .popup {
   position: absolute;
   bottom: 24px;
   right: 24px;
-  background: #fff;
-  border: 0.5px solid #e2e8f0;
+  background: rgba(18, 8, 35, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 10px;
   padding: 14px;
-  min-width: 180px;
+  min-width: 200px;
   z-index: 10;
+  backdrop-filter: blur(10px);
 }
 
 .popupClose {
@@ -244,14 +340,19 @@
   border: none;
   font-size: 16px;
   cursor: pointer;
-  color: #94a3b8;
+  color: #b7a7ff;
   line-height: 1;
+  transition: color 0.12s;
+}
+
+.popupClose:hover {
+  color: #d8c8ff;
 }
 
 .popupMatricula {
   font-size: 14px;
   font-weight: 500;
-  color: #0f172a;
+  color: #f8f7ff;
   font-family: monospace;
   margin-bottom: 10px;
 }
@@ -261,18 +362,76 @@
   justify-content: space-between;
   font-size: 12px;
   margin-bottom: 5px;
-  color: #0f172a;
+  color: #f8f7ff;
 }
 
-.popupLabel { color: #64748b; }
+.popupLabel {
+  color: #d8c8ff;
+}
 
 .popupEstado {
   font-weight: 500;
   text-transform: capitalize;
 }
 
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1.5rem;
+}
+
+.brandLogo {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: white;
+}
+
+.brandName {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.brandSub {
+  font-size: 11px;
+  color: #b7a7ff;
+}
+
+
 @media (max-width: 768px) {
-  .root { flex-direction: column; height: auto; margin: -1rem; }
-  .sidebar { width: 100%; border-right: none; border-bottom: 0.5px solid #e2e8f0; max-height: 300px; }
-  .mapaWrap { height: 400px; }
+  .root {
+    flex-direction: column;
+    height: auto;
+    margin: -1rem;
+  }
+  
+  .sidebar {
+    width: 100%;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    max-height: 300px;
+  }
+  
+  .mapaWrap {
+    height: 450px;
+  }
+  
+  .profileCardWrapper {
+    top: 10px;
+    right: 10px;
+  }
+  
+  .profileBtn {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
 }

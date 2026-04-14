@@ -3,8 +3,10 @@ import MapaBase from "../../components/MapaBase";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
 import { TAXIS_MOCK, COR_ESTADO } from "../../services/mockData";
 import styles from "./PedirTaxiPage.module.css";
+import { useAuth } from "../../context/AuthContext";
 
 const CONFORTO_OPTS = ["Standard", "Conforto", "Premium"];
+
 
 // Função auxiliar: calcular distância em km entre dois pontos (haversine)
 function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
@@ -22,6 +24,8 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
 }
 
 export default function PedirTaxiPage() {
+    const [profileOpen, setProfileOpen] = useState(false);
+
   const [origemInput,    setOrigemInput]    = useState("");
   const [destinoInput,   setDestinoInput]   = useState("");
   const [origemCoords,   setOrigemCoords]   = useState(null);
@@ -39,6 +43,8 @@ export default function PedirTaxiPage() {
   const [duracao,        setDuracao]        = useState(0);
   const [precos,         setPrecos]         = useState({}); // { Standard: {...}, Conforto: {...}, Premium: {...} }
   const [carregandoPrecos, setCarregandoPrecos] = useState(false);
+  const { user, logout } = useAuth();
+
 
   const origemTimer  = useRef(null);
   const destinoTimer = useRef(null);
@@ -241,9 +247,12 @@ export default function PedirTaxiPage() {
 
         {step === "form" && (
           <>
-            <div className={styles.sidebarHeader}>
-              <h2 className={styles.title}>Pedir Hermez</h2>
-              <p className={styles.subtitle}>Introduz a tua rota</p>
+            <div className={styles.brand}>
+              <div className={styles.brandLogo}>H</div>
+              <div>
+                <div className={styles.brandName}>Hermez</div>
+                <div className={styles.brandSub}>Pedir viagem</div>
+              </div>
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
@@ -456,6 +465,29 @@ export default function PedirTaxiPage() {
 
       {/* Mapa */}
       <div className={styles.mapaWrap}>
+
+        <div className={styles.profileCardWrapper}>
+          <button
+            className={styles.profileBtn}
+            onClick={() => setProfileOpen(v => !v)}
+          >
+            {user?.email
+              ? user.email.slice(0, 2).toUpperCase()
+              : "??"}
+          </button>
+
+          {profileOpen && (
+            <div className={styles.profileMenu}>
+              <button className={styles.profileMenuItem}>
+                Editar perfil
+              </button>
+              <button className={styles.profileMenuItem} onClick={logout}>
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+
         <MapaBase
           markers={markers}
           routePoints={routePoints}

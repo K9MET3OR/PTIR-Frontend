@@ -38,15 +38,13 @@ export default function App() {
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={["motorista"]} />}>
-           <Route element={<DashboardLayout />}>
-              <Route path="/motorista/mapa" element={<MapaPedidosPage />} />
-            </Route>
+            <Route path="/motorista/mapa" element={<MapaPedidosPage />} />
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={["cliente"]} />}>
-           <Route element={<DashboardLayout />}>
-              <Route path="/cliente/pedir" element={<PedirTaxiPage />} />
-            </Route>
+           
+            <Route path="/cliente/pedir" element={<PedirTaxiPage />} />
+            
           </Route>
 
           {/* Fallback */}
