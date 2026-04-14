@@ -5,32 +5,21 @@ import { TAXIS_MOCK, COR_ESTADO } from "../../services/mockData";
 import styles from "./PedirTaxiPage.module.css";
 
 const CONFORTO_OPTS = ["Standard", "Conforto", "Premium"];
-const RIDE_OPTIONS = [
-  {
-    id: "standard",
-    title: "Hermez Standard",
-    subtitle: "Viagens diárias económicas",
-    duration: "4 min",
-    price: "10,94 €",
-    nivel: "Standard",
-  },
-  {
-    id: "conforto",
-    title: "Hermez Conforto",
-    subtitle: "Viagens mais rápidas e confortáveis",
-    duration: "3 min",
-    price: "13,99 €",
-    nivel: "Conforto",
-  },
-  {
-    id: "premium",
-    title: "Hermez Premium",
-    subtitle: "Viagens com serviço premium e melhor espaço",
-    duration: "4 min",
-    price: "18,98 €",
-    nivel: "Premium",
-  },
-];
+
+// Função auxiliar: calcular distância em km entre dois pontos (haversine)
+function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Raio da Terra em km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 export default function PedirTaxiPage() {
   const [origemInput,    setOrigemInput]    = useState("");
@@ -41,14 +30,70 @@ export default function PedirTaxiPage() {
   const [sugestoesDestino, setSugestoesDestino] = useState([]);
   const [nPessoas,       setNPessoas]       = useState(1);
   const [conforto,       setConforto]       = useState("Standard");
-  const [selectedRide,   setSelectedRide]   = useState(RIDE_OPTIONS[0].id);
+  const [selectedRide,   setSelectedRide]   = useState("Standard");
   const [step,           setStep]           = useState("form"); // form | opcoes | aguardar
   const [loading,        setLoading]        = useState(false);
   const [erro,           setErro]           = useState("");
   const [routePoints,    setRoutePoints]    = useState([]);
+  const [distanciaKm,    setDistanciaKm]    = useState(0);
+  const [duracao,        setDuracao]        = useState(0);
+  const [precos,         setPrecos]         = useState({}); // { Standard: {...}, Conforto: {...}, Premium: {...} }
+  const [carregandoPrecos, setCarregandoPrecos] = useState(false);
 
   const origemTimer  = useRef(null);
   const destinoTimer = useRef(null);
+
+  // Função: Calcular preços para os 3 níveis de conforto
+  async function calcularPrecos(lat1, lon1, lat2, lon2) {
+    const distancia = calcularDistanciaKm(lat1, lon1, lat2, lon2);
+    const duracao = Math.round((distancia / 40) * 60); // Estimativa: 40 km/h
+
+    setDistanciaKm(distancia);
+    setDuracao(duracao);
+    setCarregandoPrecos(true);
+
+    try {
+      const precosCalculados = {};
+      
+      for (const nivel of CONFORTO_OPTS) {
+        const res = await fetch("http://localhost:8000/api/taxis/calcular-preco-com-conforto", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            distancia_km: distancia,
+            duracao_minutos: duracao,
+            nivel_conforto: nivel,
+          }),
+        });
+
+        if (!res.ok) throw new Error("Erro ao calcular preço");
+        const data = await res.json();
+        precosCalculados[nivel] = {
+          price: data.price,
+          breakdown: data.breakdown,
+        };
+      }
+
+      setPrecos(precosCalculados);
+    } catch (err) {
+      console.error("Erro ao calcular preços:", err);
+      setErro("Erro ao calcular preços. Tenta novamente.");
+    } finally {
+      setCarregandoPrecos(false);
+    }
+  }
+
+  // Efeito: Quando origem/destino mudam, recalcula preços
+  useEffect(() => {
+    if (origemCoords && destinoCoords) {
+      calcularPrecos(
+        origemCoords.lat,
+        origemCoords.lon,
+        destinoCoords.lat,
+        destinoCoords.lon
+      );
+    }
+  }, [origemCoords, destinoCoords]);
 
   // Monta markers — táxis disponíveis + origem/destino se definidos
   const markers = [
@@ -331,40 +376,65 @@ export default function PedirTaxiPage() {
                 <span>{nPessoas}</span>
               </div>
               <div className={styles.metaRow}>
-                <span className={styles.metaLabel}>Filtrar por conforto</span>
+                <span className={styles.metaLabel}>Distância</span>
+                <span>{distanciaKm.toFixed(1)} km</span>
+              </div>
+              <div className={styles.metaRow}>
+                <span className={styles.metaLabel}>Duração est.</span>
+                <span>~{duracao} min</span>
+              </div>
+              <div className={styles.metaRow}>
+                <span className={styles.metaLabel}>Nível de conforto</span>
                 <span>{conforto}</span>
               </div>
             </div>
 
             <div className={styles.rideList}>
-              {RIDE_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  className={`${styles.rideCard} ${selectedRide === option.id ? styles.rideCardAtivo : ""}`}
-                  onClick={() => {
-                    setSelectedRide(option.id);
-                    setConforto(option.nivel);
-                  }}
-                >
-                  <div className={styles.rideInfo}>
-                    <div className={styles.rideTitle}>{option.title}</div>
-                    <div className={styles.rideSubtitle}>{option.subtitle}</div>
-                  </div>
-                  <div className={styles.rideMeta}>
-                    <span className={styles.ridePrice}>{option.price}</span>
-                    <span className={styles.rideDuration}>{option.duration}</span>
-                  </div>
-                </button>
-              ))}
+              {CONFORTO_OPTS.map((nivel) => {
+                const preco = precos[nivel];
+                const descricao = {
+                  Standard: "Viagens diárias económicas",
+                  Conforto: "Viagens mais rápidas e confortáveis",
+                  Premium: "Viagens com serviço premium e melhor espaço",
+                };
+                const titulo = {
+                  Standard: "Hermez Standard",
+                  Conforto: "Hermez Conforto",
+                  Premium: "Hermez Premium",
+                };
+
+                return (
+                  <button
+                    key={nivel}
+                    type="button"
+                    className={`${styles.rideCard} ${selectedRide === nivel ? styles.rideCardAtivo : ""}`}
+                    onClick={() => {
+                      setSelectedRide(nivel);
+                      setConforto(nivel);
+                    }}
+                    disabled={carregandoPrecos}
+                  >
+                    <div className={styles.rideInfo}>
+                      <div className={styles.rideTitle}>{titulo[nivel]}</div>
+                      <div className={styles.rideSubtitle}>{descricao[nivel]}</div>
+                    </div>
+                    <div className={styles.rideMeta}>
+                      <span className={styles.ridePrice}>
+                        {preco ? `${preco.price.toFixed(2)} €` : "-"}
+                      </span>
+                      <span className={styles.rideDuration}>{duracao > 0 ? `~${duracao} min` : "-"}</span>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
             <button
               className={styles.submitBtn}
               onClick={confirmarPedido}
-              disabled={loading}
+              disabled={loading || carregandoPrecos}
             >
-              {loading ? "A enviar…" : `Pedir ${RIDE_OPTIONS.find((o) => o.id === selectedRide)?.title}`}
+              {loading ? "A enviar…" : `Pedir Hermez ${selectedRide}`}
             </button>
             <button className={styles.cancelBtn} onClick={cancelar}>
               Voltar
