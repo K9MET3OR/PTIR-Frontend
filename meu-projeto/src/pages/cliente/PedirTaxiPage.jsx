@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import MapaBase from "../../components/MapaBase";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
-import { criarSolicitacaoViagem } from "../../services/tripService";
+import { criarSolicitacaoViagem, atualizarViagem } from "../../services/tripService";
 import { taxiService } from "../../services/taxiService";
 import { useAuth } from "../../context/AuthContext";
 import { COR_ESTADO } from "../../services/mockData";
@@ -253,6 +253,7 @@ export default function PedirTaxiPage() {
     if (!destinoCoords) { setErro("Seleciona um local de destino válido."); return; }
     if (nPessoas < 1 || nPessoas > 4) { setErro("Número de pessoas entre 1 e 4."); return; }
 
+    setSelectedRide(conforto);
     setStep("opcoes");
   }
 
@@ -266,7 +267,7 @@ export default function PedirTaxiPage() {
     setErro("");
 
     const precoSelecionado = precos[selectedRide];
-    const preco = precoSelecionado ? Math.round(precoSelecionado.price * 100) : 0; // em centavos
+    const preco = precoSelecionado ? Number(precoSelecionado.price) : 0;
 
     criarSolicitacaoViagem({
       clientId: user.id,
@@ -274,7 +275,9 @@ export default function PedirTaxiPage() {
       endLocation: destinoInput,
       nPeople: nPessoas,
       nKms: distanciaKm,
-      price: preco / 100, // converter para euros
+      price: preco,
+      startDate: new Date().toISOString(),
+      nivelConforto: selectedRide,
     })
       .then((response) => {
         if (response.trip && response.trip.id) {
@@ -293,13 +296,23 @@ export default function PedirTaxiPage() {
       });
   }
 
-  function cancelar() {
+  async function cancelar() {
+    try {
+      if (tripId) {
+        await atualizarViagem(tripId, { status_trip: "cancelled" });
+      }
+    } catch (error) {
+      console.error("Erro ao cancelar viagem:", error);
+    }
+
     setStep("form");
     setOrigemInput("");
     setDestinoInput("");
     setOrigemCoords(null);
     setDestinoCoords(null);
-    setSelectedRide(RIDE_OPTIONS[0].id);
+    setSelectedRide("Standard");
+    setConforto("Standard");
+    setTripId(null);
     setErro("");
   }
 
@@ -510,6 +523,8 @@ export default function PedirTaxiPage() {
                 );
               })}
             </div>
+
+            {erro && <p className={styles.erro}>{erro}</p>}
 
             <button
               className={styles.submitBtn}

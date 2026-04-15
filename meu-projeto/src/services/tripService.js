@@ -12,11 +12,13 @@ export async function criarSolicitacaoViagem(tripData) {
       n_people: tripData.nPeople,
       n_kms: tripData.nKms,
       price: tripData.price,
+      start_date: tripData.startDate,
+      nivel_conforto: tripData.nivelConforto,
       status_trip: 'pending',
     });
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao criar solicitação de viagem' };
+    throw { message: error.message || 'Erro ao criar solicitação de viagem' };
   }
 }
 
@@ -26,9 +28,9 @@ export async function criarSolicitacaoViagem(tripData) {
 export async function listarViagens() {
   try {
     const response = await api.get('/trip/listar/');
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao listar viagens' };
+    throw { message: error.message || 'Erro ao listar viagens' };
   }
 }
 
@@ -38,9 +40,9 @@ export async function listarViagens() {
 export async function obterDetalheViagem(tripId) {
   try {
     const response = await api.get(`/trip/${tripId}/`);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao obter detalhes da viagem' };
+    throw { message: error.message || 'Erro ao obter detalhes da viagem' };
   }
 }
 
@@ -50,9 +52,9 @@ export async function obterDetalheViagem(tripId) {
 export async function aceitarViagem(tripId) {
   try {
     const response = await api.post(`/trip/${tripId}/accept/`);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao aceitar viagem' };
+    throw { message: error.message || 'Erro ao aceitar viagem' };
   }
 }
 
@@ -62,9 +64,9 @@ export async function aceitarViagem(tripId) {
 export async function rejeitarViagem(tripId) {
   try {
     const response = await api.post(`/trip/${tripId}/reject/`);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao rejeitar viagem' };
+    throw { message: error.message || 'Erro ao rejeitar viagem' };
   }
 }
 
@@ -74,9 +76,9 @@ export async function rejeitarViagem(tripId) {
 export async function finalizarViagem(tripId) {
   try {
     const response = await api.post(`/trip/${tripId}/finish/`);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao finalizar viagem' };
+    throw { message: error.message || 'Erro ao finalizar viagem' };
   }
 }
 
@@ -86,9 +88,9 @@ export async function finalizarViagem(tripId) {
 export async function atualizarViagem(tripId, updateData) {
   try {
     const response = await api.patch(`/trip/${tripId}/`, updateData);
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao atualizar viagem' };
+    throw { message: error.message || 'Erro ao atualizar viagem' };
   }
 }
 
@@ -102,9 +104,9 @@ export async function criarIntencaoPagamento(tripId, amount) {
       amount: amount,
       description: `Pagamento de viagem - ${tripId}`,
     });
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao criar intenção de pagamento' };
+    throw { message: error.message || 'Erro ao criar intenção de pagamento' };
   }
 }
 
@@ -117,9 +119,9 @@ export async function confirmarPagamento(tripId, paymentIntentId) {
       trip_id: tripId,
       payment_intent_id: paymentIntentId,
     });
-    return response.data;
+    return response;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao confirmar pagamento' };
+    throw { message: error.message || 'Erro ao confirmar pagamento' };
   }
 }
 
@@ -128,8 +130,7 @@ export async function confirmarPagamento(tripId, paymentIntentId) {
  */
 export async function listarViagensCliente(clientId) {
   try {
-    const response = await api.get('/trip/listar/');
-    const data = response.data;
+    const data = await api.get('/trip/listar/');
     // Filtrar para apenas viagens do cliente
     if (data.trips) {
       data.trips = data.trips.filter(trip => trip.client_id === clientId);
@@ -137,7 +138,7 @@ export async function listarViagensCliente(clientId) {
     }
     return data;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao listar viagens do cliente' };
+    throw { message: error.message || 'Erro ao listar viagens do cliente' };
   }
 }
 
@@ -146,8 +147,7 @@ export async function listarViagensCliente(clientId) {
  */
 export async function listarViagensPendentes() {
   try {
-    const response = await api.get('/trip/listar/');
-    const data = response.data;
+    const data = await api.get('/trip/listar/');
     // Filtrar para apenas viagens com status pending
     if (data.trips) {
       data.trips = data.trips.filter(trip => trip.status_trip === 'pending');
@@ -155,7 +155,7 @@ export async function listarViagensPendentes() {
     }
     return data;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao listar viagens pendentes' };
+    throw { message: error.message || 'Erro ao listar viagens pendentes' };
   }
 }
 
@@ -164,8 +164,7 @@ export async function listarViagensPendentes() {
  */
 export async function listarViagensAceitesMotorista(driverId) {
   try {
-    const response = await api.get('/trip/listar/');
-    const data = response.data;
+    const data = await api.get('/trip/listar/');
     // Filtrar para viagens do motorista com status accepted ou in_progress
     if (data.trips) {
       data.trips = data.trips.filter(
@@ -176,6 +175,6 @@ export async function listarViagensAceitesMotorista(driverId) {
     }
     return data;
   } catch (error) {
-    throw error.response?.data || { message: 'Erro ao listar viagens do motorista' };
+    throw { message: error.message || 'Erro ao listar viagens do motorista' };
   }
 }
