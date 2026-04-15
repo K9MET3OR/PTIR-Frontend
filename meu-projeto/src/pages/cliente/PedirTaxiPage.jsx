@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import MapaBase from "../../components/MapaBase";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
-import { TAXIS_MOCK, COR_ESTADO } from "../../services/mockData";
-import styles from "./PedirTaxiPage.module.css";
+import { criarSolicitacaoViagem } from "../../services/tripService";
+import { taxiService } from "../../services/taxiService";
 import { useAuth } from "../../context/AuthContext";
+import { COR_ESTADO } from "../../services/mockData";
+import styles from "./PedirTaxiPage.module.css";
 
 const CONFORTO_OPTS = ["Standard", "Conforto", "Premium"];
 
@@ -24,8 +26,12 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
 }
 
 export default function PedirTaxiPage() {
+<<<<<<< HEAD
   const [profileOpen, setProfileOpen] = useState(false);
 
+=======
+  const { user, logout } = useAuth();
+>>>>>>> ed051bf7396ede8667a4a1bc5c16d17b157ab66b
   const [origemInput,    setOrigemInput]    = useState("");
   const [destinoInput,   setDestinoInput]   = useState("");
   const [origemCoords,   setOrigemCoords]   = useState(null);
@@ -43,11 +49,45 @@ export default function PedirTaxiPage() {
   const [duracao,        setDuracao]        = useState(0);
   const [precos,         setPrecos]         = useState({}); // { Standard: {...}, Conforto: {...}, Premium: {...} }
   const [carregandoPrecos, setCarregandoPrecos] = useState(false);
-  const { user, logout } = useAuth();
-
+  const [tripId,         setTripId]         = useState(null);
+  const [taxis,          setTaxis]          = useState([]);
+  const [profileOpen,    setProfileOpen]    = useState(false);
+  const [carregandoTaxis, setCarregandoTaxis] = useState(false);
 
   const origemTimer  = useRef(null);
   const destinoTimer = useRef(null);
+
+  // Effect: Carregar táxis ao montar o componente
+  useEffect(() => {
+    carregarTaxis();
+  }, []);
+
+  async function carregarTaxis() {
+    setCarregandoTaxis(true);
+    try {
+      const response = await taxiService.list();
+      // A API retorna transformada para { data: [...] }
+      const todosTaxis = response.data || [];
+      
+      // Mapear a resposta para o formato esperado
+      const taxisFormatados = todosTaxis.map(taxi => ({
+        id: taxi.id,
+        matricula: taxi.matricula,
+        lon: parseFloat(taxi.longitude) || -9.1393,
+        lat: parseFloat(taxi.latitude) || 38.7223,
+        estado: taxi.estado || "disponivel",
+        nivel_conforto: taxi.nivel_conforto || "Standard",
+        marca: taxi.marca || "",
+        modelo: taxi.modelo || "",
+      }));
+      setTaxis(taxisFormatados);
+    } catch (error) {
+      console.error("Erro ao carregar táxis:", error);
+      setTaxis([]); // Usar lista vazia em caso de erro
+    } finally {
+      setCarregandoTaxis(false);
+    }
+  }
 
   // Função: Calcular preços para os 3 níveis de conforto
   async function calcularPrecos(lat1, lon1, lat2, lon2) {
@@ -103,7 +143,7 @@ export default function PedirTaxiPage() {
 
   // Monta markers — táxis disponíveis + origem/destino se definidos
   const markers = [
-    ...TAXIS_MOCK.filter((t) => t.estado === "disponivel").map((t) => ({
+    ...taxis.filter((t) => t.estado === "disponivel").map((t) => ({
       ...t,
       label: t.matricula,
       color: COR_ESTADO.disponivel,
@@ -222,12 +262,40 @@ export default function PedirTaxiPage() {
   }
 
   function confirmarPedido() {
+    if (!user || !user.id) {
+      setErro("Tens de estar autenticado para fazer um pedido.");
+      return;
+    }
+
     setLoading(true);
-    // Simula envio para API (quando o backend estiver pronto substitui por pedidoService.create)
-    setTimeout(() => {
-      setLoading(false);
-      setStep("aguardar");
-    }, 1200);
+    setErro("");
+
+    const precoSelecionado = precos[selectedRide];
+    const preco = precoSelecionado ? Math.round(precoSelecionado.price * 100) : 0; // em centavos
+
+    criarSolicitacaoViagem({
+      clientId: user.id,
+      startLocation: origemInput,
+      endLocation: destinoInput,
+      nPeople: nPessoas,
+      nKms: distanciaKm,
+      price: preco / 100, // converter para euros
+    })
+      .then((response) => {
+        if (response.trip && response.trip.id) {
+          setTripId(response.trip.id);
+          setLoading(false);
+          setStep("aguardar");
+        } else {
+          setErro("Resposta do servidor inválida.");
+          setLoading(false);
+        }
+      })
+      .catch((error) => {
+        console.error("Erro ao criar solicitação:", error);
+        setErro(error.message || "Erro ao enviar pedido. Tenta novamente.");
+        setLoading(false);
+      });
   }
 
   function cancelar() {
@@ -344,12 +412,22 @@ export default function PedirTaxiPage() {
             <div className={styles.divider} />
             <div className={styles.legendaTitle}>Táxis disponíveis</div>
             <div className={styles.legenda}>
-              {TAXIS_MOCK.filter((t) => t.estado === "disponivel").map((t) => (
-                <div key={t.id} className={styles.legendaItem}>
-                  <div className={styles.legendaDot} style={{ background: COR_ESTADO.disponivel }} />
-                  <span>{t.matricula} · {t.nivel_conforto}</span>
+              {carregandoTaxis ? (
+                <div style={{ padding: "1rem", color: "#6b7280", fontSize: "0.9rem" }}>
+                  A carregar táxis...
                 </div>
-              ))}
+              ) : taxis.filter((t) => t.estado === "disponivel").length === 0 ? (
+                <div style={{ padding: "1rem", color: "#6b7280", fontSize: "0.9rem" }}>
+                  Nenhum táxi disponível no momento
+                </div>
+              ) : (
+                taxis.filter((t) => t.estado === "disponivel").map((t) => (
+                  <div key={t.id} className={styles.legendaItem}>
+                    <div className={styles.legendaDot} style={{ background: COR_ESTADO.disponivel }} />
+                    <span>{t.matricula} · {t.nivel_conforto}</span>
+                  </div>
+                ))
+              )}
             </div>
           </>
         )}
