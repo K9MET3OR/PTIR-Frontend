@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import MapaBase from "../../components/MapaBase";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
-import { criarSolicitacaoViagem, atualizarViagem } from "../../services/tripService";
+import { criarSolicitacaoViagem, atualizarViagem, obterDetalheViagem} from "../../services/tripService";
 import { taxiService } from "../../services/taxiService";
 import { useAuth } from "../../context/AuthContext";
 import { COR_ESTADO } from "../../services/mockData";
@@ -48,6 +48,7 @@ export default function PedirTaxiPage() {
   const [taxis,          setTaxis]          = useState([]);
   const [profileOpen,    setProfileOpen]    = useState(false);
   const [carregandoTaxis, setCarregandoTaxis] = useState(false);
+  const [estadoViagem, setEstadoViagem] = useState(null);
 
   const origemTimer  = useRef(null);
   const destinoTimer = useRef(null);
@@ -56,6 +57,41 @@ export default function PedirTaxiPage() {
   useEffect(() => {
     carregarTaxis();
   }, []);
+
+  // Effect: Fazer polling enquanto está à espera
+  useEffect(() => {
+    if (step !== "aguardar" || !tripId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const response = await obterDetalheViagem(tripId);
+        const trip = response?.trip;
+
+        if (!trip) return;
+
+        setEstadoViagem(trip.status_trip);
+
+        if (trip.status_trip === "accepted") {
+          setStep("aceite");
+        }
+
+        if (trip.status_trip === "cancelled") {
+          setErro("O pedido foi cancelado.");
+          setStep("form");
+          setTripId(null);
+          setEstadoViagem(null);
+        }
+
+        if (trip.status_trip === "finished") {
+          setStep("finalizada");
+        }
+      } catch (error) {
+        console.error("Erro ao verificar estado da viagem:", error);
+      }
+    }, 3000);
+
+  return () => clearInterval(interval);
+}, [step, tripId]);
 
   async function carregarTaxis() {
     setCarregandoTaxis(true);
@@ -282,6 +318,7 @@ export default function PedirTaxiPage() {
       .then((response) => {
         if (response.trip && response.trip.id) {
           setTripId(response.trip.id);
+          setEstadoViagem(response.trip.status_trip || "pending");
           setLoading(false);
           setStep("aguardar");
         } else {
@@ -313,6 +350,7 @@ export default function PedirTaxiPage() {
     setSelectedRide("Standard");
     setConforto("Standard");
     setTripId(null);
+    setEstadoViagem(null);
     setErro("");
   }
 
@@ -547,6 +585,26 @@ export default function PedirTaxiPage() {
             <button className={styles.cancelBtn} style={{ marginTop: "1.5rem" }} onClick={cancelar}>
               Cancelar pedido
             </button>
+          </div>
+        )}
+
+        {step === "aceite" && (
+          <div className={styles.aguardar}>
+            <div className={styles.aguardarIcon}>🚕</div>
+            <h2 className={styles.title}>Motorista encontrado</h2>
+            <p className={styles.subtitle}>
+              O teu pedido foi aceite. O motorista está a caminho.
+            </p>
+          </div>
+        )}
+
+        {step === "finalizada" && (
+          <div className={styles.aguardar}>
+            <div className={styles.aguardarIcon}>✅</div>
+            <h2 className={styles.title}>Viagem concluída</h2>
+            <p className={styles.subtitle}>
+              A tua viagem foi finalizada com sucesso.
+            </p>
           </div>
         )}
       </aside>

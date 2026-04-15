@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import { listarViagensPendentes, aceitarViagem, rejeitarViagem, listarViagensAceitesMotorista } from '../../services/tripService';
+import { listarViagensPendentes, aceitarViagem, listarViagensAceitesMotorista } from '../../services/tripService';
 import styles from './PedidosMotoristaPage.module.css';
 
 export default function PedidosMotoristaPage() {
@@ -12,11 +12,12 @@ export default function PedidosMotoristaPage() {
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
   const [carregandoId, setCarregandoId] = useState(null);
+  const [viagensIgnoradas, setViagensIgnoradas] = useState([]);
 
   // Carregar dados
   useEffect(() => {
     carregarDados();
-  }, [tab]);
+  }, [tab, user]);
 
   const carregarDados = async () => {
     setLoading(true);
@@ -39,35 +40,23 @@ export default function PedidosMotoristaPage() {
   };
 
   const handleAceitarViagem = async (tripId) => {
-    setCarregandoId(tripId);
+    setErro('');
+    setSucesso('');
     try {
-      await aceitarViagem(tripId);
-      setSucesso('Viagem aceite com sucesso!');
-      setTimeout(() => {
-        setSucesso('');
-        carregarDados();
-      }, 2000);
+      setCarregandoId(tripId);
+      await aceitarViagem(tripId, user.id);
+      setSucesso('Viagem aceite com sucesso.');
+      await carregarDados();
     } catch (error) {
-      setErro(error.message || 'Erro ao aceitar viagem');
+      console.error("Erro ao aceitar viagem:", error);
+      setErro(error.message || "Erro ao aceitar viagem.");
     } finally {
       setCarregandoId(null);
     }
   };
 
-  const handleRejeitarViagem = async (tripId) => {
-    setCarregandoId(tripId);
-    try {
-      await rejeitarViagem(tripId);
-      setSucesso('Viagem rejeitada');
-      setTimeout(() => {
-        setSucesso('');
-        carregarDados();
-      }, 2000);
-    } catch (error) {
-      setErro(error.message || 'Erro ao rejeitar viagem');
-    } finally {
-      setCarregandoId(null);
-    }
+  const handleIgnorarViagem = (tripId) => {
+    setViagensIgnoradas(prev => [...prev, tripId]);
   };
 
   const formatarData = (dataISO) => {
@@ -117,7 +106,9 @@ export default function PedidosMotoristaPage() {
                 <p>Não há viagens pendentes neste momento</p>
               </div>
             ) : (
-              viagensPendentes.map(viagem => (
+              viagensPendentes
+                .filter(viagem => !viagensIgnoradas.includes(viagem.id))
+                .map(viagem => (
                 <div key={viagem.id} className={styles.card}>
                   <div className={styles.cardHeader}>
                     <div className={styles.rota}>
@@ -143,10 +134,10 @@ export default function PedidosMotoristaPage() {
                   <div className={styles.cardActions}>
                     <button
                       className={`${styles.btn} ${styles.btnRejeitar}`}
-                      onClick={() => handleRejeitarViagem(viagem.id)}
+                      onClick={() => handleIgnorarViagem(viagem.id)}
                       disabled={carregandoId === viagem.id}
                     >
-                      {carregandoId === viagem.id ? 'A processar...' : 'Rejeitar'}
+                      Ignorar
                     </button>
                     <button
                       className={`${styles.btn} ${styles.btnAceitar}`}

@@ -49,9 +49,11 @@ export async function obterDetalheViagem(tripId) {
 /**
  * Motorista aceita uma viagem
  */
-export async function aceitarViagem(tripId) {
+export async function aceitarViagem(tripId, driverId) {
   try {
-    const response = await api.post(`/trip/${tripId}/accept/`);
+    const response = await api.post(`/trip/${tripId}/accept/`, {
+      driver_id: driverId,
+    });
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao aceitar viagem' };
