@@ -1,16 +1,21 @@
 import { auth } from "./firebase";
 
-const RAW_API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
-const BASE_URL = RAW_API_URL.endsWith("/api")
-  ? RAW_API_URL
-  : `${RAW_API_URL.replace(/\/+$/, "")}/api`;
+// Em desenvolvimento, usa o proxy do Vite. Em produção, usa a URL completa do .env
+const BASE_URL = import.meta.env.VITE_API_URL 
+  ? import.meta.env.VITE_API_URL.endsWith("/api")
+    ? import.meta.env.VITE_API_URL
+    : `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api`
+  : "/api";
 
 async function apiFetch(path, options = {}) {
   // 1. Pede o token atual ao Firebase
   const firebaseUser = auth.currentUser;
   const token = firebaseUser ? await firebaseUser.getIdToken() : null;
 
-  const res = await fetch(`${BASE_URL}${path}`, {
+  const fullUrl = `${BASE_URL}${path}`;
+  console.log("[API] Fetching:", fullUrl, "with token:", token ? "✓" : "✗");
+
+  const res = await fetch(fullUrl, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -19,6 +24,8 @@ async function apiFetch(path, options = {}) {
       ...options.headers,
     },
   });
+
+  console.log("[API] Response:", fullUrl, res.status);
 
   if (!res.ok) {
     const error = await res.json().catch(() => ({ message: res.statusText }));

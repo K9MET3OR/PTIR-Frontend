@@ -1,13 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { useContext } from "react";
 import MapaBase from "../../components/MapaBase";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
 import { criarSolicitacaoViagem } from "../../services/tripService";
 import { taxiService } from "../../services/taxiService";
-import { AuthContext } from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 import { COR_ESTADO } from "../../services/mockData";
 import styles from "./PedirTaxiPage.module.css";
-import { useAuth } from "../../context/AuthContext";
 
 const CONFORTO_OPTS = ["Standard", "Conforto", "Premium"];
 
@@ -28,12 +26,7 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
 }
 
 export default function PedirTaxiPage() {
-<<<<<<< HEAD
-  const { user } = useContext(AuthContext);
-=======
-    const [profileOpen, setProfileOpen] = useState(false);
-
->>>>>>> 37498c4e0f55973f6676bf90b664eb9539c50aad
+  const { user, logout } = useAuth();
   const [origemInput,    setOrigemInput]    = useState("");
   const [destinoInput,   setDestinoInput]   = useState("");
   const [origemCoords,   setOrigemCoords]   = useState(null);
@@ -51,14 +44,10 @@ export default function PedirTaxiPage() {
   const [duracao,        setDuracao]        = useState(0);
   const [precos,         setPrecos]         = useState({}); // { Standard: {...}, Conforto: {...}, Premium: {...} }
   const [carregandoPrecos, setCarregandoPrecos] = useState(false);
-<<<<<<< HEAD
   const [tripId,         setTripId]         = useState(null);
   const [taxis,          setTaxis]          = useState([]);
+  const [profileOpen,    setProfileOpen]    = useState(false);
   const [carregandoTaxis, setCarregandoTaxis] = useState(false);
-=======
-  const { user, logout } = useAuth();
-
->>>>>>> 37498c4e0f55973f6676bf90b664eb9539c50aad
 
   const origemTimer  = useRef(null);
   const destinoTimer = useRef(null);
@@ -72,8 +61,8 @@ export default function PedirTaxiPage() {
     setCarregandoTaxis(true);
     try {
       const response = await taxiService.list();
-      // A API retorna { success: true, taxis: [...], total: N }
-      const todosTaxis = response.taxis || [];
+      // A API retorna transformada para { data: [...] }
+      const todosTaxis = response.data || [];
       
       // Mapear a resposta para o formato esperado
       const taxisFormatados = todosTaxis.map(taxi => ({

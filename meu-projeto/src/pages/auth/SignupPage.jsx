@@ -51,7 +51,8 @@ export default function SignupPage() {
         motorista: "/motorista/mapa",
         cliente: "/cliente/pedir",
       };
-      const routePath = routeByRole[result?.user?.role] || "/login";
+      // Usar selectedRole já que é o que passamos
+      const routePath = routeByRole[selectedRole] || "/login";
       navigate(routePath, { replace: true });
     } catch (err) {
       const messages = {

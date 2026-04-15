@@ -32,7 +32,8 @@ export default function LoginPage() {
         motorista: "/motorista/mapa",
         cliente: "/cliente/pedir",
       };
-      const routePath = routeByRole[result?.user?.role] || "/login";
+      // Usar selectedRole já que é o que passamos
+      const routePath = routeByRole[selectedRole] || "/login";
       navigate(routePath, { replace: true });
     } catch (err) {
       // Mensagens legíveis em vez dos códigos Firebase

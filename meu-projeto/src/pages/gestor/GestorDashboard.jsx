@@ -25,16 +25,16 @@ export default function GestorDashboard() {
           motoristaService.list(),
         ]);
 
-        const taxis = Array.isArray(taxisResponse)
+        const taxis = Array.isArray(taxisResponse?.data)
+          ? taxisResponse.data
+          : Array.isArray(taxisResponse)
           ? taxisResponse
-          : Array.isArray(taxisResponse?.taxis)
-          ? taxisResponse.taxis
           : [];
 
-        const motoristas = Array.isArray(motoristasResponse)
-          ? motoristasResponse
-          : Array.isArray(motoristasResponse?.motoristas)
+        const motoristas = Array.isArray(motoristasResponse?.motoristas)
           ? motoristasResponse.motoristas
+          : Array.isArray(motoristasResponse)
+          ? motoristasResponse
           : [];
 
         setStats({

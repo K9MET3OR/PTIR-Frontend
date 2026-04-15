@@ -1,7 +1,12 @@
 import { api } from "./api";
 
 export const taxiService = {
-  list:     ()         => api.get("/taxis/"),
+  list: async () => {
+    const response = await api.get("/taxis/");
+    // Transforma a resposta para { data: [...] }
+    // Backend retorna { success: true, taxis: [...], total: N }
+    return { data: response.taxis || response.data || [] };
+  },
   get:      (id)       => api.get(`/taxis/${id}/`),
   create:   (data)     => api.post("/taxis/registo-taxi", data),
   update:   (id, data) => api.put(`/taxis/${id}/`, data),

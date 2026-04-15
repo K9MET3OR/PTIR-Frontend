@@ -19,7 +19,7 @@ export default function TaxiListPage() {
 
   useEffect(() => {
     taxiService.list()
-      .then((response) => setTaxis(Array.isArray(response?.taxis) ? response.taxis : []))
+      .then((response) => setTaxis(Array.isArray(response?.data) ? response.data : []))
       .catch(() => setError("Não foi possível carregar a lista de táxis."))
       .finally(() => setLoading(false));
   }, []);

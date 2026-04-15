@@ -23,8 +23,8 @@ export default function IniciarTurnoPage() {
     setErro('');
     try {
       const response = await taxiService.list();
-      // A API retorna { success: true, taxis: [...], total: N }
-      const todosTaxis = response.taxis || [];
+      // A API retorna transformada para { data: [...] }
+      const todosTaxis = response.data || [];
       
       // Filtrar apenas táxis disponíveis ou indisponíveis (não ocupados)
       const taxisDisponiveis = todosTaxis.filter(

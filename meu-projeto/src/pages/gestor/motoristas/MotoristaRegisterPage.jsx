@@ -37,7 +37,7 @@ export default function MotoristaRegisterPage() {
   // Carrega lista de táxis disponíveis para atribuição
   useEffect(() => {
     taxiService.list()
-      .then((response) => setTaxis(Array.isArray(response?.taxis) ? response.taxis : []))
+      .then((response) => setTaxis(Array.isArray(response?.data) ? response.data : []))
       .catch(() => setTaxis([])); // silencia — atribuição é opcional
   }, []);
 
