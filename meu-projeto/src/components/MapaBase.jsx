@@ -153,7 +153,7 @@ export default function MapaBase({
   return (
     <div
       ref={mapRef}
-      style={{ width: "100%", height, borderRadius: 10, overflow: "hidden" }}
+      style={{ width: "100%", height, overflow: "hidden" }}
     />
   );
 }

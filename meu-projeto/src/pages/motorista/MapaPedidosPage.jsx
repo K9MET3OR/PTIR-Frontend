@@ -3,6 +3,8 @@ import MapaBase from "../../components/MapaBase";
 import { taxiService } from "../../services/taxiService";
 import { PEDIDOS_MOCK, HISTORICO_VIAGENS, COR_ESTADO } from "../../services/mockData";
 import styles from "./MapaPedidosPage.module.css";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 // Coordenadas da Faculdade de Ciências de Lisboa (default)
 const FCT_LISBOA = {
@@ -11,6 +13,15 @@ const FCT_LISBOA = {
 };
 
 export default function MapaPedidosPage() {
+
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
+    
+
   const [taxis, setTaxis] = useState([]);
   const [taxiSelecionado, setTaxiSelecionado] = useState(null);
   const [pedidoAtivo, setPedidoAtivo] = useState(null);
@@ -65,6 +76,17 @@ export default function MapaPedidosPage() {
   function handleMarkerClick(marker) {
     setTaxiSelecionado(marker);
   }
+
+  async function handleLogout() {
+    setProfileMenuOpen(false);
+    await logout();
+    navigate("/login", { replace: true });
+  }
+
+  function handleProfileToggle() {
+    setProfileMenuOpen((value) => !value);
+  }
+
 
   return (
     <div className={styles.root}>
@@ -225,11 +247,37 @@ export default function MapaPedidosPage() {
 
       {/* Mapa */}
       <div className={styles.mapaWrap}>
+
+        {/* Profile Card */}
+        <div className={styles.profileCardWrapper}>
+          <button
+            className={styles.profileBtn}
+            onClick={handleProfileToggle}
+          >
+            {initials}
+          </button>
+          {profileMenuOpen && (
+            <div className={styles.profileMenu}>
+              <button className={styles.profileMenuItem} type="button">
+                Editar perfil
+              </button>
+              <button className={styles.profileMenuItem} type="button" onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+
+        
+
+
         <MapaBase
           markers={markers}
           height="100%"
           onMarkerClick={handleMarkerClick}
         />
+
+
 
         {/* Popup do táxi selecionado */}
         {taxiSelecionado && (
