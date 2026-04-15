@@ -60,8 +60,8 @@
 }
 
 .label {
-  font-size: 12px;
-  color: #475569;
+  font-size: 13px;
+  color: #0f172a;
 }
 
 /* INPUTS */
@@ -74,6 +74,7 @@
   border-radius: 8px;
   outline: none;
   transition: all 0.15s ease;
+  
 }
 
 .input:focus,

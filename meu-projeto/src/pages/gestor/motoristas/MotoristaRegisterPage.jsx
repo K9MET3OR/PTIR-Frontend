@@ -104,8 +104,10 @@ export default function MotoristaRegisterPage() {
         <div className={styles.grid}>
 
           <div className={styles.field}>
-            <label>Nome completo *</label>
+            <label className={styles.label}>Nome completo *</label>
             <input
+              className={styles.input}
+
               placeholder="João Silva"
               value={form.nome}
               onChange={(e) => set("nome", e.target.value)}
@@ -116,6 +118,8 @@ export default function MotoristaRegisterPage() {
           <div className={styles.field}>
             <label>NIF *</label>
             <input
+              className={styles.input}
+
               placeholder="123456789"
               maxLength={9}
               value={form.nif}
@@ -127,6 +131,8 @@ export default function MotoristaRegisterPage() {
           <div className={styles.field}>
             <label>Data de nascimento *</label>
             <input
+              className={styles.input}
+
               type="date"
               value={form.data_nascimento}
               onChange={(e) => set("data_nascimento", e.target.value)}
@@ -137,6 +143,8 @@ export default function MotoristaRegisterPage() {
           <div className={styles.field}>
             <label>Género</label>
             <select value={form.genero} onChange={(e) => set("genero", e.target.value)}>
+              className={styles.select}
+
               <option value="M">Masculino</option>
               <option value="F">Feminino</option>
               <option value="O">Outro</option>
@@ -146,6 +154,8 @@ export default function MotoristaRegisterPage() {
           <div className={styles.field}>
             <label>Email *</label>
             <input
+              className={styles.input}
+
               type="email"
               placeholder="joao@email.com"
               value={form.email}
@@ -157,6 +167,8 @@ export default function MotoristaRegisterPage() {
           <div className={styles.field}>
             <label>Telefone *</label>
             <input
+              className={styles.input}
+
               placeholder="912345678"
               maxLength={9}
               value={form.telefone}
@@ -168,6 +180,8 @@ export default function MotoristaRegisterPage() {
           <div className={styles.field}>
             <label>N.º carta de condução *</label>
             <input
+              className={styles.input}
+
               placeholder="A-12345-PT"
               value={form.n_carta}
               onChange={(e) => set("n_carta", e.target.value)}
@@ -179,6 +193,8 @@ export default function MotoristaRegisterPage() {
           <div className={styles.field}>
             <label>Validade da carta *</label>
             <input
+              className={styles.input}
+
               type="date"
               value={form.validade_carta}
               onChange={(e) => set("validade_carta", e.target.value)}
@@ -189,6 +205,8 @@ export default function MotoristaRegisterPage() {
           <div className={`${styles.field} ${styles.fullWidth}`}>
             <label>Táxi atribuído (opcional)</label>
             <select value={form.taxi_id} onChange={(e) => set("taxi_id", e.target.value)}>
+              className={styles.select}
+
               <option value="">— selecionar —</option>
               {taxis.map((t) => (
                 <option key={t.id} value={t.id}>
