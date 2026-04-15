@@ -1,7 +1,14 @@
 import { useState, useEffect } from "react";
+<<<<<<< HEAD
 import MapaBase from "../../components/MapaBase";
 import { taxiService } from "../../services/taxiService";
 import { PEDIDOS_MOCK, COR_ESTADO } from "../../services/mockData";
+=======
+import { useNavigate } from "react-router-dom";
+import MapaBase from "../../components/MapaBase";
+import { useAuth } from "../../context/AuthContext";
+import { TAXIS_MOCK, PEDIDOS_MOCK, HISTORICO_VIAGENS, COR_ESTADO } from "../../services/mockData";
+>>>>>>> 37498c4e0f55973f6676bf90b664eb9539c50aad
 import styles from "./MapaPedidosPage.module.css";
 
 // Coordenadas da Faculdade de Ciências de Lisboa (default)
@@ -11,6 +18,7 @@ const FCT_LISBOA = {
 };
 
 export default function MapaPedidosPage() {
+<<<<<<< HEAD
   const [taxis, setTaxis] = useState([]);
   const [taxiSelecionado, setTaxiSelecionado] = useState(null);
   const [pedidoAtivo, setPedidoAtivo] = useState(null);
@@ -57,6 +65,32 @@ export default function MapaPedidosPage() {
   );
 
   const markers = taxisFiltrados.map((t) => ({
+=======
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [taxiSelecionado, setTaxiSelecionado] = useState(null);
+  const [pedidoAtivo,     setPedidoAtivo]     = useState(null);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [tempoServico,    setTempoServico]    = useState("3:45"); // hh:mm
+  const [ganhosDia,       setGanhosDia]       = useState(36.60);   // €
+
+  // Simula aumento de tempo em serviço
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTempoServico((prev) => {
+        const [h, m] = prev.split(":").map(Number);
+        const totalMinutos = h * 60 + m + 1;
+        const newH = Math.floor(totalMinutos / 60);
+        const newM = totalMinutos % 60;
+        return `${newH}:${String(newM).padStart(2, "0")}`;
+      });
+    }, 60000); // Atualiza a cada minuto
+    return () => clearInterval(timer);
+  }, []);
+
+  // Converte táxis em markers para o mapa
+  const markers = TAXIS_MOCK.map((t) => ({
+>>>>>>> 37498c4e0f55973f6676bf90b664eb9539c50aad
     ...t,
     label: t.matricula,
     color: COR_ESTADO[t.estado] ?? COR_ESTADO.offline,
@@ -66,10 +100,23 @@ export default function MapaPedidosPage() {
     setTaxiSelecionado(marker);
   }
 
+  async function handleLogout() {
+    setProfileMenuOpen(false);
+    await logout();
+    navigate("/login", { replace: true });
+  }
+
+  function handleProfileToggle() {
+    setProfileMenuOpen((value) => !value);
+  }
+
+  const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
+
   return (
     <div className={styles.root}>
       {/* Painel lateral */}
       <aside className={styles.sidebar}>
+<<<<<<< HEAD
         <div className={styles.sidebarHeader}>
           <h2 className={styles.title}>Mapa da frota</h2>
           <p className={styles.subtitle}>Lisboa</p>
@@ -157,15 +204,34 @@ export default function MapaPedidosPage() {
               </div>
             ))
           )}
+=======
+       <div className={styles.brand}>
+          <div className={styles.brandLogo}>H</div>
+          <div>
+            <div className={styles.brandName}>Hermez</div>
+            <div className={styles.brandSub}>Dashboard</div>
+          </div>
         </div>
 
-        {/* Pedidos pendentes */}
+        {/* Stats Header */}
+        <div className={styles.statsCard}>
+          <div className={styles.statItem}>
+            <div className={styles.statLabel}>Ganhos hoje</div>
+            <div className={styles.statValue}>{ganhosDia.toFixed(2)} €</div>
+          </div>
+          <div className={styles.statDivider} />
+          <div className={styles.statItem}>
+            <div className={styles.statLabel}>Tempo em serviço</div>
+            <div className={styles.statValue}>{tempoServico}</div>
+          </div>
+>>>>>>> 37498c4e0f55973f6676bf90b664eb9539c50aad
+        </div>
+
+        {/* Pedidos Pendentes */}
         {PEDIDOS_MOCK.length > 0 && (
           <>
             <div className={styles.divider} />
-            <div className={styles.listTitle}>
-              Pedidos pendentes ({PEDIDOS_MOCK.length})
-            </div>
+            <div className={styles.sectionTitle}>Pedidos Pendentes</div>
             <div className={styles.lista}>
               {PEDIDOS_MOCK.map((p) => (
                 <div
@@ -193,6 +259,36 @@ export default function MapaPedidosPage() {
             </div>
           </>
         )}
+
+        {/* Histórico de Viagens */}
+        {HISTORICO_VIAGENS.length > 0 && (
+          <>
+            <div className={styles.divider} />
+            <div className={styles.sectionTitle}>Histórico de Viagens</div>
+            <div className={styles.historicList}>
+              {HISTORICO_VIAGENS.map((v) => (
+                <div key={v.id} className={styles.historicoItem}>
+                  <div className={styles.historicoHeader}>
+                    <span className={styles.historicoCliente}>{v.cliente}</span>
+                    <span className={styles.historicoGanho}>{v.ganho.toFixed(2)} €</span>
+                  </div>
+                  <div className={styles.historicoRota}>
+                    <span>{v.origem}</span>
+                    <span className={styles.rotaArrow}>→</span>
+                    <span>{v.destino}</span>
+                  </div>
+                  <div className={styles.historicoMeta}>
+                    <span>{v.duracao}</span>
+                    <span className={styles.metaDot}>•</span>
+                    <span>{v.distancia}</span>
+                    <span className={styles.metaDot}>•</span>
+                    <span>{v.hora}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </aside>
 
       {/* Mapa */}
@@ -202,6 +298,26 @@ export default function MapaPedidosPage() {
           height="100%"
           onMarkerClick={handleMarkerClick}
         />
+
+        {/* Profile Card */}
+        <div className={styles.profileCardWrapper}>
+          <button
+            className={styles.profileBtn}
+            onClick={handleProfileToggle}
+          >
+            {initials}
+          </button>
+          {profileMenuOpen && (
+            <div className={styles.profileMenu}>
+              <button className={styles.profileMenuItem} type="button">
+                Editar perfil
+              </button>
+              <button className={styles.profileMenuItem} type="button" onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Popup do táxi selecionado */}
         {taxiSelecionado && (
