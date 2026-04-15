@@ -1,15 +1,58 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MapaBase from "../../components/MapaBase";
-import { TAXIS_MOCK, PEDIDOS_MOCK, COR_ESTADO } from "../../services/mockData";
+import { taxiService } from "../../services/taxiService";
+import { PEDIDOS_MOCK, COR_ESTADO } from "../../services/mockData";
 import styles from "./MapaPedidosPage.module.css";
 
+// Coordenadas da Faculdade de Ciências de Lisboa (default)
+const FCT_LISBOA = {
+  lat: 38.7623,
+  lon: -9.1585,
+};
+
 export default function MapaPedidosPage() {
+  const [taxis, setTaxis] = useState([]);
   const [taxiSelecionado, setTaxiSelecionado] = useState(null);
-  const [pedidoAtivo,     setPedidoAtivo]     = useState(null);
-  const [filtro,          setFiltro]          = useState("todos");
+  const [pedidoAtivo, setPedidoAtivo] = useState(null);
+  const [filtro, setFiltro] = useState("todos");
+  const [loading, setLoading] = useState(true);
+
+  // Carregar táxis da API ao montar o componente
+  useEffect(() => {
+    carregarTaxis();
+  }, []);
+
+  const carregarTaxis = async () => {
+    setLoading(true);
+    try {
+      const response = await taxiService.list();
+      const todosTaxis = response.taxis || [];
+      
+      // Mapear para o formato do mapa
+      const taxisFormatados = todosTaxis.map(taxi => ({
+        id: taxi.id,
+        matricula: taxi.matricula,
+        marca: taxi.marca || "",
+        modelo: taxi.modelo || "",
+        nivel_conforto: taxi.nivel_conforto || "Standard",
+        estado: taxi.estado || "disponivel",
+        motorista: "Driver", // placeholder, poderia ser vindo da API
+        // Usar coordenadas default se não existirem
+        lat: taxi.latitude ? parseFloat(taxi.latitude) : FCT_LISBOA.lat,
+        lon: taxi.longitude ? parseFloat(taxi.longitude) : FCT_LISBOA.lon,
+      }));
+      
+      setTaxis(taxisFormatados);
+    } catch (error) {
+      console.error("Erro ao carregar táxis:", error);
+      setTaxis([]); // Usar lista vazia em caso de erro
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Converte táxis em markers para o mapa
-  const taxisFiltrados = TAXIS_MOCK.filter((t) =>
+  const taxisFiltrados = taxis.filter((t) =>
     filtro === "todos" ? true : t.estado === filtro
   );
 
@@ -30,14 +73,32 @@ export default function MapaPedidosPage() {
         <div className={styles.sidebarHeader}>
           <h2 className={styles.title}>Mapa da frota</h2>
           <p className={styles.subtitle}>Lisboa</p>
+          <button
+            onClick={carregarTaxis}
+            disabled={loading}
+            style={{
+              marginTop: "8px",
+              padding: "8px 12px",
+              fontSize: "12px",
+              background: "#667eea",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.6 : 1,
+            }}
+          >
+            {loading ? "Carregando..." : "🔄 Recarregar"}
+          </button>
         </div>
 
         {/* Filtro */}
         <div className={styles.filtros}>
           {[
-            { key: "todos",      label: "Todos" },
-            { key: "disponivel", label: "Disponíveis" },
-            { key: "em_viagem",  label: "Em viagem" },
+            { key: "todos",        label: "Todos" },
+            { key: "disponivel",   label: "Disponíveis" },
+            { key: "ocupado",      label: "Ocupados" },
+            { key: "indisponivel", label: "Indisponíveis" },
           ].map((f) => (
             <button
               key={f.key}
@@ -56,12 +117,12 @@ export default function MapaPedidosPage() {
             <span>Disponível</span>
           </div>
           <div className={styles.legendaItem}>
-            <div className={styles.legendaDot} style={{ background: "#dc2626" }} />
-            <span>Em viagem</span>
+            <div className={styles.legendaDot} style={{ background: "#ea580c" }} />
+            <span>Indisponível</span>
           </div>
           <div className={styles.legendaItem}>
-            <div className={styles.legendaDot} style={{ background: "#94a3b8" }} />
-            <span>Offline</span>
+            <div className={styles.legendaDot} style={{ background: "#dc2626" }} />
+            <span>Ocupado</span>
           </div>
         </div>
 
@@ -72,20 +133,30 @@ export default function MapaPedidosPage() {
           Táxis ({taxisFiltrados.length})
         </div>
         <div className={styles.lista}>
-          {taxisFiltrados.map((t) => (
-            <div
-              key={t.id}
-              className={`${styles.taxiItem} ${taxiSelecionado?.id === t.id ? styles.taxiItemAtivo : ""}`}
-              onClick={() => setTaxiSelecionado(t)}
-            >
-              <div className={styles.taxiDot} style={{ background: COR_ESTADO[t.estado] }} />
-              <div className={styles.taxiInfo}>
-                <span className={styles.taxiMatricula}>{t.matricula}</span>
-                <span className={styles.taxiMotorista}>{t.motorista}</span>
-              </div>
-              <span className={styles.taxiConforto}>{t.nivel_conforto}</span>
+          {loading ? (
+            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
+              A carregar táxis...
             </div>
-          ))}
+          ) : taxisFiltrados.length === 0 ? (
+            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
+              Nenhum táxi disponível
+            </div>
+          ) : (
+            taxisFiltrados.map((t) => (
+              <div
+                key={t.id}
+                className={`${styles.taxiItem} ${taxiSelecionado?.id === t.id ? styles.taxiItemAtivo : ""}`}
+                onClick={() => setTaxiSelecionado(t)}
+              >
+                <div className={styles.taxiDot} style={{ background: COR_ESTADO[t.estado] }} />
+                <div className={styles.taxiInfo}>
+                  <span className={styles.taxiMatricula}>{t.matricula}</span>
+                  <span className={styles.taxiMotorista}>{t.marca} {t.modelo}</span>
+                </div>
+                <span className={styles.taxiConforto}>{t.nivel_conforto}</span>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Pedidos pendentes */}

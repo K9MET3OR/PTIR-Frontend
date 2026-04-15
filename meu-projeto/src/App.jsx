@@ -13,6 +13,8 @@ import MotoristaListPage   from "./pages/gestor/motoristas/MotoristaListPage";
 import MotoristaRegisterPage from "./pages/gestor/motoristas/MotoristaRegisterPage";
 
 import MapaPedidosPage    from "./pages/motorista/MapaPedidosPage";
+import PedidosMotoristaPage from "./pages/motorista/PedidosMotoristaPage";
+import IniciarTurnoPage   from "./pages/motorista/IniciarTurnoPage";
 import PedirTaxiPage      from "./pages/cliente/PedirTaxiPage";
 
 export default function App() {
@@ -38,8 +40,11 @@ export default function App() {
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={["motorista"]} />}>
-           <Route element={<DashboardLayout />}>
+            <Route element={<DashboardLayout />}>
+              <Route path="/motorista" element={<IniciarTurnoPage />} />
+              <Route path="/motorista/turno" element={<IniciarTurnoPage />} />
               <Route path="/motorista/mapa" element={<MapaPedidosPage />} />
+              <Route path="/motorista/pedidos" element={<PedidosMotoristaPage />} />
             </Route>
           </Route>
 

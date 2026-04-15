@@ -3,11 +3,17 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import styles from "./DashboardLayout.module.css";
 
-const NAV_ITEMS = [
+const NAV_ITEMS_GESTOR = [
   { to: "/gestor",             label: "Visão geral", icon: "⊞", end: true },
   { to: "/gestor/taxis",       label: "Táxis",       icon: "🚕" },
   { to: "/gestor/motoristas",  label: "Motoristas",  icon: "👤" },
   { to: "/gestor/relatorios",  label: "Relatórios",  icon: "📊" },
+];
+
+const NAV_ITEMS_MOTORISTA = [
+  { to: "/motorista/turno",    label: "Iniciar Turno", icon: "⏰", end: true },
+  { to: "/motorista/pedidos",  label: "Pedidos",       icon: "📋" },
+  { to: "/motorista/mapa",     label: "Mapa",          icon: "🗺️" },
 ];
 
 export default function DashboardLayout() {
@@ -15,6 +21,9 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  // Selecionar itens de navegação baseado no role
+  const NAV_ITEMS = role === "motorista" ? NAV_ITEMS_MOTORISTA : NAV_ITEMS_GESTOR;
 
   async function handleLogout() {
     setProfileMenuOpen(false);

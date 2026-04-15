@@ -9,9 +9,11 @@ export const TAXIS_MOCK = [
 
 // Cores por estado do táxi
 export const COR_ESTADO = {
-  disponivel: "#16a34a",  // verde
-  em_viagem:  "#dc2626",  // vermelho
-  offline:    "#94a3b8",  // cinzento
+  disponivel:   "#16a34a",  // verde
+  indisponivel: "#ea580c",  // laranja
+  ocupado:      "#dc2626",  // vermelho
+  em_viagem:    "#dc2626",  // vermelho (compatibilidade)
+  offline:      "#94a3b8",  // cinzento
 };
 
 // Pedidos mock para o motorista
