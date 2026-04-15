@@ -39,11 +39,11 @@ export default function GestorDashboard() {
 
         setStats({
           totalTaxis:          taxis.length,
-          taxisAtivos:         taxis.filter((t) => t.estado === "ativo").length,
-          taxisPendentes:      taxis.filter((t) => t.estado === "pendente").length,
+          taxisAtivos:         taxis.filter((t) => t.estado === "disponivel").length,
+          taxisPendentes:      taxis.filter((t) => t.estado === "indisponivel").length,
           totalMotoristas:     motoristas.length,
-          motoristasAtivos:    motoristas.filter((m) => m.estado === "ativo").length,
-          motoristasPendentes: motoristas.filter((m) => m.estado === "pendente").length,
+          motoristasAtivos:    motoristas.filter((m) => m.estado === "disponivel").length,
+          motoristasPendentes: motoristas.filter((m) => m.estado === "indisponivel").length,
         });
       } catch {
         // Se a API ainda não está pronta, mantém zeros
@@ -74,18 +74,18 @@ export default function GestorDashboard() {
           <div className={styles.statSub}>{stats.motoristasAtivos} ativos</div>
         </div>
         <div className={styles.stat}>
-          <div className={styles.statLabel}>Táxis pendentes</div>
+          <div className={styles.statLabel}>Táxis indisponíveis</div>
           <div className={`${styles.statVal} ${stats.taxisPendentes > 0 ? styles.warn : ""}`}>
             {loading ? "—" : stats.taxisPendentes}
           </div>
-          <div className={styles.statSub}>aguardam aprovação</div>
+          <div className={styles.statSub}>fora de serviço</div>
         </div>
         <div className={styles.stat}>
-          <div className={styles.statLabel}>Motoristas pendentes</div>
+          <div className={styles.statLabel}>Motoristas indisponíveis</div>
           <div className={`${styles.statVal} ${stats.motoristasPendentes > 0 ? styles.warn : ""}`}>
             {loading ? "—" : stats.motoristasPendentes}
           </div>
-          <div className={styles.statSub}>aguardam aprovação</div>
+          <div className={styles.statSub}>não disponíveis</div>
         </div>
       </div>
 

@@ -4,9 +4,8 @@ import { motoristaService } from "../../../services/motoristaService";
 import styles from "./MotoristaListPage.module.css";
 
 const ESTADO_LABEL = {
-  ativo:    { text: "Ativo",    cls: "active"   },
-  pendente: { text: "Pendente", cls: "pending"  },
-  inativo:  { text: "Inativo",  cls: "inactive" },
+  disponivel:   { text: "Disponível",   cls: "active" },
+  indisponivel: { text: "Indisponível", cls: "inactive" },
 };
 
 export default function MotoristaListPage() {
@@ -51,7 +50,7 @@ export default function MotoristaListPage() {
     if (!validade) return false;
     return new Date(validade) < new Date();
   }
-
+  
   return (
     <div>
       <div className={styles.pageHeader}>

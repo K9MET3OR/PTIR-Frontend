@@ -11,11 +11,13 @@ import TaxiRegisterPage    from "./pages/gestor/taxis/TaxiRegisterPage";
 import TaxiEditPage        from "./pages/gestor/taxis/TaxiEditPage";
 import MotoristaListPage   from "./pages/gestor/motoristas/MotoristaListPage";
 import MotoristaRegisterPage from "./pages/gestor/motoristas/MotoristaRegisterPage";
+import MotoristaEditPage from "./pages/gestor/motoristas/MotoristaEditPage";
 
 import MapaPedidosPage    from "./pages/motorista/MapaPedidosPage";
 import PedidosMotoristaPage from "./pages/motorista/PedidosMotoristaPage";
 import IniciarTurnoPage   from "./pages/motorista/IniciarTurnoPage";
 import PedirTaxiPage      from "./pages/cliente/PedirTaxiPage";
+
 
 export default function App() {
   return (
@@ -35,6 +37,7 @@ export default function App() {
               <Route path="/gestor/taxis/:id/editar"        element={<TaxiEditPage />} />
               <Route path="/gestor/motoristas"              element={<MotoristaListPage />} />
               <Route path="/gestor/motoristas/novo"         element={<MotoristaRegisterPage />} />
+              <Route path="/gestor/motoristas/:id/editar" element={<MotoristaEditPage />} />
               
             </Route>
           </Route>
