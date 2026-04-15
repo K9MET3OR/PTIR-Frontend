@@ -13,6 +13,13 @@ export default function MapaPedidosPage() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [tempoServico,    setTempoServico]    = useState("3:45"); // hh:mm
   const [ganhosDia,       setGanhosDia]       = useState(36.60);   // €
+  const [motoristaOnline, setMotoristaOnline] = useState(false);
+  
+  // Dados do motorista (depois virá do backend)
+  const dadosMotorista = {       //mock de dados do motorista
+    matricula: "AB-12-CD",
+    veiculo: "Toyota Prius"
+  };
 
   // Simula aumento de tempo em serviço
   useEffect(() => {
@@ -47,6 +54,10 @@ export default function MapaPedidosPage() {
 
   function handleProfileToggle() {
     setProfileMenuOpen((value) => !value);
+  }
+
+  function toggleEstadoMotorista() {
+    setMotoristaOnline((prev) => !prev);
   }
 
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
@@ -192,6 +203,34 @@ export default function MapaPedidosPage() {
             </div>
           </div>
         )}
+
+        {/* Barra de Estado do Motorista */}
+        <div className={styles.barraEstado}>
+          <div className={styles.barraConteudo}>
+            <button 
+              className={`${styles.toggleButton} ${motoristaOnline ? styles.toggleOnline : styles.toggleOffline}`}
+              onClick={toggleEstadoMotorista}
+            >
+              <span className={styles.toggleIndicador}></span>
+            </button>
+            
+            <div className={styles.estadoInfo}>
+              <div className={styles.estadoStatus}>
+                <span className={`${styles.statusBadge} ${motoristaOnline ? styles.badgeOnline : styles.badgeOffline}`}>
+                  {motoristaOnline ? "Online" : "Offline"}
+                </span>
+              </div>
+              
+              {motoristaOnline && (
+                <div className={styles.veiculoInfo}>
+                  <span className={styles.matricula}>{dadosMotorista.matricula}</span>
+                  <span className={styles.veiculoSeparador}>•</span>
+                  <span className={styles.veiculo}>{dadosMotorista.veiculo}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

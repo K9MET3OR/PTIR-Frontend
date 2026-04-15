@@ -405,6 +405,143 @@
   color: #b7a7ff;
 }
 
+/* ============================================
+   BARRA DE ESTADO DO MOTORISTA
+   ============================================ */
+
+.barraEstado {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  width: auto;
+  max-width: 90%;
+}
+
+.barraConteudo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(18, 8, 35, 0.98);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 50px;
+  padding: 12px 24px 12px 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Botão Toggle (Bolinha) */
+.toggleButton {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.toggleOffline {
+  background: rgba(100, 100, 100, 0.3);
+  border: 2px solid rgba(150, 150, 150, 0.4);
+}
+
+.toggleOffline:hover {
+  background: rgba(120, 120, 120, 0.4);
+  transform: scale(1.05);
+}
+
+.toggleOnline {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border: 2px solid #7c3aed;
+  box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+}
+
+.toggleOnline:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 25px rgba(124, 58, 237, 0.6);
+}
+
+/* Indicador dentro da bolinha */
+.toggleIndicador {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  display: block;
+}
+
+.toggleOnline .toggleIndicador {
+  background: #fff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Info do Estado */
+.estadoInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+}
+
+.estadoStatus {
+  display: flex;
+  align-items: center;
+}
+
+.statusBadge {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badgeOffline {
+  background: rgba(100, 100, 100, 0.2);
+  color: #9ca3af;
+  border: 1px solid rgba(150, 150, 150, 0.3);
+}
+
+.badgeOnline {
+  background: rgba(124, 58, 237, 0.2);
+  color: #a855f7;
+  border: 1px solid rgba(124, 58, 237, 0.5);
+}
+
+/* Informações do Veículo */
+.veiculoInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #d8c8ff;
+}
+
+.matricula {
+  font-family: monospace;
+  font-weight: 600;
+  color: #f8f7ff;
+  background: rgba(124, 58, 237, 0.15);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.veiculoSeparador {
+  color: #b7a7ff;
+}
+
+.veiculo {
+  color: #d8c8ff;
+  font-weight: 500;
+}
+
 
 @media (max-width: 768px) {
   .root {
@@ -433,5 +570,33 @@
     width: 36px;
     height: 36px;
     font-size: 12px;
+  }
+
+  /* Barra de estado mobile */
+  .barraEstado {
+    bottom: 16px;
+    max-width: 95%;
+  }
+
+  .barraConteudo {
+    padding: 10px 20px 10px 10px;
+    gap: 12px;
+  }
+
+  .toggleButton {
+    width: 48px;
+    height: 48px;
+  }
+
+  .estadoInfo {
+    min-width: 150px;
+  }
+
+  .statusBadge {
+    font-size: 12px;
+  }
+
+  .veiculoInfo {
+    font-size: 11px;
   }
 }

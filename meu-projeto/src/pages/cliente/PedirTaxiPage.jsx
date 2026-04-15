@@ -24,7 +24,7 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
 }
 
 export default function PedirTaxiPage() {
-    const [profileOpen, setProfileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   const [origemInput,    setOrigemInput]    = useState("");
   const [destinoInput,   setDestinoInput]   = useState("");
