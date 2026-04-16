@@ -4,9 +4,9 @@ import { taxiService } from "../../../services/taxiService";
 import styles from "./TaxiListPage.module.css";
 
 const ESTADO_LABEL = {
-  ativo:    { text: "Ativo",    cls: "active"  },
-  pendente: { text: "Pendente", cls: "pending" },
-  inativo:  { text: "Inativo",  cls: "inactive"},
+  disponivel:   { text: "Disponível", cls: "active" },
+  indisponivel: { text: "Indisponível", cls: "inactive" },
+  ocupado:      { text: "Ocupado", cls: "busy" },
 };
 
 export default function TaxiListPage() {
@@ -92,7 +92,8 @@ export default function TaxiListPage() {
                   </tr>
                 ) : (
                   filtered.map((taxi) => {
-                    const estado = ESTADO_LABEL[taxi.estado] ?? { text: taxi.estado, cls: "inactive" };
+                    const estadoKey = String(taxi.estado || "").trim().toLowerCase();
+                    const estado = ESTADO_LABEL[estadoKey] ?? { text: taxi.estado || "Desconhecido", cls: "inactive" };
                     return (
                       <tr key={taxi.id}>
                         <td className={styles.matricula}>{taxi.matricula}</td>

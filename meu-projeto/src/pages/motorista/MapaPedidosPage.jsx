@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import MapaBase from "../../components/MapaBase";
 import { taxiService } from "../../services/taxiService";
-import { PEDIDOS_MOCK, HISTORICO_VIAGENS, COR_ESTADO } from "../../services/mockData";
+import { listarViagensPendentes, listarViagensAceitesMotorista, aceitarViagem } from "../../services/tripService";
+import { COR_ESTADO } from "../../services/mockData";
 import styles from "./MapaPedidosPage.module.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { geocodificar, calcularRota } from "../../services/geocodingService";
 
 // Coordenadas da Faculdade de Ciências de Lisboa (default)
 const FCT_LISBOA = {
@@ -20,7 +22,7 @@ export default function MapaPedidosPage() {
   const { user, logout } = useAuth();
 
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
-    
+
 
   const [taxis, setTaxis] = useState([]);
   const [taxiSelecionado, setTaxiSelecionado] = useState(null);
@@ -28,19 +30,85 @@ export default function MapaPedidosPage() {
   const [filtro, setFiltro] = useState("todos");
   const [loading, setLoading] = useState(true);
 
+  const [viagensPendentes, setViagensPendentes] = useState([]);
+  const [viagensMotorista, setViagensMotorista] = useState([]);
+  const [loadingViagens, setLoadingViagens] = useState(true);
+  const [erroViagens, setErroViagens] = useState("");
+  const [carregandoId, setCarregandoId] = useState(null);
+  const [viagensIgnoradas, setViagensIgnoradas] = useState([]);
+
+  const [routePoints, setRoutePoints] = useState([]);
+  const [pedidoCoords, setPedidoCoords] = useState(null);
+
   // Carregar táxis da API ao montar o componente
   useEffect(() => {
     carregarTaxis();
   }, []);
+
+  // Carregar viagens da API ao montar o componente
+  useEffect(() => {
+    carregarViagens();
+  }, [user]);
+
+  // Carregar rota do pedido ativo
+  useEffect(() => {
+    async function carregarRotaPedido() {
+      if (!pedidoAtivo) {
+        setRoutePoints([]);
+        setPedidoCoords(null);
+        return;
+      }
+
+      try {
+        const origemResultados = await geocodificar(pedidoAtivo.start_location);
+        const destinoResultados = await geocodificar(pedidoAtivo.end_location);
+
+        if (!origemResultados?.length || !destinoResultados?.length) {
+          setRoutePoints([]);
+          setPedidoCoords(null);
+          return;
+        }
+
+        const origem = {
+          lon: parseFloat(origemResultados[0].lon),
+          lat: parseFloat(origemResultados[0].lat),
+        };
+
+        const destino = {
+          lon: parseFloat(destinoResultados[0].lon),
+          lat: parseFloat(destinoResultados[0].lat),
+        };
+
+        setPedidoCoords({ origem, destino });
+
+        const rota = await calcularRota(origem, destino);
+
+        if (rota && rota.length) {
+          setRoutePoints(rota);
+        } else {
+          setRoutePoints([
+            [origem.lon, origem.lat],
+            [destino.lon, destino.lat],
+          ]);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar rota do pedido:", error);
+        setRoutePoints([]);
+        setPedidoCoords(null);
+      }
+    }
+
+    carregarRotaPedido();
+  }, [pedidoAtivo]);
 
   const carregarTaxis = async () => {
     setLoading(true);
     try {
       const response = await taxiService.list();
       const todosTaxis = response.data || [];
-      
+
       // Mapear para o formato do mapa
-      const taxisFormatados = todosTaxis.map(taxi => ({
+      const taxisFormatados = todosTaxis.map((taxi) => ({
         id: taxi.id,
         matricula: taxi.matricula,
         marca: taxi.marca || "",
@@ -52,7 +120,7 @@ export default function MapaPedidosPage() {
         lat: taxi.latitude ? parseFloat(taxi.latitude) : FCT_LISBOA.lat,
         lon: taxi.longitude ? parseFloat(taxi.longitude) : FCT_LISBOA.lon,
       }));
-      
+
       setTaxis(taxisFormatados);
     } catch (error) {
       console.error("Erro ao carregar táxis:", error);
@@ -67,11 +135,48 @@ export default function MapaPedidosPage() {
     filtro === "todos" ? true : t.estado === filtro
   );
 
-  const markers = taxisFiltrados.map((t) => ({
-    ...t,
-    label: t.matricula,
-    color: COR_ESTADO[t.estado] ?? COR_ESTADO.offline,
-  }));
+  async function carregarViagens() {
+    setLoadingViagens(true);
+    setErroViagens("");
+
+    try {
+      const pendentes = await listarViagensPendentes();
+      setViagensPendentes(pendentes.trips || []);
+
+      if (user?.id) {
+        const minhas = await listarViagensAceitesMotorista(user.id);
+        setViagensMotorista(minhas.trips || []);
+      } else {
+        setViagensMotorista([]);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar viagens no mapa:", error);
+      setErroViagens(error.message || "Erro ao carregar viagens.");
+    } finally {
+      setLoadingViagens(false);
+    }
+  }
+
+  const handleAceitarViagem = async (tripId) => {
+    try {
+      setCarregandoId(tripId);
+      await aceitarViagem(tripId, user.id);
+      setPedidoAtivo(null);
+      await carregarViagens();
+    } catch (error) {
+      console.error("Erro ao aceitar viagem:", error);
+      setErroViagens(error.message || "Erro ao aceitar viagem.");
+    } finally {
+      setCarregandoId(null);
+    }
+  };
+
+  const handleIgnorarViagem = (tripId) => {
+    setViagensIgnoradas((prev) => [...prev, tripId]);
+    if (pedidoAtivo?.id === tripId) {
+      setPedidoAtivo(null);
+    }
+  };
 
   function handleMarkerClick(marker) {
     setTaxiSelecionado(marker);
@@ -87,64 +192,108 @@ export default function MapaPedidosPage() {
     setProfileMenuOpen((value) => !value);
   }
 
+  function handleRecarregar() {
+    carregarTaxis();
+    carregarViagens();
+  }
+
+  const markers = [
+    ...taxisFiltrados.map((t) => ({
+      ...t,
+      label: t.matricula,
+      color: COR_ESTADO[t.estado] ?? COR_ESTADO.offline,
+    })),
+    ...(pedidoCoords
+      ? [
+          {
+            id: "origem-pedido",
+            lon: pedidoCoords.origem.lon,
+            lat: pedidoCoords.origem.lat,
+            label: "Origem",
+            color: "#a855f7",
+          },
+          {
+            id: "destino-pedido",
+            lon: pedidoCoords.destino.lon,
+            lat: pedidoCoords.destino.lat,
+            label: "Destino",
+            color: "#c084fc",
+          },
+        ]
+      : []),
+  ];
+
+  const pedidosVisiveis = viagensPendentes.filter(
+    (p) => !viagensIgnoradas.includes(p.id)
+  );
 
   return (
     <div className={styles.root}>
       {/* Painel lateral */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
-          <h2 className={styles.title}>Mapa da frota</h2>
-          <p className={styles.subtitle}>Lisboa</p>
-          <button
-            onClick={carregarTaxis}
-            disabled={loading}
-            style={{
-              marginTop: "8px",
-              padding: "8px 12px",
-              fontSize: "12px",
-              background: "#667eea",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              cursor: loading ? "not-allowed" : "pointer",
-              opacity: loading ? 0.6 : 1,
-            }}
-          >
-            {loading ? "Carregando..." : "🔄 Recarregar"}
-          </button>
+          <div className={styles.headerTop}>
+            <div>
+              <h2 className={styles.title}>Mapa da frota</h2>
+              <p className={styles.subtitle}>Lisboa</p>
+            </div>
+
+            <button
+              onClick={handleRecarregar}
+              disabled={loading || loadingViagens}
+              className={styles.refreshBtn}
+            >
+              {loading || loadingViagens ? "A carregar..." : "↻ Recarregar"}
+            </button>
+          </div>
         </div>
 
-        {/* Filtro */}
-        <div className={styles.filtros}>
-          {[
-            { key: "todos",        label: "Todos" },
-            { key: "disponivel",   label: "Disponíveis" },
-            { key: "ocupado",      label: "Ocupados" },
-            { key: "indisponivel", label: "Indisponíveis" },
-          ].map((f) => (
-            <button
-              key={f.key}
-              className={`${styles.filtroBtn} ${filtro === f.key ? styles.filtroAtivo : ""}`}
-              onClick={() => setFiltro(f.key)}
-            >
-              {f.label}
-            </button>
-          ))}
+        <div className={styles.statsCard}>
+          <div className={styles.statItem}>
+            <span className={styles.statLabel}>Táxis</span>
+            <span className={styles.statValue}>{taxis.length}</span>
+          </div>
+          <div className={styles.statDivider} />
+          <div className={styles.statItem}>
+            <span className={styles.statLabel}>Pedidos</span>
+            <span className={styles.statValue}>{pedidosVisiveis.length}</span>
+          </div>
         </div>
+
+        <div className={styles.filterCard}>
+          <div className={styles.sectionTitle}>Filtrar táxis</div>
+
+          <div className={styles.filtros}>
+            {[
+              { key: "todos", label: "Todos" },
+              { key: "disponivel", label: "Disponíveis" },
+              { key: "ocupado", label: "Ocupados" },
+              { key: "indisponivel", label: "Indisponíveis" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                className={`${styles.filtroBtn} ${filtro === f.key ? styles.filtroAtivo : ""}`}
+                onClick={() => setFiltro(f.key)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
 
         {/* Legenda */}
-        <div className={styles.legenda}>
-          <div className={styles.legendaItem}>
-            <div className={styles.legendaDot} style={{ background: "#16a34a" }} />
-            <span>Disponível</span>
-          </div>
-          <div className={styles.legendaItem}>
-            <div className={styles.legendaDot} style={{ background: "#ea580c" }} />
-            <span>Indisponível</span>
-          </div>
-          <div className={styles.legendaItem}>
-            <div className={styles.legendaDot} style={{ background: "#dc2626" }} />
-            <span>Ocupado</span>
+          <div className={styles.legenda}>
+            <div className={styles.legendaItem}>
+              <div className={styles.legendaDot} style={{ background: "#16a34a" }} />
+              <span>Disponível</span>
+            </div>
+            <div className={styles.legendaItem}>
+              <div className={styles.legendaDot} style={{ background: "#ea580c" }} />
+              <span>Indisponível</span>
+            </div>
+            <div className={styles.legendaItem}>
+              <div className={styles.legendaDot} style={{ background: "#dc2626" }} />
+              <span>Ocupado</span>
+            </div>
           </div>
         </div>
 
@@ -182,72 +331,115 @@ export default function MapaPedidosPage() {
         </div>
 
         {/* Pedidos Pendentes */}
-        {PEDIDOS_MOCK.length > 0 && (
-          <>
-            <div className={styles.divider} />
-            <div className={styles.sectionTitle}>Pedidos Pendentes</div>
-            <div className={styles.lista}>
-              {PEDIDOS_MOCK.map((p) => (
-                <div
-                  key={p.id}
-                  className={`${styles.pedidoItem} ${pedidoAtivo?.id === p.id ? styles.pedidoAtivo : ""}`}
-                  onClick={() => setPedidoAtivo(pedidoAtivo?.id === p.id ? null : p)}
-                >
-                  <div className={styles.pedidoCliente}>{p.cliente}</div>
-                  <div className={styles.pedidoRota}>
-                    <span>{p.origem.label.split(",")[0]}</span>
-                    <span className={styles.rotaArrow}>→</span>
-                    <span>{p.destino.label.split(",")[0]}</span>
-                  </div>
-                  <div className={styles.pedidoMeta}>
-                    {p.n_pessoas} pessoa{p.n_pessoas > 1 ? "s" : ""} · {p.nivel_conforto}
-                  </div>
-                  {pedidoAtivo?.id === p.id && (
-                    <div className={styles.pedidoActions}>
-                      <button className={styles.btnAceitar}>Aceitar</button>
-                      <button className={styles.btnRejeitar}>Rejeitar</button>
-                    </div>
-                  )}
-                </div>
-              ))}
+        <div className={styles.divider} />
+        <div className={styles.sectionTitle}>Pedidos Pendentes</div>
+        <div className={styles.lista}>
+          {loadingViagens ? (
+            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
+              A carregar pedidos...
             </div>
-          </>
-        )}
+          ) : erroViagens ? (
+            <div style={{ padding: "16px", textAlign: "center", color: "#dc2626" }}>
+              {erroViagens}
+            </div>
+          ) : pedidosVisiveis.length === 0 ? (
+            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
+              Não há pedidos pendentes
+            </div>
+          ) : (
+            pedidosVisiveis.map((p) => (
+              <div
+                key={p.id}
+                className={`${styles.pedidoItem} ${pedidoAtivo?.id === p.id ? styles.pedidoAtivo : ""}`}
+                onClick={() => setPedidoAtivo(pedidoAtivo?.id === p.id ? null : p)}
+              >
+                <div className={styles.pedidoCliente}>Cliente</div>
+                <div className={styles.pedidoRota}>
+                  <span>{p.start_location}</span>
+                  <span className={styles.rotaArrow}>→</span>
+                  <span>{p.end_location}</span>
+                </div>
+                <div className={styles.pedidoMeta}>
+                  {p.n_people} pessoa{p.n_people > 1 ? "s" : ""} · {p.nivel_conforto}
+                </div>
+                {pedidoAtivo?.id === p.id && (
+                  <div className={styles.pedidoActions}>
+                    <button
+                      className={styles.btnRejeitar}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleIgnorarViagem(p.id);
+                      }}
+                      disabled={carregandoId === p.id}
+                    >
+                      Ignorar
+                    </button>
+
+                    <button
+                      className={styles.btnAceitar}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAceitarViagem(p.id);
+                      }}
+                      disabled={carregandoId === p.id}
+                    >
+                      {carregandoId === p.id ? "A processar..." : "Aceitar"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
 
         {/* Histórico de Viagens */}
-        {HISTORICO_VIAGENS.length > 0 && (
-          <>
-            <div className={styles.divider} />
-            <div className={styles.sectionTitle}>Histórico de Viagens</div>
-            <div className={styles.historicList}>
-              {HISTORICO_VIAGENS.map((v) => (
-                <div key={v.id} className={styles.historicoItem}>
-                  <div className={styles.historicoHeader}>
-                    <span className={styles.historicoCliente}>{v.cliente}</span>
-                    <span className={styles.historicoGanho}>{v.ganho.toFixed(2)} €</span>
-                  </div>
-                  <div className={styles.historicoRota}>
-                    <span>{v.origem}</span>
-                    <span className={styles.rotaArrow}>→</span>
-                    <span>{v.destino}</span>
-                  </div>
-                  <div className={styles.historicoMeta}>
-                    <span>{v.duracao}</span>
-                    <span className={styles.metaDot}>•</span>
-                    <span>{v.distancia}</span>
-                    <span className={styles.metaDot}>•</span>
-                    <span>{v.hora}</span>
-                  </div>
-                </div>
-              ))}
+        <div className={styles.divider} />
+        <div className={styles.sectionTitle}>Histórico de Viagens</div>
+        <div className={styles.historicList}>
+          {loadingViagens ? (
+            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
+              A carregar histórico...
             </div>
-          </>
-        )}
+          ) : viagensMotorista.length === 0 ? (
+            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
+              Ainda não tens viagens aceites
+            </div>
+          ) : (
+            viagensMotorista.map((v) => (
+              <div key={v.id} className={styles.historicoItem}>
+                <div className={styles.historicoHeader}>
+                  <span className={styles.historicoCliente}>Viagem</span>
+                  <span className={styles.historicoGanho}>
+                    {v.price ? `${Number(v.price).toFixed(2)} €` : "-"}
+                  </span>
+                </div>
+                <div className={styles.historicoRota}>
+                  <span>{v.start_location}</span>
+                  <span className={styles.rotaArrow}>→</span>
+                  <span>{v.end_location}</span>
+                </div>
+                <div className={styles.historicoMeta}>
+                  <span>{v.n_kms ? `${v.n_kms} km` : "-"}</span>
+                  <span className={styles.metaDot}>•</span>
+                  <span>{v.status_trip}</span>
+                  <span className={styles.metaDot}>•</span>
+                  <span>
+                    {v.start_date
+                      ? new Date(v.start_date).toLocaleTimeString("pt-PT", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })
+                      : "-"}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </aside>
 
       {/* Mapa */}
       <div className={styles.mapaWrap}>
-
         {/* Profile Card */}
         <div className={styles.profileCardWrapper}>
           <button
@@ -267,42 +459,12 @@ export default function MapaPedidosPage() {
             </div>
           )}
         </div>
-
-        
-
-
         <MapaBase
           markers={markers}
+          routePoints={routePoints}
           height="100%"
           onMarkerClick={handleMarkerClick}
         />
-
-
-
-        {/* Popup do táxi selecionado */}
-        {taxiSelecionado && (
-          <div className={styles.popup}>
-            <button className={styles.popupClose} onClick={() => setTaxiSelecionado(null)}>×</button>
-            <div className={styles.popupMatricula}>{taxiSelecionado.matricula}</div>
-            <div className={styles.popupRow}>
-              <span className={styles.popupLabel}>Motorista</span>
-              <span>{taxiSelecionado.motorista}</span>
-            </div>
-            <div className={styles.popupRow}>
-              <span className={styles.popupLabel}>Estado</span>
-              <span
-                className={styles.popupEstado}
-                style={{ color: COR_ESTADO[taxiSelecionado.estado] }}
-              >
-                {taxiSelecionado.estado.replace("_", " ")}
-              </span>
-            </div>
-            <div className={styles.popupRow}>
-              <span className={styles.popupLabel}>Conforto</span>
-              <span>{taxiSelecionado.nivel_conforto}</span>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
