@@ -27,12 +27,15 @@ export default function MotoristaRegisterPage() {
     telefone:         "",
     n_carta:          "",
     validade_carta:   "",
+    codigo_postal:    "",
+    localidade:       "",
     taxi_id:          "",
   });
 
   const [errors,   setErrors]   = useState({});
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState("");
+  const [localidadeLoading, setLocalidadeLoading] = useState(false);
 
   // Carrega lista de táxis disponíveis para atribuição
   useEffect(() => {
@@ -41,9 +44,43 @@ export default function MotoristaRegisterPage() {
       .catch(() => setTaxis([])); // silencia — atribuição é opcional
   }, []);
 
+  async function fetchLocalidade(codigoPostal) {
+    // Busca a localidade no backend usando o código postal
+    setLocalidadeLoading(true);
+    try {
+      const url = `/api/motoristas/localidade/${codigoPostal}/`;
+      console.log("Fetching localidade from:", url);
+      const response = await fetch(url);
+      console.log("Response status:", response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Data received:", data);
+        setForm((f) => ({ ...f, localidade: data.localidade }));
+        setErrors((e) => ({ ...e, codigo_postal: "" }));
+      } else {
+        const data = await response.json();
+        console.log("Error response:", data);
+        setErrors((e) => ({ ...e, codigo_postal: data.message || "Código postal não encontrado." }));
+        setForm((f) => ({ ...f, localidade: "" }));
+      }
+    } catch (err) {
+      console.error("Exception:", err);
+      setErrors((e) => ({ ...e, codigo_postal: "Erro ao consultar código postal." }));
+      setForm((f) => ({ ...f, localidade: "" }));
+    } finally {
+      setLocalidadeLoading(false);
+    }
+  }
+
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
     if (errors[field]) setErrors((e) => ({ ...e, [field]: "" }));
+    
+    // Se mudou o código postal e está válido (XXXX-XXX), busca a localidade
+    if (field === "codigo_postal" && value.match(/^\d{4}-\d{3}$/)) {
+      fetchLocalidade(value);
+    }
   }
 
   function validate() {
@@ -52,7 +89,16 @@ export default function MotoristaRegisterPage() {
     if (!validateNIF(form.nif))    e.nif  = "NIF inválido (9 dígitos).";
     if (!form.data_nascimento)     e.data_nascimento = "Data de nascimento obrigatória.";
     else {
-      const idade = new Date().getFullYear() - new Date(form.data_nascimento).getFullYear();
+      const birthDate = new Date(form.data_nascimento);
+      const today = new Date();
+      let idade = today.getFullYear() - birthDate.getFullYear();
+      
+      // Ajusta se ainda não completou anos neste ano
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        idade--;
+      }
+      
       if (idade < 18) e.data_nascimento = "O motorista deve ter pelo menos 18 anos.";
     }
     if (!form.email.includes("@")) e.email = "Email inválido.";
@@ -141,13 +187,12 @@ export default function MotoristaRegisterPage() {
           </div>
 
           <div className={styles.field}>
-            <label>Género</label>
+            <label>Género *</label>
             <select value={form.genero} onChange={(e) => set("genero", e.target.value)}>
               className={styles.select}
 
               <option value="M">Masculino</option>
               <option value="F">Feminino</option>
-              <option value="O">Outro</option>
             </select>
           </div>
 
@@ -200,6 +245,31 @@ export default function MotoristaRegisterPage() {
               onChange={(e) => set("validade_carta", e.target.value)}
             />
             {errors.validade_carta && <span className={styles.fieldError}>{errors.validade_carta}</span>}
+          </div>
+
+          <div className={styles.field}>
+            <label>Código postal (opcional)</label>
+            <input
+              className={styles.input}
+              placeholder="1234-567"
+              maxLength="8"
+              value={form.codigo_postal}
+              onChange={(e) => set("codigo_postal", e.target.value)}
+            />
+            {localidadeLoading && <small style={{ color: "#666" }}>A carregar localidade…</small>}
+            {errors.codigo_postal && <span className={styles.fieldError}>{errors.codigo_postal}</span>}
+          </div>
+
+          <div className={styles.field}>
+            <label>Localidade (preenchida automaticamente)</label>
+            <input
+              className={styles.input}
+              placeholder="Será preenchida automaticamente"
+              value={form.localidade}
+              onChange={(e) => set("localidade", e.target.value)}
+              disabled={localidadeLoading}
+              style={{ backgroundColor: form.localidade ? "#fff" : "#f5f5f5" }}
+            />
           </div>
 
           <div className={`${styles.field} ${styles.fullWidth}`}>

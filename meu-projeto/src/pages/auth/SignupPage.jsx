@@ -42,6 +42,14 @@ export default function SignupPage() {
       return;
     }
 
+    // Validação: senha deve ter dígitos E letras
+    const hasDigits = /\d/.test(password);
+    const hasLetters = /[a-zA-Z]/.test(password);
+    if (!hasDigits || !hasLetters) {
+      setError("Palavra-passe deve conter dígitos e letras.");
+      return;
+    }
+
     setLoading(true);
 
     try {
