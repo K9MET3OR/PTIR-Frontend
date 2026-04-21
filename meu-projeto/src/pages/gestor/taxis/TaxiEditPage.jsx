@@ -3,8 +3,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { taxiService } from "../../../services/taxiService";
 import styles from "../../../styles/Form.module.css";
 
-const MOTOR_TYPES  = ["Gasolina", "Diesel", "Elétrico", "Híbrido"];
-const COMFORT_TYPES = ["Standard", "Conforto", "Premium"];
+const MOTOR_TYPES  = ["Combustão", "Elétrico"];
+const COMFORT_TYPES = ["Básico", "Luxuoso"];
 
 // Valida matrícula portuguesa: XX-00-XX, 00-XX-00, etc.
 function validateMatricula(v) {
@@ -21,8 +21,8 @@ export default function TaxiEditPage() {
     modelo:       "",
     ano_compra:   "",
     consumo_medio: "",
-    tipo_motor:   "Gasolina",
-    nivel_conforto: "Standard",
+    tipo_motor:   "Combustão",
+    nivel_conforto: "Básico",
     observacoes:  "",
   });
 
@@ -43,8 +43,8 @@ export default function TaxiEditPage() {
           modelo:         taxi.modelo || "",
           ano_compra:     taxi.ano_compra || "",
           consumo_medio:  taxi.consumo_medio ?? "",
-          tipo_motor:     taxi.tipo_motor || "Gasolina",
-          nivel_conforto: taxi.nivel_conforto || "Standard",
+          tipo_motor:     taxi.tipo_motor || "Combustão",
+          nivel_conforto: taxi.nivel_conforto || "Básico",
           observacoes:    taxi.observacoes || "",
         };
         setForm(taxiData);

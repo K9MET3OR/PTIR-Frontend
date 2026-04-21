@@ -3,8 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { taxiService } from "../../../services/taxiService";
 import styles from "../../../styles/Form.module.css";
 
-const MOTOR_TYPES  = ["Gasolina", "Diesel", "Elétrico", "Híbrido"];
-const COMFORT_TYPES = ["Standard", "Conforto", "Premium"];
+const MOTOR_TYPES  = ["Combustão", "Elétrico"];
+const COMFORT_TYPES = ["Básico", "Luxuoso"];
+
+// Listas predefinidas de marcas e modelos
+const TAXI_BRANDS = [
+  { brand: "Toyota", models: ["Prius", "Corolla", "Camry", "Yaris"] },
+  { brand: "Hyundai", models: ["Ioniq", "i30", "i20", "Elantra"] },
+  { brand: "Kia", models: ["Niro", "Ceed", "Picanto", "Sportage"] },
+  { brand: "Mercedes-Benz", models: ["E-Class", "C-Class", "A-Class", "V-Class"] },
+  { brand: "BMW", models: ["3 Series", "5 Series", "1 Series", "X5"] },
+  { brand: "Volkswagen", models: ["Passat", "Golf", "Polo", "Tiguan"] },
+  { brand: "Renault", models: ["Megane", "Clio", "Espace", "Scenic"] },
+  { brand: "Peugeot", models: ["308", "307", "3008", "5008"] },
+  { brand: "Citroën", models: ["C5", "C3", "C-Elysée", "Berlingo"] },
+  { brand: "Fiat", models: ["500", "Panda", "Tipo", "Ducato"] },
+  { brand: "Nissan", models: ["Qashqai", "Altima", "Micra", "X-Trail"] },
+  { brand: "Chevrolet", models: ["Cruze", "Spark", "Cobalt", "Onix"] },
+];
 
 // Valida matrícula portuguesa: XX-00-XX, 00-XX-00, etc.
 function validateMatricula(v) {
@@ -20,8 +36,8 @@ export default function TaxiRegisterPage() {
     modelo:       "",
     ano_compra:   "",
     consumo_medio: "",
-    tipo_motor:   "Gasolina",
-    nivel_conforto: "Standard",
+    tipo_motor:   "Combustão",
+    nivel_conforto: "Básico",
     observacoes:  "",
   });
 
@@ -29,8 +45,21 @@ export default function TaxiRegisterPage() {
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
 
+  // Obter modelos disponíveis para a marca selecionada
+  const getAvailableModels = () => {
+    const brandObj = TAXI_BRANDS.find((b) => b.brand === form.marca);
+    return brandObj ? brandObj.models : [];
+  };
+
   function set(field, value) {
-    setForm((f) => ({ ...f, [field]: value }));
+    setForm((f) => {
+      const updated = { ...f, [field]: value };
+      // Se a marca muda, reseta o modelo
+      if (field === "marca") {
+        updated.modelo = "";
+      }
+      return updated;
+    });
     // Limpa o erro do campo quando o utilizador começa a escrever
     if (errors[field]) setErrors((e) => ({ ...e, [field]: "" }));
   }
@@ -131,21 +160,36 @@ export default function TaxiRegisterPage() {
 
           <div className={styles.field}>
             <label>Marca *</label>
-            <input
-              placeholder="Toyota"
+            <select
               value={form.marca}
               onChange={(e) => set("marca", e.target.value)}
-            />
+            >
+              <option value="">Selecione uma marca</option>
+              {TAXI_BRANDS.map((b) => (
+                <option key={b.brand} value={b.brand}>
+                  {b.brand}
+                </option>
+              ))}
+            </select>
             {errors.marca && <span className={styles.fieldError}>{errors.marca}</span>}
           </div>
 
           <div className={styles.field}>
             <label>Modelo *</label>
-            <input
-              placeholder="Corolla"
+            <select
               value={form.modelo}
               onChange={(e) => set("modelo", e.target.value)}
-            />
+              disabled={!form.marca}
+            >
+              <option value="">
+                {form.marca ? "Selecione um modelo" : "Selecione primeiro uma marca"}
+              </option>
+              {getAvailableModels().map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </select>
             {errors.modelo && <span className={styles.fieldError}>{errors.modelo}</span>}
           </div>
 
