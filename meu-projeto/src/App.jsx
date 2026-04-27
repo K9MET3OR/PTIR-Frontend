@@ -16,7 +16,9 @@ import MotoristaEditPage from "./pages/gestor/motoristas/MotoristaEditPage";
 import MapaPedidosPage    from "./pages/motorista/MapaPedidosPage";
 import PedidosMotoristaPage from "./pages/motorista/PedidosMotoristaPage";
 import IniciarTurnoPage   from "./pages/motorista/IniciarTurnoPage";
+import RegistarViagemPage from "./pages/motorista/RegistarViagemPage";
 import PedirTaxiPage      from "./pages/cliente/PedirTaxiPage";
+import ClientePagamentoPage from "./pages/cliente/ClientePagamentoPage";
 
 
 export default function App() {
@@ -47,10 +49,12 @@ export default function App() {
             <Route path="/motorista/turno" element={<IniciarTurnoPage />} />
             <Route path="/motorista/mapa" element={<MapaPedidosPage />} />
             <Route path="/motorista/pedidos" element={<PedidosMotoristaPage />} />
+            <Route path="/motorista/viagem" element={<RegistarViagemPage />} />
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={["cliente"]} />}>
             <Route path="/cliente/pedir" element={<PedirTaxiPage />} />
+            <Route path="/cliente/pagamento" element={<ClientePagamentoPage />} />
           </Route>
 
           {/* Fallback */}

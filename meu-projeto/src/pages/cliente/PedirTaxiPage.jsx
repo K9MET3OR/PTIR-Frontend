@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import MapaBase from "../../components/MapaBase";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
 import { criarSolicitacaoViagem, atualizarViagem, obterDetalheViagem} from "../../services/tripService";
@@ -27,6 +28,7 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
 
 export default function PedirTaxiPage() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [origemInput,    setOrigemInput]    = useState("");
   const [destinoInput,   setDestinoInput]   = useState("");
   const [origemCoords,   setOrigemCoords]   = useState(null);
@@ -72,7 +74,9 @@ export default function PedirTaxiPage() {
         setEstadoViagem(trip.status_trip);
 
         if (trip.status_trip === "accepted") {
-          setStep("aceite");
+          // Redirecionar para página de pagamento
+          const amount = trip.preco || trip.price || 0;
+          navigate(`/cliente/pagamento?tripId=${tripId}&amount=${amount}`);
         }
 
         if (trip.status_trip === "cancelled") {

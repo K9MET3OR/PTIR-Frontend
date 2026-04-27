@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { loadStripe } from '@stripe/js';
+import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { api } from '../services/api';
 import styles from './PaymentForm.module.css';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
@@ -18,7 +19,6 @@ function CheckoutForm({ tripId, amount, onSuccess, onError }) {
   const elements = useElements();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const token = localStorage.getItem('taxigest_token');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -33,23 +33,14 @@ function CheckoutForm({ tripId, amount, onSuccess, onError }) {
 
     try {
       // 1. Criar payment intent no backend
-      const response = await fetch('/api/trip/pagamento/criar/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          amount: Math.round(amount * 100), // converter para centavos
-          trip_id: tripId,
-          description: `Pagamento de Viagem - ${tripId}`
-        })
+      const data = await api.post('/trip/pagamento/criar/', {
+        amount: Math.round(amount * 100), // converter para centavos
+        trip_id: tripId,
+        description: `Pagamento de Viagem - ${tripId}`
       });
 
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Erro ao criar pagamento');
+      if (!data || !data.client_secret) {
+        throw new Error('Erro ao criar pagamento');
       }
 
       // 2. Confirmar pagamento com Stripe
@@ -65,25 +56,16 @@ function CheckoutForm({ tripId, amount, onSuccess, onError }) {
         if (onError) onError(result.error.message);
       } else if (result.paymentIntent.status === 'succeeded') {
         // 3. Confirmar no backend
-        const confirmResponse = await fetch('/api/trip/pagamento/confirmar/', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            payment_intent_id: result.paymentIntent.id,
-            trip_id: tripId
-          })
+        const confirmData = await api.post('/trip/pagamento/confirmar/', {
+          payment_intent_id: result.paymentIntent.id,
+          trip_id: tripId
         });
 
-        const confirmData = await confirmResponse.json();
-        
-        if (confirmResponse.ok) {
+        if (confirmData) {
           setMessage(`✅ Pagamento realizado com sucesso! ${amount.toFixed(2)} EUR`);
           if (onSuccess) onSuccess(confirmData.trip);
         } else {
-          throw new Error(confirmData.message || 'Erro ao confirmar pagamento');
+          throw new Error('Erro ao confirmar pagamento');
         }
       } else {
         setMessage(`⚠️ Status do pagamento: ${result.paymentIntent.status}`);

@@ -1,0 +1,214 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.wrapper {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  padding: 40px;
+  max-width: 500px;
+  width: 100%;
+}
+
+h1 {
+  color: #333;
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 28px;
+}
+
+h3 {
+  color: #667eea;
+  margin-top: 25px;
+  margin-bottom: 15px;
+  font-size: 18px;
+  border-bottom: 2px solid #f0f0f0;
+  padding-bottom: 10px;
+}
+
+.loading {
+  text-align: center;
+  font-size: 18px;
+  color: white;
+  padding: 40px;
+}
+
+.error,
+.sucesso {
+  background: white;
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.error {
+  border-left: 4px solid #e74c3c;
+}
+
+.error p {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 16px;
+}
+
+.error button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.3s;
+}
+
+.error button:hover {
+  background: #764ba2;
+}
+
+.sucesso {
+  border-left: 4px solid #27ae60;
+  color: #333;
+}
+
+.sucessoIcon {
+  font-size: 48px;
+  color: #27ae60;
+  margin-bottom: 15px;
+}
+
+.sucesso h2 {
+  color: #27ae60;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+
+.sucesso p {
+  color: #666;
+  margin: 8px 0;
+}
+
+.tripSummary {
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 25px;
+}
+
+.tripSummary h3 {
+  margin-top: 0;
+  color: #333;
+}
+
+.tripDetail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #e0e0e0;
+  font-size: 14px;
+}
+
+.tripDetail:last-child {
+  border-bottom: none;
+}
+
+.label {
+  font-weight: 600;
+  color: #666;
+}
+
+.tripDetail span:last-child {
+  color: #333;
+  text-align: right;
+}
+
+.priceHighlight {
+  background: #f0f0f0;
+  padding: 12px 15px;
+  margin: 10px -20px -20px -20px;
+  border-radius: 0 0 8px 8px;
+  border-bottom: none;
+}
+
+.priceHighlight .label {
+  color: #667eea;
+  font-size: 16px;
+}
+
+.priceHighlight span:last-child {
+  color: #667eea;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.errorMessage {
+  background: #fee;
+  color: #c33;
+  border-left: 4px solid #c33;
+  padding: 12px 15px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-size: 14px;
+}
+
+.paymentFormWrapper {
+  margin-bottom: 25px;
+}
+
+.paymentFormWrapper h3 {
+  margin-top: 0;
+}
+
+.backButton {
+  width: 100%;
+  padding: 12px;
+  background: #e0e0e0;
+  color: #333;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+  margin-top: 20px;
+}
+
+.backButton:hover {
+  background: #d0d0d0;
+}
+
+@media (max-width: 600px) {
+  .wrapper {
+    padding: 25px;
+  }
+
+  h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+  }
+
+  h3 {
+    font-size: 16px;
+  }
+
+  .tripSummary {
+    padding: 15px;
+  }
+
+  .tripDetail {
+    font-size: 13px;
+  }
+
+  .tripDetail span:last-child {
+    text-align: right;
+  }
+}
