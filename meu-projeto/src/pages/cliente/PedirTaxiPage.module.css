@@ -495,3 +495,92 @@
   .sidebar { width: 100%; border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
   .mapaWrap { height: 450px; }
 }
+
+/* Estados: Form, Opções, Aguardar, etc */
+.aguardar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+  justify-content: flex-start;
+  padding: 1.5rem 0;
+}
+
+.aguardarIcon {
+  font-size: 48px;
+  margin-bottom: 1rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Resumo do Pedido */
+.resumoPedido {
+  width: 100%;
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.resumoSecao {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.resumoSecao:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.resumoLinha {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.resumoLabel {
+  font-size: 12px;
+  color: #b9a7ff;
+  font-weight: 500;
+}
+
+.resumoValor {
+  font-size: 13px;
+  color: #f8f7ff;
+  font-weight: 600;
+  text-align: right;
+  flex: 1;
+}
+
+.resumoValorPreco {
+  font-size: 16px;
+  color: #a855f7;
+  font-weight: 700;
+  text-align: right;
+  flex: 1;
+}
+
+.cancelBtn {
+  padding: 12px 20px;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}

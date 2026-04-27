@@ -582,6 +582,56 @@ export default function PedirTaxiPage() {
             <div className={styles.aguardarIcon}>⏳</div>
             <h2 className={styles.title}>À espera de motorista</h2>
             <p className={styles.subtitle}>O teu pedido foi enviado. Um motorista irá responder em breve.</p>
+
+            {/* Resumo do Pedido */}
+            <div className={styles.resumoPedido}>
+              <div className={styles.resumoSecao}>
+                <div className={styles.resumoLinha}>
+                  <span className={styles.resumoLabel}>De:</span>
+                  <span className={styles.resumoValor}>{origemInput}</span>
+                </div>
+                <div className={styles.resumoLinha}>
+                  <span className={styles.resumoLabel}>Para:</span>
+                  <span className={styles.resumoValor}>{destinoInput}</span>
+                </div>
+              </div>
+
+              <div className={styles.resumoSecao}>
+                <div className={styles.resumoLinha}>
+                  <span className={styles.resumoLabel}>Distância:</span>
+                  <span className={styles.resumoValor}>{distanciaKm.toFixed(1)} km</span>
+                </div>
+                <div className={styles.resumoLinha}>
+                  <span className={styles.resumoLabel}>Duração estimada:</span>
+                  <span className={styles.resumoValor}>{duracao} min</span>
+                </div>
+              </div>
+
+              <div className={styles.resumoSecao}>
+                <div className={styles.resumoLinha}>
+                  <span className={styles.resumoLabel}>Passageiros:</span>
+                  <span className={styles.resumoValor}>{nPessoas}</span>
+                </div>
+                <div className={styles.resumoLinha}>
+                  <span className={styles.resumoLabel}>Conforto:</span>
+                  <span className={styles.resumoValor}>{selectedRide}</span>
+                </div>
+              </div>
+
+              {precos[selectedRide] && (
+                <div className={styles.resumoSecao}>
+                  <div className={styles.resumoLinha}>
+                    <span className={styles.resumoLabel}>Preço estimado:</span>
+                    <span className={styles.resumoValorPreco}>
+                      €{typeof precos[selectedRide].price === "number" 
+                        ? precos[selectedRide].price.toFixed(2) 
+                        : precos[selectedRide].price}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button className={styles.cancelBtn} style={{ marginTop: "1.5rem" }} onClick={cancelar}>
               Cancelar pedido
             </button>
