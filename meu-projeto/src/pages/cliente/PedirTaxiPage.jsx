@@ -7,7 +7,7 @@ import { useAuth } from "../../context/AuthContext";
 import { COR_ESTADO } from "../../services/mockData";
 import styles from "./PedirTaxiPage.module.css";
 
-const CONFORTO_OPTS = ["Standard", "Conforto", "Premium"];
+const CONFORTO_OPTS = ["Básico", "Luxuoso"];
 
 
 // Função auxiliar: calcular distância em km entre dois pontos (haversine)
@@ -34,15 +34,15 @@ export default function PedirTaxiPage() {
   const [sugestoesOrigem,  setSugestoesOrigem]  = useState([]);
   const [sugestoesDestino, setSugestoesDestino] = useState([]);
   const [nPessoas,       setNPessoas]       = useState(1);
-  const [conforto,       setConforto]       = useState("Standard");
-  const [selectedRide,   setSelectedRide]   = useState("Standard");
+  const [conforto,       setConforto]       = useState("Básico");
+  const [selectedRide,   setSelectedRide]   = useState("Básico");
   const [step,           setStep]           = useState("form"); // form | opcoes | aguardar
   const [loading,        setLoading]        = useState(false);
   const [erro,           setErro]           = useState("");
   const [routePoints,    setRoutePoints]    = useState([]);
   const [distanciaKm,    setDistanciaKm]    = useState(0);
   const [duracao,        setDuracao]        = useState(0);
-  const [precos,         setPrecos]         = useState({}); // { Standard: {...}, Conforto: {...}, Premium: {...} }
+  const [precos,         setPrecos]         = useState({}); // { Básico: {...}, Luxuoso: {...} }
   const [carregandoPrecos, setCarregandoPrecos] = useState(false);
   const [tripId,         setTripId]         = useState(null);
   const [taxis,          setTaxis]          = useState([]);
@@ -430,22 +430,8 @@ export default function PedirTaxiPage() {
                 </div>
               </div>
 
-              {/* Nível de conforto */}
-              <div className={styles.fieldWrap}>
-                <label className={styles.fieldLabel}>Nível de conforto</label>
-                <div className={styles.confortoGrid}>
-                  {CONFORTO_OPTS.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      className={`${styles.confortoBtn} ${conforto === c ? styles.confortoBtnAtivo : ""}`}
-                      onClick={() => setConforto(c)}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              
+              
 
               {erro && <p className={styles.erro}>{erro}</p>}
 
