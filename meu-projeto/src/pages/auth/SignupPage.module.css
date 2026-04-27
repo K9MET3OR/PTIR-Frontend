@@ -113,6 +113,27 @@
   width: 100%;
 }
 
+.field select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 0.5px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #0f172a;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.field select:focus {
+  outline: none;
+  border-color: #0f172a;
+}
+
+.field select:hover {
+  border-color: #94a3b8;
+}
+
 .error {
   font-size: 12px;
   color: #dc2626;

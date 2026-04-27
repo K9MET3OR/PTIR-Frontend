@@ -9,6 +9,18 @@ const ROLES = [
   { id: "cliente",    label: "Client",    icon: "👤" },
 ];
 
+// Função para validar NIF simples (9 dígitos positivos)
+function validarNIF(nif) {
+  nif = String(nif).replace(/\s/g, "");
+  
+  // Apenas verificar se tem 9 dígitos e são todos números positivos
+  if (!/^\d{9}$/.test(nif)) {
+    return false;
+  }
+
+  return true;
+}
+
 export default function SignupPage() {
   const { signup }   = useAuth();
   const navigate     = useNavigate();
@@ -22,11 +34,19 @@ export default function SignupPage() {
   const [error,        setError]        = useState("");
   const [loading,      setLoading]      = useState(false);
 
+  // Campos específicos para motorista
+  const [nif,          setNif]          = useState("");
+  const [genero,       setGenero]       = useState("M");
+  const [nCarta,       setNCarta]       = useState("");
+  const [dataNasc,     setDataNasc]     = useState("");
+  const [codigoPostal, setCodigoPostal] = useState("");
+  const [telefone,     setTelefone]     = useState("");
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
-    // Validações básicas
+    // Validações comuns
     if (!username || !name || !email || !password) {
       setError("Todos os campos são obrigatórios.");
       return;
@@ -42,7 +62,6 @@ export default function SignupPage() {
       return;
     }
 
-    // Validação: senha deve ter dígitos E letras
     const hasDigits = /\d/.test(password);
     const hasLetters = /[a-zA-Z]/.test(password);
     if (!hasDigits || !hasLetters) {
@@ -50,16 +69,71 @@ export default function SignupPage() {
       return;
     }
 
+    // Validações específicas para motorista
+    if (selectedRole === "motorista") {
+      if (!nif || !nCarta || !dataNasc || !telefone || !codigoPostal) {
+        setError("Todos os campos são obrigatórios para motorista.");
+        return;
+      }
+
+      // Validar NIF com algoritmo mod-11
+      if (!validarNIF(nif)) {
+        setError("NIF inválido. Verifique o número e o dígito de controlo.");
+        return;
+      }
+
+      // Validar número de carta (mínimo 5 caracteres)
+      if (nCarta.length < 5) {
+        setError("Número de carta deve ter pelo menos 5 caracteres.");
+        return;
+      }
+
+      // Validar formato de código postal (XXXX-XXX)
+      if (!/^\d{4}-\d{3}$/.test(codigoPostal)) {
+        setError("Código postal deve ter formato XXXX-XXX.");
+        return;
+      }
+
+      // Validar data de nascimento (deve ser no passado e maioria de idade)
+      const dataNascObj = new Date(dataNasc);
+      const hoje = new Date();
+      const idade = hoje.getFullYear() - dataNascObj.getFullYear();
+      if (idade < 18) {
+        setError("Deve ter pelo menos 18 anos.");
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
-      const result = await signup(email, password, username, name, selectedRole);
+      let signupData = {
+        email,
+        password,
+        username,
+        name,
+        selectedRole,
+      };
+
+      // Se for motorista, adicionar campos extras
+      if (selectedRole === "motorista") {
+        signupData = {
+          ...signupData,
+          nif,
+          genero,
+          n_carta: nCarta,
+          data_nascimento: dataNasc,
+          codigo_postal: codigoPostal,
+          telefone,
+        };
+      }
+
+      const result = await signup(signupData);
       const routeByRole = {
         admin: "/gestor",
         motorista: "/motorista/mapa",
         cliente: "/cliente/pedir",
       };
-      // Usar selectedRole já que é o que passamos
       const routePath = routeByRole[selectedRole] || "/login";
       navigate(routePath, { replace: true });
     } catch (err) {
@@ -169,6 +243,83 @@ export default function SignupPage() {
               autoComplete="new-password"
             />
           </div>
+
+          {/* Campos específicos para motorista */}
+          {selectedRole === "motorista" && (
+            <>
+              <div className={styles.field}>
+                <label htmlFor="nif">NIF</label>
+                <input
+                  id="nif"
+                  type="text"
+                  placeholder="123456789"
+                  value={nif}
+                  onChange={(e) => setNif(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="dataNasc">Data de Nascimento</label>
+                <input
+                  id="dataNasc"
+                  type="date"
+                  value={dataNasc}
+                  onChange={(e) => setDataNasc(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="genero">Género</label>
+                <select
+                  id="genero"
+                  value={genero}
+                  onChange={(e) => setGenero(e.target.value)}
+                  required
+                >
+                  <option value="M">Masculino</option>
+                  <option value="F">Feminino</option>
+                </select>
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="nCarta">Número de Carta de Condução</label>
+                <input
+                  id="nCarta"
+                  type="text"
+                  placeholder="AB123456"
+                  value={nCarta}
+                  onChange={(e) => setNCarta(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="telefone">Telefone</label>
+                <input
+                  id="telefone"
+                  type="tel"
+                  placeholder="912345678"
+                  value={telefone}
+                  onChange={(e) => setTelefone(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className={styles.field}>
+                <label htmlFor="codigoPostal">Código Postal</label>
+                <input
+                  id="codigoPostal"
+                  type="text"
+                  placeholder="1000-001"
+                  value={codigoPostal}
+                  onChange={(e) => setCodigoPostal(e.target.value)}
+                  required
+                />
+              </div>
+            </>
+          )}
 
           {error && <p className={styles.error}>{error}</p>}
 

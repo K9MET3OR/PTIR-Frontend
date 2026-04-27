@@ -43,13 +43,13 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function signup(email, password, username, name, selectedRole) {
+  async function signup(signupData) {
     try {
+      const { email, password, username, name, selectedRole, ...extraFields } = signupData;
+      
       console.log("[AUTH] Iniciando signup para:", email);
       
       // 1. Criar utilizador no Firebase.
-      // Se já existir no Firebase (ex.: tentativa anterior falhou no backend),
-      // tentamos autenticar com o mesmo email/password para continuar o registo no Django.
       let userCredential;
       try {
         console.log("[AUTH] Criando user no Firebase...");
@@ -70,24 +70,59 @@ export function AuthProvider({ children }) {
       const firebaseToken = await userCredential.user.getIdToken();
       console.log("[AUTH] Token obtido");
 
-      // 2. Criar utilizador no Django
-      console.log("[AUTH] Criando user no Django backend...");
-      const data = await api.post(`/user/`, {
-        username,
-        name,
-        role: selectedRole,
-        email
-      });
-      console.log("[AUTH] User criado no Django");
-
-      // 3. Setar o utilizador no contexto
-      setUser(data.user); setRole(data.user.role); setToken(firebaseToken);
-      localStorage.setItem("taxigest_token", firebaseToken);
-      localStorage.setItem("taxigest_user", JSON.stringify(data.user));
+      // 2. Criar utilizador no Django/Backend
+      let data;
       
-      // Redirecionar para o dashboard correto (admin -> /gestor)
-      const routePath = selectedRole === 'admin' ? '/gestor' : `/${selectedRole}`;
-      return { ...data, routePath };
+      if (selectedRole === "motorista") {
+        // Usar endpoint específico para motoristas
+        console.log("[AUTH] Criando motorista no backend...");
+        data = await api.post(`/driver/registo-motorista`, {
+          username,
+          nome: name, // Backend espera 'nome' e não 'name'
+          email,
+          nif: extraFields.nif,
+          genero: extraFields.genero,
+          n_carta: extraFields.n_carta,
+          data_nascimento: extraFields.data_nascimento,
+          codigo_postal: extraFields.codigo_postal,
+          telefone: extraFields.telefone,
+        });
+        console.log("[AUTH] Motorista criado no backend");
+      } else {
+        // Usar endpoint genérico para cliente/admin
+        console.log("[AUTH] Criando user no Django backend...");
+        data = await api.post(`/user/`, {
+          username,
+          name,
+          role: selectedRole,
+          email
+        });
+        console.log("[AUTH] User criado no Django");
+      }
+
+      // 3. Adaptar resposta para formato padrão
+      let userData;
+      if (selectedRole === "motorista" && data.motorista) {
+        userData = {
+          id: data.motorista.id,
+          username: data.motorista.username,
+          name: data.motorista.nome,
+          role: selectedRole,
+        };
+      } else if (data.user) {
+        userData = data.user;
+      } else {
+        userData = data; // fallback
+      }
+
+      // 4. Setar o utilizador no contexto
+      setUser(userData);
+      setRole(userData.role);
+      setToken(firebaseToken);
+      localStorage.setItem("taxigest_token", firebaseToken);
+      localStorage.setItem("taxigest_user", JSON.stringify(userData));
+      
+      return { user: userData, success: true };
     } catch (err) {
       console.error("[AUTH] Erro no signup:", err);
       throw err;
