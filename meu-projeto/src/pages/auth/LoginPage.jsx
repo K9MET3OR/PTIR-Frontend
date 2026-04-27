@@ -29,7 +29,7 @@ export default function LoginPage() {
       // Redireciona para uma rota existente para cada role
       const routeByRole = {
         admin: "/gestor",
-        motorista: "/motorista/mapa",
+        motorista: "/motorista/turno",
         cliente: "/cliente/pedir",
       };
       // Usar selectedRole já que é o que passamos

@@ -131,7 +131,7 @@ export default function SignupPage() {
       const result = await signup(signupData);
       const routeByRole = {
         admin: "/gestor",
-        motorista: "/motorista/mapa",
+        motorista: "/motorista/turno",
         cliente: "/cliente/pedir",
       };
       const routePath = routeByRole[selectedRole] || "/login";

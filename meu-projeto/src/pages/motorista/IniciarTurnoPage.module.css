@@ -348,6 +348,7 @@
   cursor: not-allowed;
 }
 
+
 /* Responsivo */
 @media (max-width: 768px) {
   .title {
@@ -375,4 +376,101 @@
   .btnIniciar {
     width: 100%;
   }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Formulário de período */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fieldLabel {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.input {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Info Box */
+.infoBox {
+  background: #f5f5f5;
+  border-left: 4px solid #667eea;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.infoBox p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.alertaErro {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.alertaSucesso {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+/* Turno Item */
+.turnosList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.turnoItem {
+  background: #f9f9f9;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  border-left: 4px solid #667eea;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1rem;
+}
+
+.turnoData {
+  font-weight: 600;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.turnoHora {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.turnoTaxi {
+  color: #667eea;
+  font-weight: 600;
+  font-size: 0.9rem;
 }
