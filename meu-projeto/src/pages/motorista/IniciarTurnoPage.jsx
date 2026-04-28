@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
+import { criarShift } from '../../services/shiftService';
 import styles from './IniciarTurnoPage.module.css';
 
 export default function IniciarTurnoPage() {
@@ -127,23 +128,17 @@ export default function IniciarTurnoPage() {
       const dataHoraInicio = `${dataInicio}T${horaInicio}:00Z`;
       const dataHoraFim = `${dataInicio}T${horaFim}:00Z`;
 
-      const response = await fetch('http://localhost:8000/api/shift/registar/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('taxigest_token')}`,
-        },
-        body: JSON.stringify({
-          driver: user.id,
-          taxi: taxiSelecionado.id,
-          start_date: dataHoraInicio,
-          end_date: dataHoraFim,
-        }),
+      const data = await criarShift({
+        driverId: user.id,
+        taxiId: taxiSelecionado.id,
+        startDate: dataHoraInicio,
+        endDate: dataHoraFim,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro ao criar turno');
+      // Guardar turno_id e turno_ativo no localStorage
+      if (data.shift && data.shift.id) {
+        localStorage.setItem('turno_id', data.shift.id);
+        localStorage.setItem('turno_ativo', 'true');
       }
 
       await carregarTurnos();

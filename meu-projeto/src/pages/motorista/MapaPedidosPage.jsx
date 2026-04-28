@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import MapaBase from "../../components/MapaBase";
 import { taxiService } from "../../services/taxiService";
 import { listarViagensPendentes, listarViagensAceitesMotorista, aceitarViagem } from "../../services/tripService";
+import { terminarShift } from "../../services/shiftService";
 import { COR_ESTADO } from "../../services/mockData";
 import styles from "./MapaPedidosPage.module.css";
 import { useNavigate } from "react-router-dom";
@@ -186,6 +187,28 @@ export default function MapaPedidosPage() {
     setProfileMenuOpen(false);
     await logout();
     navigate("/login", { replace: true });
+  }
+
+  async function handleTerminarTurno() {
+    const shiftId = localStorage.getItem('turno_id');
+    if (!shiftId) {
+      alert('Turno não encontrado');
+      return;
+    }
+
+    if (!window.confirm('Tem a certeza que quer terminar o turno?')) {
+      return;
+    }
+
+    try {
+      await terminarShift(shiftId);
+      localStorage.removeItem('turno_ativo');
+      localStorage.removeItem('turno_id');
+      alert('Turno terminado com sucesso');
+      navigate("/motorista/turno", { replace: true });
+    } catch (error) {
+      alert(`Erro ao terminar turno: ${error.message}`);
+    }
   }
 
   function handleProfileToggle() {
@@ -452,6 +475,9 @@ export default function MapaPedidosPage() {
             <div className={styles.profileMenu}>
               <button className={styles.profileMenuItem} type="button">
                 Editar perfil
+              </button>
+              <button className={styles.profileMenuItem} type="button" onClick={handleTerminarTurno}>
+                🛑 Terminar Turno
               </button>
               <button className={styles.profileMenuItem} type="button" onClick={handleLogout}>
                 Logout

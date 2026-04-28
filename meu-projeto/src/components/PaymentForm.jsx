@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import styles from './PaymentForm.module.css';
 
@@ -17,8 +18,24 @@ export default function PaymentForm({ tripId, amount, onSuccess, onError }) {
 function CheckoutForm({ tripId, amount, onSuccess, onError }) {
   const stripe = useStripe();
   const elements = useElements();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [userData, setUserData] = useState(null);
+
+  // Carregar dados do utilizador para preencher billing details
+  useEffect(() => {
+    const loadUserData = async () => {
+      if (!user) return;
+      try {
+        const response = await api.get(`/user/${user.id}/`);
+        setUserData(response);
+      } catch (error) {
+        console.error('Erro ao carregar dados do utilizador:', error);
+      }
+    };
+    loadUserData();
+  }, [user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,11 +60,24 @@ function CheckoutForm({ tripId, amount, onSuccess, onError }) {
         throw new Error('Erro ao criar pagamento');
       }
 
-      // 2. Confirmar pagamento com Stripe
+      // 2. Preparar billing details com dados do utilizador
+      const billingDetails = {
+        name: user?.name || 'Cliente',
+        email: userData?.email || '',
+        phone: userData?.mobile || '',
+        address: {
+          line1: userData?.address || 'Rua Principal',
+          postal_code: userData?.codigo_postal || '1234-567',
+          city: userData?.city || 'Lisboa',
+          country: 'PT'
+        }
+      };
+
+      // 3. Confirmar pagamento com Stripe
       const result = await stripe.confirmCardPayment(data.client_secret, {
         payment_method: {
           card: elements.getElement(CardElement),
-          billing_details: { name: 'Cliente Taxi' }
+          billing_details: billingDetails
         }
       });
 
@@ -55,7 +85,7 @@ function CheckoutForm({ tripId, amount, onSuccess, onError }) {
         setMessage(`❌ Erro: ${result.error.message}`);
         if (onError) onError(result.error.message);
       } else if (result.paymentIntent.status === 'succeeded') {
-        // 3. Confirmar no backend
+        // 4. Confirmar no backend
         const confirmData = await api.post('/trip/pagamento/confirmar/', {
           payment_intent_id: result.paymentIntent.id,
           trip_id: tripId

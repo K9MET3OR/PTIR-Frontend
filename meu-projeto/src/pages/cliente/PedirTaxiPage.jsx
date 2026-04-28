@@ -4,6 +4,7 @@ import MapaBase from "../../components/MapaBase";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
 import { criarSolicitacaoViagem, atualizarViagem, obterDetalheViagem} from "../../services/tripService";
 import { taxiService } from "../../services/taxiService";
+import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { COR_ESTADO } from "../../services/mockData";
 import styles from "./PedirTaxiPage.module.css";
@@ -137,18 +138,13 @@ export default function PedirTaxiPage() {
       const precosCalculados = {};
       
       for (const nivel of CONFORTO_OPTS) {
-        const res = await fetch("http://localhost:8000/api/taxis/calcular-preco-com-conforto", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            distancia_km: distancia,
-            duracao_minutos: duracao,
-            nivel_conforto: nivel,
-          }),
+        const data = await api.post('/taxi/calcular-preco-com-conforto', {
+          distancia_km: distancia,
+          duracao_minutos: duracao,
+          nivel_conforto: nivel,
         });
 
-        if (!res.ok) throw new Error("Erro ao calcular preço");
-        const data = await res.json();
+        if (!data || !data.price) throw new Error("Erro ao calcular preço");
         precosCalculados[nivel] = {
           price: data.price,
           breakdown: data.breakdown,

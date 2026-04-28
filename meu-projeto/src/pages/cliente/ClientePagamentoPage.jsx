@@ -11,12 +11,13 @@ export default function ClientePagamentoPage() {
   const [searchParams] = useSearchParams();
 
   const tripId = searchParams.get("tripId");
-  const amount = parseFloat(searchParams.get("amount")) || 0;
+  const amountFromUrl = parseFloat(searchParams.get("amount")) || 0;
 
   const [tripDetails, setTripDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
   const [pagamentoSucesso, setPagamentoSucesso] = useState(false);
+  const [finalAmount, setFinalAmount] = useState(0); // Preço final da viagem em EUR
 
   useEffect(() => {
     const carregarDetalhesViagem = async () => {
@@ -39,6 +40,10 @@ export default function ClientePagamentoPage() {
         // Calcular distância (Haversine) se coordenadas disponíveis
         // Converter para número se for string
         let distanciaKm = parseFloat(viagem.n_kms) || 0;
+        
+        // Usar o preço do backend (que é a fonte verdadeira)
+        const precoViagem = parseFloat(viagem.price) || amountFromUrl || 0;
+        setFinalAmount(precoViagem);
 
         setTripDetails({
           id: viagem.id,
@@ -149,7 +154,7 @@ export default function ClientePagamentoPage() {
             </div>
             <div className={styles.tripDetail + " " + styles.priceHighlight}>
               <span className={styles.label}>Valor Total:</span>
-              <span>{(amount / 100).toFixed(2)} €</span>
+              <span>{finalAmount.toFixed(2)} €</span>
             </div>
           </div>
         )}
@@ -164,7 +169,7 @@ export default function ClientePagamentoPage() {
           <h3>Dados de Pagamento</h3>
           <PaymentForm
             tripId={tripId}
-            amount={Math.round(amount)}
+            amount={finalAmount}
             onSuccess={handlePaymentSuccess}
             onError={handlePaymentError}
           />

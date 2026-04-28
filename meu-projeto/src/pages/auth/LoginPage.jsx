@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { verificarTurnoAtivo } from "../../services/shiftService";
 import styles from "./LoginPage.module.css";
 
 const ROLES = [
@@ -26,14 +27,43 @@ export default function LoginPage() {
 
     try {
       const result = await login(email, password, selectedRole);
+      console.log('[LOGIN] Resultado do login:', result);
+      console.log('[LOGIN] User:', result.user);
+      
       // Redireciona para uma rota existente para cada role
-      const routeByRole = {
-        admin: "/gestor",
-        motorista: "/motorista/turno",
-        cliente: "/cliente/pedir",
-      };
-      // Usar selectedRole já que é o que passamos
-      const routePath = routeByRole[selectedRole] || "/login";
+      let routePath = "/login"; // default fallback
+      
+      if (selectedRole === "admin") {
+        routePath = "/gestor";
+      } else if (selectedRole === "motorista") {
+        // Verificar se motorista tem turno ativo no backend
+        try {
+          console.log('[LOGIN] Verificando turno para motorista ID:', result.user.id);
+          const turnoAtivo = await verificarTurnoAtivo(result.user.id);
+          console.log('[LOGIN] Resposta verificarTurnoAtivo:', turnoAtivo);
+          
+          if (turnoAtivo && turnoAtivo.id) {
+            // Motorista tem turno ativo, armazena e vai para mapa
+            console.log('[LOGIN] Turno ativo encontrado:', turnoAtivo.id);
+            localStorage.setItem('turno_id', turnoAtivo.id);
+            localStorage.setItem('turno_ativo', 'true');
+            routePath = "/motorista/mapa";
+          } else {
+            // Sem turno ativo, vai para página de iniciar turno
+            console.log('[LOGIN] Sem turno ativo, enviando para page de iniciar turno');
+            localStorage.removeItem('turno_id');
+            localStorage.removeItem('turno_ativo');
+            routePath = "/motorista/turno";
+          }
+        } catch (err) {
+          console.error("[LOGIN] Erro ao verificar turno:", err);
+          routePath = "/motorista/turno";
+        }
+      } else if (selectedRole === "cliente") {
+        routePath = "/cliente/pedir";
+      }
+      
+      console.log('[LOGIN] Redirecionando para:', routePath);
       navigate(routePath, { replace: true });
     } catch (err) {
       // Mensagens legíveis em vez dos códigos Firebase
