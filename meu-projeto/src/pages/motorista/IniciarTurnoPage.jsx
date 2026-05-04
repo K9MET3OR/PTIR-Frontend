@@ -76,7 +76,7 @@ export default function IniciarTurnoPage() {
       const dataHoraFim = `${dataInicio}T${horaFim}:00Z`;
 
       const data = await api.get(
-        `/shift/taxis-available/?start_date=${encodeURIComponent(dataHoraInicio)}&end_date=${encodeURIComponent(dataHoraFim)}`
+        `/shift/taxis-disponiveis/?start_date=${encodeURIComponent(dataHoraInicio)}&end_date=${encodeURIComponent(dataHoraFim)}`
       );
 
       setTaxis(data.taxis || []);

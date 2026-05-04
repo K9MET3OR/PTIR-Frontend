@@ -138,7 +138,7 @@ export default function PedirTaxiPage() {
       const precosCalculados = {};
 
       for (const nivel of CONFORTO_OPTS) {
-        const data = await api.post('/taxi/calculate-price-comfortably', {
+        const data = await api.post('/taxi/calcular-preco-com-conforto', {
           distancia_km: distancia,
           duracao_minutos: duracao,
           nivel_conforto: nivel,
