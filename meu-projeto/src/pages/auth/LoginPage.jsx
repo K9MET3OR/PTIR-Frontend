@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { verificarTurnoAtivo } from "../../services/shiftService";
 import styles from "./LoginPage.module.css";
@@ -13,8 +13,10 @@ const ROLES = [
 export default function LoginPage() {
   const { login }    = useAuth();
   const navigate     = useNavigate();
+  const location = useLocation();
+  const initialRole = location.state?.selectedRole || "admin";
 
-  const [selectedRole, setSelectedRole] = useState("admin");
+  const [selectedRole, setSelectedRole] = useState(initialRole);
   const [email,        setEmail]        = useState("");
   const [password,     setPassword]     = useState("");
   const [error,        setError]        = useState("");
@@ -150,7 +152,11 @@ export default function LoginPage() {
         {/* Link para signup */}
         <p className={styles.linkRow}>
           Don't have an account?{" "}
-          <Link to="/signup" className={styles.link}>
+          <Link
+            to="/signup"
+            state={{ selectedRole }}
+            className={styles.link}
+          >
             Sign Up
           </Link>
         </p>

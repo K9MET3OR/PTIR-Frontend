@@ -6,9 +6,9 @@ import { api } from './api';
 export async function verificarTurnoAtivo(motoristId) {
   try {
     console.log('[SHIFT] Verificando turnos para motorista ID:', motoristId);
-    const response = await api.get(`/shift/driver/${motoristId}/`);
+    const response = await api.get(`/shift/shift/${motoristId}`);
     console.log('[SHIFT] Resposta do backend:', response);
-    
+
     // O backend retorna uma lista de shifts. Procuramos um com status 'active'
     if (response && response.shifts && Array.isArray(response.shifts)) {
       console.log('[SHIFT] Turnos encontrados:', response.shifts);
@@ -16,7 +16,7 @@ export async function verificarTurnoAtivo(motoristId) {
       console.log('[SHIFT] Turno ativo:', turnoAtivo);
       return turnoAtivo || null;
     }
-    
+
     console.log('[SHIFT] Resposta não tem shifts:', response);
     return null;
   } catch (error) {
@@ -32,7 +32,7 @@ export async function verificarTurnoAtivo(motoristId) {
  */
 export async function terminarShift(shiftId) {
   try {
-    const response = await api.post(`/shift/${shiftId}/terminar/`, {});
+    const response = await api.post(`/shift/${shiftId}/finish`, {});
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao terminar turno' };
@@ -44,7 +44,7 @@ export async function terminarShift(shiftId) {
  */
 export async function listarShiftsMotorista(motoristId) {
   try {
-    const response = await api.get(`/shift/driver/${motoristId}/`);
+    const response = await api.get(`/shift/shift/${motoristId}`);
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao listar turnos' };
@@ -56,7 +56,7 @@ export async function listarShiftsMotorista(motoristId) {
  */
 export async function obterShift(shiftId) {
   try {
-    const response = await api.get(`/shift/${shiftId}/`);
+    const response = await api.get(`/shift/${shiftId}`);
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao obter turno' };
@@ -68,7 +68,7 @@ export async function obterShift(shiftId) {
  */
 export async function criarShift(shiftData) {
   try {
-    const response = await api.post('/shift/registar/', {
+    const response = await api.post('/shift/register', {
       driver: shiftData.driverId,
       taxi: shiftData.taxiId,
       start_date: shiftData.startDate,

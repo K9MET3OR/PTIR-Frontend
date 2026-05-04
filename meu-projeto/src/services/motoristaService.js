@@ -2,14 +2,16 @@ import { api } from "./api";
 
 export const motoristaService = {
   list: async () => {
-    const response = await api.get("/motoristas/");
+    const response = await api.get("/driver/");
     return response.motoristas || [];
   },
+
   get: async (id) => {
-    const response = await api.get(`/motoristas/${id}/`);
+    const response = await api.get(`/driver/${id}`);
     return response.motorista || response;
   },
-  create: (data)     => api.post("/motoristas/registo-motorista", data),
-  update: (id, data) => api.put(`/motoristas/${id}/`, data),
-  remove: (id)       => api.delete(`/motoristas/${id}/`),
+
+  create: (data) => api.post("/driver/register", data),
+  update: (id, data) => api.put(`/driver/${id}`, data),
+  remove: (id) => api.delete(`/driver/${id}`),
 };

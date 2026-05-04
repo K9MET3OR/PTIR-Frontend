@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation} from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import styles from "./SignupPage.module.css";
 
@@ -24,8 +24,10 @@ function validarNIF(nif) {
 export default function SignupPage() {
   const { signup }   = useAuth();
   const navigate     = useNavigate();
+  const location = useLocation();
+  const initialRole = location.state?.selectedRole || "cliente";
 
-  const [selectedRole, setSelectedRole] = useState("cliente");
+  const [selectedRole, setSelectedRole] = useState(initialRole);
   const [username,     setUsername]     = useState("");
   const [name,         setName]         = useState("");
   const [email,        setEmail]        = useState("");
@@ -335,7 +337,11 @@ export default function SignupPage() {
         {/* Link para login */}
         <p className={styles.linkRow}>
           Already have an account?{" "}
-          <Link to="/login" className={styles.link}>
+          <Link
+            to="/login"
+            state={{ selectedRole }}
+            className={styles.link}
+          >
             Sign In
           </Link>
         </p>
