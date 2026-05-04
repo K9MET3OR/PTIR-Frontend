@@ -8,11 +8,11 @@ import styles from './IniciarTurnoPage.module.css';
 export default function IniciarTurnoPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  
+
   const [dataInicio, setDataInicio] = useState(new Date().toISOString().split('T')[0]);
   const [horaInicio, setHoraInicio] = useState('09:00');
   const [horaFim, setHoraFim] = useState('17:00');
-  
+
   const [taxis, setTaxis] = useState([]);
   const [taxiSelecionado, setTaxiSelecionado] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -38,7 +38,7 @@ export default function IniciarTurnoPage() {
   // Validar duração
   const validarDuracao = () => {
     const duracao = calcularDuracao(horaInicio, horaFim);
-    
+
     if (horaInicio >= horaFim) {
       setErro('A hora de fim deve ser posterior à hora de início.');
       return false;
@@ -76,7 +76,7 @@ export default function IniciarTurnoPage() {
       const dataHoraFim = `${dataInicio}T${horaFim}:00Z`;
 
       const data = await api.get(
-        `/shift/taxis-disponiveis/?start_date=${encodeURIComponent(dataHoraInicio)}&end_date=${encodeURIComponent(dataHoraFim)}`
+        `/shift/taxis-available/?start_date=${encodeURIComponent(dataHoraInicio)}&end_date=${encodeURIComponent(dataHoraFim)}`
       );
 
       setTaxis(data.taxis || []);
@@ -91,7 +91,7 @@ export default function IniciarTurnoPage() {
 
   const carregarTurnos = async () => {
     try {
-      const data = await api.get(`/shift/driver/${user.id}/`);
+      const data = await api.get(`/shift/driver/${user.id}`);
       setTurnos(data.shifts || []);
     } catch (error) {
       console.error('Erro ao carregar turnos:', error);
@@ -129,7 +129,7 @@ export default function IniciarTurnoPage() {
       }
 
       await carregarTurnos();
-      
+
       // Limpar formulário
       setTaxiSelecionado(null);
       setDataInicio(new Date().toISOString().split('T')[0]);
@@ -230,9 +230,8 @@ export default function IniciarTurnoPage() {
                 {taxis.map(taxi => (
                   <div
                     key={taxi.id}
-                    className={`${styles.taxiCard} ${
-                      taxiSelecionado?.id === taxi.id ? styles.taxiCardSelecionado : ''
-                    }`}
+                    className={`${styles.taxiCard} ${taxiSelecionado?.id === taxi.id ? styles.taxiCardSelecionado : ''
+                      }`}
                     onClick={() => setTaxiSelecionado(taxi)}
                   >
                     <div className={styles.taxiIcon}>🚕</div>
@@ -294,7 +293,7 @@ export default function IniciarTurnoPage() {
                       {new Date(turno.start_date).toLocaleDateString('pt-PT')}
                     </div>
                     <div className={styles.turnoHora}>
-                      {new Date(turno.start_date).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} - 
+                      {new Date(turno.start_date).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} -
                       {new Date(turno.end_date).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>

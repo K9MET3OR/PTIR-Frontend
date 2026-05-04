@@ -6,7 +6,7 @@ import { api } from './api';
 export async function verificarTurnoAtivo(motoristId) {
   try {
     console.log('[SHIFT] Verificando turnos para motorista ID:', motoristId);
-    const response = await api.get(`/shift/shift/${motoristId}`);
+    const response = await api.get(`/shift/driver/${motoristId}`);
     console.log('[SHIFT] Resposta do backend:', response);
 
     // O backend retorna uma lista de shifts. Procuramos um com status 'active'
@@ -44,7 +44,7 @@ export async function terminarShift(shiftId) {
  */
 export async function listarShiftsMotorista(motoristId) {
   try {
-    const response = await api.get(`/shift/shift/${motoristId}`);
+    const response = await api.get(`/shift/driver/${motoristId}`);
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao listar turnos' };

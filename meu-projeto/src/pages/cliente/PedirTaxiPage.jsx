@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MapaBase from "../../components/MapaBase";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
-import { criarSolicitacaoViagem, atualizarViagem, obterDetalheViagem} from "../../services/tripService";
+import { criarSolicitacaoViagem, atualizarViagem, obterDetalheViagem } from "../../services/tripService";
 import { taxiService } from "../../services/taxiService";
 import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -17,12 +17,12 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
   const R = 6371; // Raio da Terra em km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a = 
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -30,30 +30,30 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
 export default function PedirTaxiPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [origemInput,    setOrigemInput]    = useState("");
-  const [destinoInput,   setDestinoInput]   = useState("");
-  const [origemCoords,   setOrigemCoords]   = useState(null);
-  const [destinoCoords,  setDestinoCoords]  = useState(null);
-  const [sugestoesOrigem,  setSugestoesOrigem]  = useState([]);
+  const [origemInput, setOrigemInput] = useState("");
+  const [destinoInput, setDestinoInput] = useState("");
+  const [origemCoords, setOrigemCoords] = useState(null);
+  const [destinoCoords, setDestinoCoords] = useState(null);
+  const [sugestoesOrigem, setSugestoesOrigem] = useState([]);
   const [sugestoesDestino, setSugestoesDestino] = useState([]);
-  const [nPessoas,       setNPessoas]       = useState(1);
-  const [conforto,       setConforto]       = useState("Básico");
-  const [selectedRide,   setSelectedRide]   = useState("Básico");
-  const [step,           setStep]           = useState("form"); // form | opcoes | aguardar
-  const [loading,        setLoading]        = useState(false);
-  const [erro,           setErro]           = useState("");
-  const [routePoints,    setRoutePoints]    = useState([]);
-  const [distanciaKm,    setDistanciaKm]    = useState(0);
-  const [duracao,        setDuracao]        = useState(0);
-  const [precos,         setPrecos]         = useState({}); // { Básico: {...}, Luxuoso: {...} }
+  const [nPessoas, setNPessoas] = useState(1);
+  const [conforto, setConforto] = useState("Básico");
+  const [selectedRide, setSelectedRide] = useState("Básico");
+  const [step, setStep] = useState("form"); // form | opcoes | aguardar
+  const [loading, setLoading] = useState(false);
+  const [erro, setErro] = useState("");
+  const [routePoints, setRoutePoints] = useState([]);
+  const [distanciaKm, setDistanciaKm] = useState(0);
+  const [duracao, setDuracao] = useState(0);
+  const [precos, setPrecos] = useState({}); // { Básico: {...}, Luxuoso: {...} }
   const [carregandoPrecos, setCarregandoPrecos] = useState(false);
-  const [tripId,         setTripId]         = useState(null);
-  const [taxis,          setTaxis]          = useState([]);
-  const [profileOpen,    setProfileOpen]    = useState(false);
+  const [tripId, setTripId] = useState(null);
+  const [taxis, setTaxis] = useState([]);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [carregandoTaxis, setCarregandoTaxis] = useState(false);
   const [estadoViagem, setEstadoViagem] = useState(null);
 
-  const origemTimer  = useRef(null);
+  const origemTimer = useRef(null);
   const destinoTimer = useRef(null);
 
   // Effect: Carregar táxis ao montar o componente
@@ -95,8 +95,8 @@ export default function PedirTaxiPage() {
       }
     }, 3000);
 
-  return () => clearInterval(interval);
-}, [step, tripId]);
+    return () => clearInterval(interval);
+  }, [step, tripId]);
 
   async function carregarTaxis() {
     setCarregandoTaxis(true);
@@ -104,7 +104,7 @@ export default function PedirTaxiPage() {
       const response = await taxiService.list();
       // A API retorna transformada para { data: [...] }
       const todosTaxis = response.data || [];
-      
+
       // Mapear a resposta para o formato esperado
       const taxisFormatados = todosTaxis.map(taxi => ({
         id: taxi.id,
@@ -136,9 +136,9 @@ export default function PedirTaxiPage() {
 
     try {
       const precosCalculados = {};
-      
+
       for (const nivel of CONFORTO_OPTS) {
-        const data = await api.post('/taxi/calcular-preco-com-conforto', {
+        const data = await api.post('/taxi/calculate-price-comfortably', {
           distancia_km: distancia,
           duracao_minutos: duracao,
           nivel_conforto: nivel,
@@ -180,7 +180,7 @@ export default function PedirTaxiPage() {
       color: COR_ESTADO.disponivel,
     })),
     ...(origemCoords
-      ? [{ id: "origem",  lon: origemCoords.lon,  lat: origemCoords.lat,  label: "Origem",  color: "#a855f7" }]
+      ? [{ id: "origem", lon: origemCoords.lon, lat: origemCoords.lat, label: "Origem", color: "#a855f7" }]
       : []),
     ...(destinoCoords
       ? [{ id: "destino", lon: destinoCoords.lon, lat: destinoCoords.lat, label: "Destino", color: "#c084fc" }]
@@ -229,12 +229,12 @@ export default function PedirTaxiPage() {
   // Centro do mapa — se origem e destino definidos, centraliza entre os dois pontos
   const mapCenter = rotaSelecionada
     ? [
-        (origemCoords.lon + destinoCoords.lon) / 2,
-        (origemCoords.lat + destinoCoords.lat) / 2,
-      ]
+      (origemCoords.lon + destinoCoords.lon) / 2,
+      (origemCoords.lat + destinoCoords.lat) / 2,
+    ]
     : origemCoords
-    ? [origemCoords.lon, origemCoords.lat]
-    : [-9.1393, 38.7223];
+      ? [origemCoords.lon, origemCoords.lat]
+      : [-9.1393, 38.7223];
 
   const mapZoom = rotaSelecionada ? 12 : origemCoords ? 15 : 13;
 
@@ -285,7 +285,7 @@ export default function PedirTaxiPage() {
     e.preventDefault();
     setErro("");
 
-    if (!origemCoords)  { setErro("Seleciona um local de origem válido."); return; }
+    if (!origemCoords) { setErro("Seleciona um local de origem válido."); return; }
     if (!destinoCoords) { setErro("Seleciona um local de destino válido."); return; }
     if (nPessoas < 1 || nPessoas > 4) { setErro("Número de pessoas entre 1 e 4."); return; }
 
@@ -430,8 +430,8 @@ export default function PedirTaxiPage() {
                 </div>
               </div>
 
-              
-              
+
+
 
               {erro && <p className={styles.erro}>{erro}</p>}
 
@@ -440,8 +440,8 @@ export default function PedirTaxiPage() {
               </button>
             </form>
 
-           
-            
+
+
           </>
         )}
 
@@ -522,7 +522,7 @@ export default function PedirTaxiPage() {
                       </span>
                       <span className={styles.rideDuration}>{duracao > 0 ? `~${duracao} min` : "-"}</span>
                     </div>
-                    
+
                   </button>
                 );
               })}
@@ -589,8 +589,8 @@ export default function PedirTaxiPage() {
                   <div className={styles.resumoLinha}>
                     <span className={styles.resumoLabel}>Preço estimado:</span>
                     <span className={styles.resumoValorPreco}>
-                      €{typeof precos[selectedRide].price === "number" 
-                        ? precos[selectedRide].price.toFixed(2) 
+                      €{typeof precos[selectedRide].price === "number"
+                        ? precos[selectedRide].price.toFixed(2)
                         : precos[selectedRide].price}
                     </span>
                   </div>
