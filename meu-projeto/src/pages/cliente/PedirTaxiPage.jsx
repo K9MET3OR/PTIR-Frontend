@@ -481,7 +481,7 @@ export default function PedirTaxiPage() {
               </div>
               <div className={styles.metaRow}>
                 <span className={styles.metaLabel}>Duração est.</span>
-                <span>~{duracao} min</span>
+                <span>{duracao} min</span>
               </div>
               <div className={styles.metaRow}>
                 <span className={styles.metaLabel}>Nível de conforto</span>

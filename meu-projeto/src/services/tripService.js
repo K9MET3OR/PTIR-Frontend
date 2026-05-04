@@ -5,7 +5,7 @@ import { api } from './api';
  */
 export async function criarSolicitacaoViagem(tripData) {
   try {
-    const response = await api.post('/trip/registar/', {
+    const response = await api.post('/trip/register/', {
       client_id: tripData.clientId,
       start_location: tripData.startLocation,
       end_location: tripData.endLocation,
@@ -101,7 +101,7 @@ export async function atualizarViagem(tripId, updateData) {
  */
 export async function criarIntencaoPagamento(tripId, amount) {
   try {
-    const response = await api.post('/trip/pagamento/criar/', {
+    const response = await api.post('/trip/pagamento/create', {
       trip_id: tripId,
       amount: amount,
       description: `Pagamento de viagem - ${tripId}`,
@@ -117,7 +117,7 @@ export async function criarIntencaoPagamento(tripId, amount) {
  */
 export async function confirmarPagamento(tripId, paymentIntentId) {
   try {
-    const response = await api.post('/trip/pagamento/confirmar/', {
+    const response = await api.post('/trip/pagamento/confirm', {
       trip_id: tripId,
       payment_intent_id: paymentIntentId,
     });

@@ -50,7 +50,7 @@ function CheckoutForm({ tripId, amount, onSuccess, onError }) {
 
     try {
       // 1. Criar payment intent no backend
-      const data = await api.post('/trip/pagamento/criar/', {
+      const data = await api.post('/trip/pagamento/create', {
         amount: Math.round(amount * 100), // converter para centavos
         trip_id: tripId,
         description: `Pagamento de Viagem - ${tripId}`
@@ -86,7 +86,7 @@ function CheckoutForm({ tripId, amount, onSuccess, onError }) {
         if (onError) onError(result.error.message);
       } else if (result.paymentIntent.status === 'succeeded') {
         // 4. Confirmar no backend
-        const confirmData = await api.post('/trip/pagamento/confirmar/', {
+        const confirmData = await api.post('/trip/pagamento/confirm', {
           payment_intent_id: result.paymentIntent.id,
           trip_id: tripId
         });
