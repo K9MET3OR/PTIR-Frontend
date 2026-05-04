@@ -440,27 +440,8 @@ export default function PedirTaxiPage() {
               </button>
             </form>
 
-            {/* Legenda táxis no mapa */}
-            <div className={styles.divider} />
-            <div className={styles.legendaTitle}>Táxis disponíveis</div>
-            <div className={styles.legenda}>
-              {carregandoTaxis ? (
-                <div style={{ padding: "1rem", color: "#6b7280", fontSize: "0.9rem" }}>
-                  A carregar táxis...
-                </div>
-              ) : taxis.filter((t) => t.estado === "disponivel").length === 0 ? (
-                <div style={{ padding: "1rem", color: "#6b7280", fontSize: "0.9rem" }}>
-                  Nenhum táxi disponível no momento
-                </div>
-              ) : (
-                taxis.filter((t) => t.estado === "disponivel").map((t) => (
-                  <div key={t.id} className={styles.legendaItem}>
-                    <div className={styles.legendaDot} style={{ background: COR_ESTADO.disponivel }} />
-                    <span>{t.matricula} · {t.nivel_conforto}</span>
-                  </div>
-                ))
-              )}
-            </div>
+           
+            
           </>
         )}
 
@@ -512,14 +493,12 @@ export default function PedirTaxiPage() {
               {CONFORTO_OPTS.map((nivel) => {
                 const preco = precos[nivel];
                 const descricao = {
-                  Standard: "Viagens diárias económicas",
-                  Conforto: "Viagens mais rápidas e confortáveis",
-                  Premium: "Viagens com serviço premium e melhor espaço",
+                  Básico: "Viagens diárias económicas",
+                  Luxuoso: "Viagens com serviço premium e melhor espaço",
                 };
                 const titulo = {
-                  Standard: "Hermez Standard",
-                  Conforto: "Hermez Conforto",
-                  Premium: "Hermez Premium",
+                  Básico: "Hermez Básico",
+                  Luxuoso: "Hermez Luxuoso",
                 };
 
                 return (
@@ -543,6 +522,7 @@ export default function PedirTaxiPage() {
                       </span>
                       <span className={styles.rideDuration}>{duracao > 0 ? `~${duracao} min` : "-"}</span>
                     </div>
+                    
                   </button>
                 );
               })}
