@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { criarShift } from '../../services/shiftService';
+import { api } from '../../services/api';
 import styles from './IniciarTurnoPage.module.css';
 
 export default function IniciarTurnoPage() {
@@ -74,16 +75,10 @@ export default function IniciarTurnoPage() {
       const dataHoraInicio = `${dataInicio}T${horaInicio}:00Z`;
       const dataHoraFim = `${dataInicio}T${horaFim}:00Z`;
 
-      const response = await fetch(
-        `http://localhost:8000/api/shift/taxis-disponiveis/?start_date=${encodeURIComponent(dataHoraInicio)}&end_date=${encodeURIComponent(dataHoraFim)}`,
-        {
-          headers: { 'Authorization': `Bearer ${localStorage.getItem('taxigest_token')}` },
-        }
+      const data = await api.get(
+        `/shift/taxis-disponiveis/?start_date=${encodeURIComponent(dataHoraInicio)}&end_date=${encodeURIComponent(dataHoraFim)}`
       );
 
-      if (!response.ok) throw new Error('Erro ao carregar táxis');
-
-      const data = await response.json();
       setTaxis(data.taxis || []);
       setTaxiSelecionado(null);
     } catch (error) {
@@ -96,16 +91,8 @@ export default function IniciarTurnoPage() {
 
   const carregarTurnos = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/shift/driver/${user.id}/`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('taxigest_token')}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setTurnos(data.shifts || []);
-      }
+      const data = await api.get(`/shift/driver/${user.id}/`);
+      setTurnos(data.shifts || []);
     } catch (error) {
       console.error('Erro ao carregar turnos:', error);
     }
