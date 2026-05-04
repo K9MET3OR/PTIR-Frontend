@@ -5,7 +5,7 @@ import { api } from './api';
  */
 export async function criarSolicitacaoViagem(tripData) {
   try {
-    const response = await api.post('/trip/register/', {
+    const response = await api.post('/trip/register', {
       client_id: tripData.clientId,
       start_location: tripData.startLocation,
       end_location: tripData.endLocation,
@@ -27,7 +27,7 @@ export async function criarSolicitacaoViagem(tripData) {
  */
 export async function listarViagens() {
   try {
-    const response = await api.get('/trip/listar/');
+    const response = await api.get('/trip/');
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao listar viagens' };
@@ -39,7 +39,7 @@ export async function listarViagens() {
  */
 export async function obterDetalheViagem(tripId) {
   try {
-    const response = await api.get(`/trip/${tripId}/`);
+    const response = await api.get(`/trip/${tripId}`);
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao obter detalhes da viagem' };
@@ -51,7 +51,7 @@ export async function obterDetalheViagem(tripId) {
  */
 export async function aceitarViagem(tripId, driverId) {
   try {
-    const response = await api.post(`/trip/${tripId}/accept/`, {
+    const response = await api.post(`/trip/${tripId}/accept`, {
       driver_id: driverId,
     });
     return response;
@@ -65,7 +65,7 @@ export async function aceitarViagem(tripId, driverId) {
  */
 export async function rejeitarViagem(tripId) {
   try {
-    const response = await api.post(`/trip/${tripId}/reject/`);
+    const response = await api.post(`/trip/${tripId}/reject`);
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao rejeitar viagem' };
@@ -77,7 +77,7 @@ export async function rejeitarViagem(tripId) {
  */
 export async function finalizarViagem(tripId) {
   try {
-    const response = await api.post(`/trip/${tripId}/finish/`);
+    const response = await api.post(`/trip/${tripId}/finish`);
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao finalizar viagem' };
@@ -89,7 +89,7 @@ export async function finalizarViagem(tripId) {
  */
 export async function atualizarViagem(tripId, updateData) {
   try {
-    const response = await api.patch(`/trip/${tripId}/`, updateData);
+    const response = await api.patch(`/trip/${tripId}`, updateData);
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao atualizar viagem' };
@@ -132,8 +132,7 @@ export async function confirmarPagamento(tripId, paymentIntentId) {
  */
 export async function listarViagensCliente(clientId) {
   try {
-    const data = await api.get('/trip/listar/');
-    // Filtrar para apenas viagens do cliente
+    const data = await api.get('/trip/');
     if (data.trips) {
       data.trips = data.trips.filter(trip => trip.client_id === clientId);
       data.total = data.trips.length;
@@ -149,8 +148,7 @@ export async function listarViagensCliente(clientId) {
  */
 export async function listarViagensPendentes() {
   try {
-    const data = await api.get('/trip/listar/');
-    // Filtrar para apenas viagens com status pending
+    const data = await api.get('/trip/');
     if (data.trips) {
       data.trips = data.trips.filter(trip => trip.status_trip === 'pending');
       data.total = data.trips.length;
@@ -166,12 +164,12 @@ export async function listarViagensPendentes() {
  */
 export async function listarViagensAceitesMotorista(driverId) {
   try {
-    const data = await api.get('/trip/listar/');
-    // Filtrar para viagens do motorista com status accepted ou in_progress
+    const data = await api.get('/trip/');
     if (data.trips) {
       data.trips = data.trips.filter(
-        trip => trip.driver_id === driverId && 
-        (trip.status_trip === 'accepted' || trip.status_trip === 'in_progress')
+        trip =>
+          trip.driver_id === driverId &&
+          (trip.status_trip === 'accepted' || trip.status_trip === 'in_progress')
       );
       data.total = data.trips.length;
     }

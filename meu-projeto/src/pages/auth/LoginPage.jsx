@@ -74,7 +74,8 @@ export default function LoginPage() {
         "auth/too-many-requests":      "Demasiadas tentativas. Tenta mais tarde.",
         "auth/network-request-failed": "Sem ligação à internet.",
       };
-      setError(messages[err.code] ?? "Erro ao entrar. Tenta novamente.");
+      /* setError(messages[err.code] ?? "Erro ao entrar. Tenta novamente.");*/
+      setError(messages[err.code] ?? err.message ?? "Erro ao entrar. Tenta novamente.");
     } finally {
       setLoading(false);
     }

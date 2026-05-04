@@ -1,5 +1,9 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+} from "firebase/auth";
 import { auth } from "../services/firebase";
 import { api } from "../services/api";
 
@@ -14,28 +18,37 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const savedToken = localStorage.getItem("taxigest_token");
     const savedUser = localStorage.getItem("taxigest_user");
+
     if (savedToken && savedUser) {
       const u = JSON.parse(savedUser);
-      setToken(savedToken); setUser(u); setRole(u.role);
+      setToken(savedToken);
+      setUser(u);
+      setRole(u.role);
     }
+
     setLoading(false);
   }, []);
 
   async function login(email, password, selectedRole) {
     try {
       console.log("[AUTH] Tentando login com:", email);
+
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log("[AUTH] Firebase login bem-sucedido");
-      
+
       const firebaseToken = await userCredential.user.getIdToken();
       console.log("[AUTH] Token obtido do Firebase");
 
-      const data = await api.post(`/user/login/`, { selectedRole });
+      const data = await api.post(`/user/login`, { selectedRole });
       console.log("[AUTH] Login no backend bem-sucedido");
 
-      setUser(data.user); setRole(data.user.role); setToken(firebaseToken);
+      setUser(data.user);
+      setRole(data.user.role);
+      setToken(firebaseToken);
+
       localStorage.setItem("taxigest_token", firebaseToken);
       localStorage.setItem("taxigest_user", JSON.stringify(data.user));
+
       return data;
     } catch (err) {
       console.error("[AUTH] Erro:", err);
@@ -46,17 +59,18 @@ export function AuthProvider({ children }) {
   async function signup(signupData) {
     try {
       const { email, password, username, name, selectedRole, ...extraFields } = signupData;
-      
+
       console.log("[AUTH] Iniciando signup para:", email);
-      
-      // 1. Criar utilizador no Firebase.
+
       let userCredential;
+
       try {
         console.log("[AUTH] Criando user no Firebase...");
         userCredential = await createUserWithEmailAndPassword(auth, email, password);
         console.log("[AUTH] User criado no Firebase");
       } catch (firebaseErr) {
         console.log("[AUTH] Firebase error:", firebaseErr.code, firebaseErr.message);
+
         if (firebaseErr?.code === "auth/email-already-in-use") {
           console.log("[AUTH] Email já existe no Firebase, tentando login...");
           userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -70,15 +84,13 @@ export function AuthProvider({ children }) {
       const firebaseToken = await userCredential.user.getIdToken();
       console.log("[AUTH] Token obtido");
 
-      // 2. Criar utilizador no Django/Backend
       let data;
-      
+
       if (selectedRole === "motorista") {
-        // Usar endpoint específico para motoristas
         console.log("[AUTH] Criando motorista no backend...");
-        data = await api.post(`/driver/registo-motorista`, {
+        data = await api.post(`/driver/register`, {
           username,
-          nome: name, // Backend espera 'nome' e não 'name'
+          nome: name,
           email,
           nif: extraFields.nif,
           genero: extraFields.genero,
@@ -89,39 +101,38 @@ export function AuthProvider({ children }) {
         });
         console.log("[AUTH] Motorista criado no backend");
       } else {
-        // Usar endpoint genérico para cliente/admin
         console.log("[AUTH] Criando user no Django backend...");
         data = await api.post(`/user/`, {
           username,
           name,
           role: selectedRole,
-          email
+          email,
         });
         console.log("[AUTH] User criado no Django");
       }
 
-      // 3. Adaptar resposta para formato padrão
       let userData;
+
       if (selectedRole === "motorista" && data.motorista) {
         userData = {
           id: data.motorista.id,
           username: data.motorista.username,
           name: data.motorista.nome,
-          role: selectedRole,
+          role: "motorista",
         };
       } else if (data.user) {
         userData = data.user;
       } else {
-        userData = data; // fallback
+        userData = data;
       }
 
-      // 4. Setar o utilizador no contexto
       setUser(userData);
       setRole(userData.role);
       setToken(firebaseToken);
+
       localStorage.setItem("taxigest_token", firebaseToken);
       localStorage.setItem("taxigest_user", JSON.stringify(userData));
-      
+
       return { user: userData, success: true };
     } catch (err) {
       console.error("[AUTH] Erro no signup:", err);
@@ -129,8 +140,16 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const logout = () => {
-    setUser(null); setRole(null); setToken(null);
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (err) {
+      console.error("[AUTH] Erro ao fazer logout do Firebase:", err);
+    }
+
+    setUser(null);
+    setRole(null);
+    setToken(null);
     localStorage.clear();
   };
 
