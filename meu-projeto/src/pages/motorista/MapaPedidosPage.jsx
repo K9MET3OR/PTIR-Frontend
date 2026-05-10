@@ -22,8 +22,18 @@ export default function MapaPedidosPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const initials = user?.email?.slice(0, 2).toUpperCase() ?? "??";
+  const initials = (() => {
+    const source = user?.name || user?.username || user?.email || "";
+    const normalized = source.trim();
+    if (!normalized) return "??";
 
+    const parts = normalized.split(/\s+/);
+    if (parts.length >= 2) {
+      return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
+    }
+
+    return normalized.slice(0, 2).toUpperCase();
+  })();
 
   const [taxis, setTaxis] = useState([]);
   const [taxiSelecionado, setTaxiSelecionado] = useState(null);
