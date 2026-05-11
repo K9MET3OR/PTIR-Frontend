@@ -12,6 +12,7 @@
   "dependencies": {
     "@stripe/react-stripe-js": "^6.3.0",
     "@stripe/stripe-js": "^9.4.0",
+    "build": "^0.1.4",
     "firebase": "^12.11.0",
     "ol": "^10.8.0",
     "react": "^18.3.1",
