@@ -110,7 +110,7 @@ export default function TaxiRegisterPage() {
   }
 
   return (
-    <div>
+    <div className={styles.root}>
       <button className={styles.backBtn} onClick={() => navigate("/gestor/taxis")}>
         ← Voltar à lista
       </button>
@@ -126,6 +126,7 @@ export default function TaxiRegisterPage() {
           <div className={styles.field}>
             <label>Matrícula *</label>
             <input
+              className={styles.input}
               placeholder="AA-00-BB"
               value={form.matricula}
               onChange={(e) => set("matricula", e.target.value)}
@@ -137,6 +138,7 @@ export default function TaxiRegisterPage() {
           <div className={styles.field}>
             <label>Ano de compra *</label>
             <input
+              className={styles.input}
               type="number"
               placeholder="2024"
               value={form.ano_compra}
@@ -148,6 +150,7 @@ export default function TaxiRegisterPage() {
           <div className={styles.field}>
             <label>Consumo médio (L/100km) *</label>
             <input
+              className={styles.input}
               type="number"
               step="0.01"
               min="0.01"
@@ -161,6 +164,7 @@ export default function TaxiRegisterPage() {
           <div className={styles.field}>
             <label>Marca *</label>
             <select
+              className={styles.select}
               value={form.marca}
               onChange={(e) => set("marca", e.target.value)}
             >
@@ -177,6 +181,7 @@ export default function TaxiRegisterPage() {
           <div className={styles.field}>
             <label>Modelo *</label>
             <select
+              className={styles.select}
               value={form.modelo}
               onChange={(e) => set("modelo", e.target.value)}
               disabled={!form.marca}
@@ -195,14 +200,14 @@ export default function TaxiRegisterPage() {
 
           <div className={styles.field}>
             <label>Tipo de motor *</label>
-            <select value={form.tipo_motor} onChange={(e) => set("tipo_motor", e.target.value)}>
+            <select className={styles.select} value={form.tipo_motor} onChange={(e) => set("tipo_motor", e.target.value)}>
               {MOTOR_TYPES.map((m) => <option key={m}>{m}</option>)}
             </select>
           </div>
 
           <div className={styles.field}>
             <label>Nível de conforto *</label>
-            <select value={form.nivel_conforto} onChange={(e) => set("nivel_conforto", e.target.value)}>
+            <select className={styles.select} value={form.nivel_conforto} onChange={(e) => set("nivel_conforto", e.target.value)}>
               {COMFORT_TYPES.map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
@@ -210,6 +215,7 @@ export default function TaxiRegisterPage() {
           <div className={`${styles.field} ${styles.fullWidth}`}>
             <label>Observações</label>
             <textarea
+              className={styles.textarea}
               rows={3}
               placeholder="Informações adicionais sobre o veículo..."
               value={form.observacoes}

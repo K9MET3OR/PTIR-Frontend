@@ -52,7 +52,7 @@ export default function MotoristaListPage() {
   }
   
   return (
-    <div>
+    <div className={styles.root}>
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Motoristas</h1>

@@ -41,7 +41,7 @@ export default function TaxiListPage() {
   }
 
   return (
-    <div>
+    <div className={styles.root}>
       <div className={styles.pageHeader}>
         <div>
           <h1 className={styles.pageTitle}>Táxis</h1>

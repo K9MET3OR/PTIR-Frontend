@@ -5,9 +5,14 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import styles from './PaymentForm.module.css';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY?.trim();
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 export default function PaymentForm({ tripId, amount, onSuccess, onError }) {
+  if (!stripeKey) {
+    return <div className={styles.error}>Erro: Stripe publishable key não configurada.</div>;
+  }
+
   return (
     <Elements stripe={stripePromise}>
       <CheckoutForm tripId={tripId} amount={amount} onSuccess={onSuccess} onError={onError} />

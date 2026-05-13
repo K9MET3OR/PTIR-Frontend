@@ -1,65 +1,67 @@
-.outer {
+﻿.outer {
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
+  background: radial-gradient(circle at top, rgba(124, 58, 237, 0.15), transparent 35%),
+              linear-gradient(180deg, #09040f 0%, #11091d 100%);
   padding: 1.5rem;
 }
 
 .card {
-  background: #fff;
-  border: 0.5px solid #e2e8f0;
-  border-radius: 16px;
-  padding: 2rem 1.75rem;
   width: 100%;
-  max-width: 380px;
+  max-width: 420px;
+  padding: 2rem 1.75rem;
+  border-radius: 24px;
+  background: rgba(15, 8, 25, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
 }
 
 .logoRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   margin-bottom: 1.75rem;
 }
 
 .logoIcon {
-  width: 34px;
-  height: 34px;
-  background: #0f172a;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: #facc15;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
 }
 
 .logoText {
-  font-size: 17px;
-  font-weight: 500;
-  color: #0f172a;
+  font-size: 18px;
+  font-weight: 700;
+  color: #f8f7ff;
 }
 
 .title {
-  font-size: 20px;
-  font-weight: 500;
-  color: #0f172a;
-  margin-bottom: 4px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 6px;
 }
 
 .subtitle {
   font-size: 13px;
-  color: #64748b;
-  margin-bottom: 1.25rem;
+  color: #b7a7ff;
+  margin-bottom: 1.5rem;
 }
 
 /* Role selector */
 .roleGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
   margin-bottom: 1.5rem;
 }
 
@@ -67,22 +69,24 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 10px 6px;
-  border: 0.5px solid #e2e8f0;
-  border-radius: 10px;
-  background: #fff;
+  gap: 5px;
+  padding: 12px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #e9e5ff;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: all 0.18s ease;
 }
 
 .roleBtn:hover {
-  border-color: #94a3b8;
+  border-color: rgba(124, 58, 237, 0.7);
+  background: rgba(124, 58, 237, 0.08);
 }
 
 .roleBtnActive {
-  border: 1.5px solid #0f172a;
-  background: #f8fafc;
+  border-color: #7c3aed;
+  background: rgba(124, 58, 237, 0.22);
 }
 
 .roleIcon {
@@ -90,54 +94,73 @@
 }
 
 .roleLabel {
-  font-size: 11px;
-  font-weight: 500;
-  color: #0f172a;
+  font-size: 12px;
+  font-weight: 600;
+  color: #f8f7ff;
 }
 
 /* Fields */
 .field {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  margin-bottom: 1rem;
+  gap: 6px;
+  margin-bottom: 1.1rem;
 }
 
 .field label {
   font-size: 12px;
-  color: #64748b;
-  font-weight: 500;
+  color: #b7a7ff;
+  font-weight: 600;
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8f7ff;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: #7c3aed;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.field select {
+  cursor: pointer;
 }
 
 .error {
   font-size: 12px;
-  color: #dc2626;
+  color: #ffb3c6;
   margin-bottom: 0.75rem;
-  padding: 8px 12px;
-  background: #fef2f2;
-  border-radius: 7px;
-  border: 0.5px solid #fecaca;
+  padding: 10px 14px;
+  background: rgba(255, 71, 125, 0.12);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 71, 125, 0.2);
 }
 
 .submitBtn {
   width: 100%;
-  padding: 10px;
-  background: #0f172a;
-  color: #facc15;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 14px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
   border: none;
-  border-radius: 10px;
+  border-radius: 14px;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: transform 0.18s ease, opacity 0.18s ease;
 }
 
 .submitBtn:hover:not(:disabled) {
-  opacity: 0.88;
+  opacity: 0.98;
+  transform: translateY(-1px);
 }
 
 .submitBtn:disabled {
@@ -149,25 +172,29 @@
 .linkRow {
   text-align: center;
   font-size: 12px;
-  color: #64748b;
-  margin-top: 1.25rem;
+  color: #b7a7ff;
+  margin-top: 1.5rem;
 }
 
 .link {
-  color: #0f172a;
-  font-weight: 600;
+  color: #facc15;
+  font-weight: 700;
   text-decoration: none;
   transition: color 0.15s;
 }
 
 .link:hover {
-  color: #facc15;
+  color: #ffffff;
 }
 
 /* Responsive */
-@media (max-width: 480px) {
+@media (max-width: 560px) {
   .card {
     padding: 1.5rem 1.25rem;
-    border-radius: 12px;
+    border-radius: 18px;
+  }
+
+  .roleGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

@@ -1,10 +1,11 @@
 import { auth } from "./firebase";
 
 // Em desenvolvimento, usa o proxy do Vite. Em produção, usa a URL completa do .env
-const BASE_URL = import.meta.env.VITE_API_URL 
-  ? import.meta.env.VITE_API_URL.endsWith("/api")
-    ? import.meta.env.VITE_API_URL
-    : `${import.meta.env.VITE_API_URL.replace(/\/+$/, "")}/api`
+const rawApiUrl = import.meta.env.VITE_API_URL?.trim();
+const BASE_URL = rawApiUrl
+  ? rawApiUrl.endsWith("/api")
+    ? rawApiUrl
+    : `${rawApiUrl.replace(/\/+$/, "")}/api`
   : "/api";
 
 async function apiFetch(path, options = {}) {

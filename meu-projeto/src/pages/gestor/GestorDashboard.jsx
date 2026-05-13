@@ -55,7 +55,7 @@ export default function GestorDashboard() {
   }, []);
 
   return (
-    <div>
+    <div className={styles.root}>
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>Visão geral</h1>
         <p className={styles.pageSubtitle}>Resumo da frota e motoristas</p>

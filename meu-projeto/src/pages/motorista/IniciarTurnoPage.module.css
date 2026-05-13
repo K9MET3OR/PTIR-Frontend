@@ -3,7 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #09040f;
   padding: 1rem;
 }
 
@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: center;
   gap: 2rem;
-  background: white;
+  background: linear-gradient(180deg, #190b2d 0%, #0c0520 100%);
   padding: 3rem 2rem;
   border-radius: 1rem;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
@@ -22,8 +22,8 @@
 .spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid #f0f0f0;
-  border-top: 4px solid #667eea;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid #7c3aed;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -34,7 +34,7 @@
 }
 
 .card {
-  background: white;
+  background: linear-gradient(180deg, #190b2d 0%, #0c0520 100%);
   border-radius: 1.5rem;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   overflow: hidden;
@@ -55,7 +55,7 @@
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   padding: 3rem 2rem;
   color: white;
   text-align: center;
@@ -76,8 +76,8 @@
 }
 
 .erro {
-  background-color: #fee2e2;
-  color: #991b1b;
+  background-color: rgba(220, 38, 38, 0.1);
+  color: #ffb3c6;
   padding: 1rem;
   margin: 0 1.5rem 1.5rem 1.5rem;
   border-radius: 0.5rem;
@@ -102,11 +102,11 @@
   font-size: 1.3rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
-  color: #1f2937;
+  color: #f8f7ff;
 }
 
 .description {
-  color: #6b7280;
+  color: #d8c8ff;
   margin: 0 0 1.5rem 0;
   font-size: 0.95rem;
 }
@@ -114,20 +114,20 @@
 .vazio {
   text-align: center;
   padding: 2rem;
-  background: #f9fafb;
+  background: rgba(255, 255, 255, 0.04);
   border-radius: 0.75rem;
-  border: 2px dashed #d1d5db;
+  border: 2px dashed rgba(255, 255, 255, 0.08);
 }
 
 .vazio p {
-  color: #6b7280;
+  color: #d8c8ff;
   margin: 0 0 1rem 0;
   font-size: 0.95rem;
 }
 
 .btnRecarregar {
   padding: 0.75rem 1.5rem;
-  background: #667eea;
+  background: #7c3aed;
   color: white;
   border: none;
   border-radius: 0.5rem;
@@ -137,9 +137,9 @@
 }
 
 .btnRecarregar:hover {
-  background: #5568d3;
+  background: #a855f7;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.4);
 }
 
 .gridTaxis {
@@ -150,8 +150,8 @@
 }
 
 .taxiCard {
-  background: white;
-  border: 2px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.75rem;
   padding: 1.25rem;
   cursor: pointer;
@@ -163,20 +163,21 @@
 }
 
 .taxiCard:hover {
-  border-color: #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  border-color: #7c3aed;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.15);
   transform: translateY(-2px);
 }
 
 .taxiCardSelecionado {
-  border-color: #667eea;
-  background: #f0f4ff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  border-color: #7c3aed;
+  background: rgba(124, 58, 237, 0.15);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
 }
 
 .taxiIcon {
   font-size: 2.5rem;
   flex-shrink: 0;
+  color: #f8f7ff;
 }
 
 .taxiInfo {
@@ -188,11 +189,11 @@
   font-size: 1.1rem;
   font-weight: 700;
   margin: 0 0 0.25rem 0;
-  color: #1f2937;
+  color: #f8f7ff;
 }
 
 .taxiModelo {
-  color: #6b7280;
+  color: #d8c8ff;
   font-size: 0.9rem;
   margin: 0 0 0.75rem 0;
 }
@@ -206,12 +207,13 @@
 
 .taxiConforto {
   display: inline-block;
-  background: #dbeafe;
-  color: #1e40af;
+  background: rgba(124, 58, 237, 0.18);
+  color: #e9ddff;
   padding: 0.25rem 0.75rem;
   border-radius: 0.25rem;
   font-size: 0.8rem;
   font-weight: 600;
+  border: 1px solid rgba(124, 58, 237, 0.28);
 }
 
 .taxiEstado {
@@ -223,13 +225,13 @@
 }
 
 .estadoDisponivel {
-  background: #dcfce7;
-  color: #166534;
+  background: rgba(22, 163, 74, 0.1);
+  color: #4ade80;
 }
 
 .estadoIndisponivel {
-  background: #fecaca;
-  color: #991b1b;
+  background: rgba(234, 88, 12, 0.1);
+  color: #fb923c;
 }
 
 .selecionado {
@@ -238,7 +240,7 @@
   right: -8px;
   width: 32px;
   height: 32px;
-  background: #667eea;
+  background: #7c3aed;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -250,8 +252,8 @@
 }
 
 .resumo {
-  background: #f0f4ff;
-  border: 2px solid #667eea;
+  background: rgba(124, 58, 237, 0.1);
+  border: 2px solid #7c3aed;
   border-radius: 0.75rem;
   padding: 1.5rem;
 }
@@ -260,7 +262,7 @@
   display: flex;
   justify-content: space-between;
   padding: 0.75rem 0;
-  border-bottom: 1px solid #c7d2fe;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.3);
 }
 
 .resumoItem:last-child {
@@ -270,11 +272,11 @@
 
 .label {
   font-weight: 600;
-  color: #4f46e5;
+  color: #7c3aed;
 }
 
 .valor {
-  color: #1f2937;
+  color: #f8f7ff;
   font-weight: 500;
 }
 
@@ -282,8 +284,8 @@
   display: flex;
   gap: 1rem;
   padding: 1.5rem;
-  background: #f9fafb;
-  border-top: 1px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.04);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   justify-content: flex-end;
 }
 
@@ -307,9 +309,9 @@
 
 .btnCancelar {
   padding: 0.75rem 1.5rem;
-  background: #e5e7eb;
-  color: #374151;
-  border: none;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffb3c6;
+  border: 1px solid rgba(255, 179, 198, 0.3);
   border-radius: 0.5rem;
   font-weight: 600;
   cursor: pointer;
@@ -317,7 +319,8 @@
 }
 
 .btnCancelar:hover:not(:disabled) {
-  background: #d1d5db;
+  background: rgba(255, 71, 125, 0.1);
+  border-color: rgba(255, 179, 198, 0.6);
   transform: translateY(-2px);
 }
 
@@ -328,19 +331,19 @@
 
 .btnIniciar {
   padding: 0.75rem 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   color: white;
   border: none;
   border-radius: 0.5rem;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
 }
 
 .btnIniciar:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.4);
 }
 
 .btnIniciar:disabled {
@@ -399,27 +402,29 @@
 .fieldLabel {
   font-size: 0.95rem;
   font-weight: 600;
-  color: #333;
+  color: #f8f7ff;
 }
 
 .input {
   padding: 0.75rem 1rem;
-  border: 2px solid #e0e0e0;
+  border: 2px solid rgba(255, 255, 255, 0.08);
   border-radius: 0.75rem;
   font-size: 0.95rem;
   transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8f7ff;
 }
 
 .input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
 }
 
 /* Info Box */
 .infoBox {
-  background: #f5f5f5;
-  border-left: 4px solid #667eea;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 4px solid #7c3aed;
   padding: 1rem;
   border-radius: 0.75rem;
   margin-bottom: 1.5rem;
@@ -428,16 +433,16 @@
 .infoBox p {
   margin: 0;
   font-size: 0.95rem;
-  color: #333;
+  color: #f8f7ff;
 }
 
 .alertaErro {
-  color: #dc2626;
+  color: #ffb3c6;
   font-weight: 600;
 }
 
 .alertaSucesso {
-  color: #16a34a;
+  color: #4ade80;
   font-weight: 600;
 }
 
@@ -449,10 +454,10 @@
 }
 
 .turnoItem {
-  background: #f9f9f9;
+  background: rgba(255, 255, 255, 0.04);
   padding: 1rem;
   border-radius: 0.75rem;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid #7c3aed;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 1rem;
@@ -460,17 +465,17 @@
 
 .turnoData {
   font-weight: 600;
-  color: #333;
+  color: #f8f7ff;
   font-size: 0.9rem;
 }
 
 .turnoHora {
-  color: #666;
+  color: #d8c8ff;
   font-size: 0.9rem;
 }
 
 .turnoTaxi {
-  color: #667eea;
+  color: #7c3aed;
   font-weight: 600;
   font-size: 0.9rem;
 }

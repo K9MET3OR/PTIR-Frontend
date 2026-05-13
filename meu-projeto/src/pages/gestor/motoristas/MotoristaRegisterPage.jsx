@@ -137,7 +137,7 @@ export default function MotoristaRegisterPage() {
   }
 
   return (
-    <div>
+    <div className={styles.root}>
       <button className={styles.backBtn} onClick={() => navigate("/gestor/motoristas")}>
         ← Voltar à lista
       </button>
