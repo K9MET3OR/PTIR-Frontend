@@ -61,6 +61,16 @@ export default function MapaPedidosPage() {
     carregarViagens();
   }, [user]);
 
+  // Auto-refresh a cada 5 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      carregarTaxis();
+      carregarViagens();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Carregar rota do pedido ativo
   useEffect(() => {
     async function carregarRotaPedido() {
@@ -225,11 +235,6 @@ export default function MapaPedidosPage() {
     setProfileMenuOpen((value) => !value);
   }
 
-  function handleRecarregar() {
-    carregarTaxis();
-    carregarViagens();
-  }
-
   const markers = [
     ...taxisFiltrados.map((t) => ({
       ...t,
@@ -265,19 +270,9 @@ export default function MapaPedidosPage() {
       {/* Painel lateral */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
-          <div className={styles.headerTop}>
-            <div>
-              <h2 className={styles.title}>Mapa da frota</h2>
-              <p className={styles.subtitle}>Lisboa</p>
-            </div>
-
-            <button
-              onClick={handleRecarregar}
-              disabled={loading || loadingViagens}
-              className={styles.refreshBtn}
-            >
-              {loading || loadingViagens ? "A carregar..." : "↻ Recarregar"}
-            </button>
+          <div>
+            <h2 className={styles.title}>Mapa da frota</h2>
+            <p className={styles.subtitle}>Lisboa</p>
           </div>
         </div>
 
