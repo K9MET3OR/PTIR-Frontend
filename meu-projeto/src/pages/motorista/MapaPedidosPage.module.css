@@ -409,30 +409,102 @@
 @media (max-width: 768px) {
   .root {
     flex-direction: column;
-    height: auto;
-    margin: -1rem;
+    height: 100dvh;
+    margin: 0;
+    overflow: hidden;
   }
-  
-  .sidebar {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    max-height: 300px;
-  }
-  
+
+  /* Mapa no topo, ~45% do ecrã */
   .mapaWrap {
-    height: 450px;
+    order: 0;
+    width: 100%;
+    height: 45dvh;
+    flex-shrink: 0;
   }
-  
+
+  /* Painel sobe como bottom sheet */
+  .sidebar {
+    order: 1;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    border-right: none;
+    border-top: none;
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    padding: 0 1.25rem 1.5rem;
+    margin-top: -20px;
+    position: relative;
+    z-index: 10;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
+    max-width: 100%;
+  }
+
+  /* Handle visual no topo do painel */
+  .sidebar::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.18);
+    margin: 10px auto 16px;
+  }
+
+  .sidebarHeader {
+    margin-bottom: 1rem;
+  }
+
+  .title {
+    font-size: 1.2rem;
+  }
+
+  .subtitle {
+    font-size: 11px;
+  }
+
   .profileCardWrapper {
     top: 10px;
     right: 10px;
   }
-  
+
   .profileBtn {
     width: 36px;
     height: 36px;
     font-size: 12px;
+  }
+
+  input,
+  select {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .sidebar {
+    border-radius: 24px 24px 0 0;
+    padding: 0 1rem 1.25rem;
+  }
+
+  .mapaWrap {
+    height: 40dvh;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .pedidoItem,
+  .historicoItem {
+    padding: 10px 12px;
+  }
+
+  .btnAceitar,
+  .btnRejeitar {
+    font-size: 11px;
+    padding: 6px;
   }
 }
 

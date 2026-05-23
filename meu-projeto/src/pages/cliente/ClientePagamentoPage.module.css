@@ -186,14 +186,44 @@ h3 {
   background: #d0d0d0;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
+  .container {
+    min-height: 100dvh;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+    justify-content: flex-end;
+  }
+
   .wrapper {
-    padding: 25px;
+    width: 100%;
+    max-width: none;
+    padding: 1.25rem;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
+    margin: 0;
+    position: relative;
+    z-index: 10;
+    max-height: 85dvh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Handle visual no topo do painel */
+  .wrapper::before {
+    content: "";
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(0, 0, 0, 0.12);
+    margin: 10px auto 16px;
   }
 
   h1 {
     font-size: 24px;
     margin-bottom: 20px;
+    margin-top: 0;
   }
 
   h3 {
@@ -202,13 +232,67 @@ h3 {
 
   .tripSummary {
     padding: 15px;
+    margin-bottom: 20px;
   }
 
   .tripDetail {
     font-size: 13px;
+    padding: 8px 0;
   }
 
   .tripDetail span:last-child {
     text-align: right;
+  }
+
+  .error,
+  .sucesso {
+    padding: 30px 20px;
+    border-radius: 16px;
+  }
+
+  .error button,
+  .backButton {
+    font-size: 16px;
+    padding: 12px 24px;
+  }
+
+  .backButton {
+    margin-top: 15px;
+  }
+
+  /* iOS: evita zoom automático ao focar inputs */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .wrapper {
+    padding: 1rem;
+    border-radius: 24px 24px 0 0;
+  }
+
+  h1 {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 14px;
+    margin-top: 18px;
+  }
+
+  .tripSummary {
+    padding: 12px;
+  }
+
+  .tripDetail {
+    font-size: 12px;
+  }
+
+  .priceHighlight {
+    margin: 8px -12px -12px -12px;
   }
 }
