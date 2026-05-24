@@ -16,17 +16,25 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("taxigest_token");
-    const savedUser = localStorage.getItem("taxigest_user");
+    try {
+      const savedToken = localStorage.getItem("taxigest_token");
+      const savedUser = localStorage.getItem("taxigest_user");
 
-    if (savedToken && savedUser) {
-      const u = JSON.parse(savedUser);
-      setToken(savedToken);
-      setUser(u);
-      setRole(u.role);
+      if (savedToken && savedUser) {
+        const u = JSON.parse(savedUser);
+        console.log("[AUTH] Carregando dados do localStorage:", u);
+        setToken(savedToken);
+        setUser(u);
+        setRole(u.role);
+      } else {
+        console.log("[AUTH] Nenhum dado de autenticação no localStorage");
+      }
+    } catch (err) {
+      console.error("[AUTH] Erro ao carregar dados do localStorage:", err);
+      localStorage.clear();
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }, []);
 
   async function login(email, password, selectedRole) {
