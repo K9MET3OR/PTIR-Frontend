@@ -14,6 +14,7 @@ const NAV_ITEMS_MOTORISTA = [
   { to: "/motorista/turno",    label: "Iniciar Turno", icon: "⏰", end: true },
   { to: "/motorista/pedidos",  label: "Pedidos",       icon: "📋" },
   { to: "/motorista/mapa",     label: "Mapa",          icon: "🗺️" },
+  { to: "/motorista/reabastecimento", label: "Reabastecimento", icon: "⛽" },
 ];
 
 export default function DashboardLayout() {

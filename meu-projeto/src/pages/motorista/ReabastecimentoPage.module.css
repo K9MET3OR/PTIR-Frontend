@@ -1,0 +1,274 @@
+/* Page background and outer container */
+.root {
+  min-height: 100vh;
+  padding: 2rem;
+  background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.18), transparent 28%),
+    linear-gradient(180deg, #09040f 0%, #0b0615 100%);
+  color: #f8f7ff;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.header h1 {
+  font-size: 2rem;
+  margin: 0;
+  color: white;
+ 
+}
+
+.header p {
+  color: #d8c8ff;
+  margin: 0.35rem 0 0;
+}
+
+.backButton {
+  padding: 0.9rem 1.1rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.backButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(124, 58, 237, 0.25);
+}
+
+.loading,
+.emptyState {
+  max-width: 900px;
+  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.emptyState button {
+  margin-top: 1rem;
+  padding: 0.95rem 1.3rem;
+  border: none;
+  border-radius: 999px;
+  background: #7c3aed;
+  color: white;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.emptyState button:hover {
+  background: #a855f7;
+}
+
+.statusBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem 1.3rem;
+  border-radius: 18px;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.24);
+  margin-bottom: 1.5rem;
+}
+
+.statusLabel {
+  text-transform: uppercase;
+  color: #c4b7ff;
+  font-size: 0.75rem;
+  display: inline-block;
+  margin-bottom: 0.4rem;
+}
+
+.statusBar p {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.timerBox {
+  text-align: right;
+}
+
+.timerBox span {
+  display: block;
+  font-size: 0.75rem;
+  color: #d8c8ff;
+}
+
+.timerBox strong {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 1.15rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.1fr) minmax(320px, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.card {
+  padding: 1.4rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.card h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+  color: #f8f7ff;
+}
+
+.card p {
+  margin: 0.55rem 0;
+  color: #d8c8ff;
+}
+
+.card label {
+  display: block;
+  margin-bottom: 1rem;
+  color: #d8c8ff;
+  font-size: 0.95rem;
+}
+
+.card label input {
+  width: 100%;
+  margin-top: 0.65rem;
+  padding: 0.95rem 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8f7ff;
+  font-size: 0.95rem;
+}
+
+.card label input:disabled {
+  opacity: 0.8;
+}
+
+.card label input::placeholder {
+  color: rgba(248, 247, 255, 0.5);
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.fieldNote {
+  color: #c4b7ff;
+  font-size: 0.85rem;
+  margin-top: -0.4rem;
+  margin-bottom: 1rem;
+}
+
+.submitButton {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(124, 58, 237, 0.24);
+}
+
+.submitButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.erro,
+.sucesso {
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  margin-top: 0.75rem;
+  font-size: 0.95rem;
+}
+
+.erro {
+  background: rgba(220, 38, 38, 0.14);
+  color: #ffc9cb;
+}
+
+.sucesso {
+  background: rgba(34, 197, 94, 0.14);
+  color: #d3f6db;
+}
+
+.refuelList {
+  display: grid;
+  gap: 1rem;
+}
+
+.refuelItem {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.refuelItem strong {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+
+.refuelItem p {
+  margin: 0;
+  color: #d8c8ff;
+}
+
+.refuelMeta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+  color: #c4b7ff;
+  font-size: 0.95rem;
+}
+
+.refuelMeta span {
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+@media (max-width: 900px) {
+  .grid,
+  .formRow,
+  .refuelItem {
+    grid-template-columns: 1fr;
+  }
+
+  .statusBar {
+    flex-direction: column;
+    text-align: left;
+  }
+
+  .refuelMeta {
+    align-items: flex-start;
+  }
+}

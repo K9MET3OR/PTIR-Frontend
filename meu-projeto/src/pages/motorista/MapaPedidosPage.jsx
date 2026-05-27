@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import MapaBase from "../../components/MapaBase";
 import { taxiService } from "../../services/taxiService";
 import { listarViagensPendentes, listarViagensAceitesMotorista, aceitarViagem } from "../../services/tripService";
-import { terminarShift } from "../../services/shiftService";
+import { terminarShift, obterShift, verificarTurnoAtivo } from "../../services/shiftService";
 import { COR_ESTADO } from "../../services/mockData";
 import styles from "./MapaPedidosPage.module.css";
 import { useNavigate } from "react-router-dom";
@@ -50,6 +50,10 @@ export default function MapaPedidosPage() {
 
   const [routePoints, setRoutePoints] = useState([]);
   const [pedidoCoords, setPedidoCoords] = useState(null);
+  const [turnoAtivo, setTurnoAtivo] = useState(null);
+  const [taxiDoTurno, setTaxiDoTurno] = useState(null);
+  const [tempoRestanteTurno, setTempoRestanteTurno] = useState(0);
+  const [loadingTurno, setLoadingTurno] = useState(true);
 
   // Carregar táxis da API ao montar o componente
   useEffect(() => {
@@ -70,6 +74,95 @@ export default function MapaPedidosPage() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    async function carregarTurnoAtivo() {
+      setLoadingTurno(true);
+      let turno = null;
+      let shiftId = localStorage.getItem("turno_id");
+
+      if (shiftId) {
+        try {
+          const response = await obterShift(shiftId);
+          turno = response.shift || response;
+          if (!turno || !turno.id) {
+            turno = null;
+          }
+        } catch (error) {
+          console.warn("Erro ao carregar turno ativo pelo ID armazenado:", error);
+          shiftId = null;
+          localStorage.removeItem("turno_id");
+          localStorage.removeItem("turno_ativo");
+        }
+      }
+
+      if (!turno && user?.id) {
+        try {
+          turno = await verificarTurnoAtivo(user.id);
+          if (turno?.id) {
+            localStorage.setItem("turno_id", turno.id);
+            localStorage.setItem("turno_ativo", "true");
+          }
+        } catch (error) {
+          console.warn("Erro ao verificar turno ativo do motorista:", error);
+          turno = null;
+        }
+      }
+
+      if (!turno) {
+        setTurnoAtivo(null);
+        setTaxiDoTurno(null);
+        setLoadingTurno(false);
+        return;
+      }
+
+      setTurnoAtivo(turno);
+
+      if (turno?.taxi_id) {
+        try {
+          const taxiResponse = await taxiService.get(turno.taxi_id);
+          setTaxiDoTurno(taxiResponse.taxi || taxiResponse);
+        } catch (error) {
+          console.warn("Erro ao carregar taxi do turno:", error);
+          setTaxiDoTurno(null);
+        }
+      }
+
+      setLoadingTurno(false);
+    }
+
+    carregarTurnoAtivo();
+  }, [user]);
+
+  useEffect(() => {
+    if (!turnoAtivo) {
+      setTempoRestanteTurno(0);
+      return;
+    }
+
+    function atualizaTempo() {
+      const agora = new Date();
+      const fim = new Date(turnoAtivo.end_date || turnoAtivo.end);
+      setTempoRestanteTurno(Math.max(0, fim - agora));
+    }
+
+    atualizaTempo();
+    const interval = setInterval(atualizaTempo, 1000);
+    return () => clearInterval(interval);
+  }, [turnoAtivo]);
+
+  function formatarTempo(ms) {
+    if (ms <= 0) return "0m";
+    const total = Math.floor(ms / 1000);
+    const horas = Math.floor(total / 3600);
+    const minutos = Math.floor((total % 3600) / 60);
+    const segundos = total % 60;
+    return `${horas}h ${minutos}m ${segundos}s`;
+  }
+
+  function handleIrParaReabastecimento() {
+    navigate("/motorista/reabastecimento");
+  }
 
   // Carregar rota do pedido ativo
   useEffect(() => {
@@ -276,6 +369,15 @@ export default function MapaPedidosPage() {
           </div>
         </div>
 
+       
+
+        {turnoAtivo && (
+          <div className={styles.remainingTimeBanner}>
+            <span>Tempo restante do turno</span>
+            <strong>{formatarTempo(tempoRestanteTurno)}</strong>
+          </div>
+        )}
+
         <div className={styles.statsCard}>
           <div className={styles.statItem}>
             <span className={styles.statLabel}>Táxis</span>
@@ -341,20 +443,37 @@ export default function MapaPedidosPage() {
               Nenhum táxi disponível
             </div>
           ) : (
-            taxisFiltrados.map((t) => (
-              <div
-                key={t.id}
-                className={`${styles.taxiItem} ${taxiSelecionado?.id === t.id ? styles.taxiItemAtivo : ""}`}
-                onClick={() => setTaxiSelecionado(t)}
-              >
-                <div className={styles.taxiDot} style={{ background: COR_ESTADO[t.estado] }} />
-                <div className={styles.taxiInfo}>
-                  <span className={styles.taxiMatricula}>{t.matricula}</span>
-                  <span className={styles.taxiMotorista}>{t.marca} {t.modelo}</span>
+            taxisFiltrados.map((t) => {
+              const taxiEmServico = taxiDoTurno && String(t.id) === String(taxiDoTurno.id);
+              return (
+                <div
+                  key={t.id}
+                  className={`${styles.taxiItem} ${taxiSelecionado?.id === t.id ? styles.taxiItemAtivo : ""}`}
+                  onClick={() => setTaxiSelecionado(t)}
+                >
+                  <div className={styles.taxiDot} style={{ background: COR_ESTADO[t.estado] }} />
+                  <div className={styles.taxiInfo}>
+                    <span className={styles.taxiMatricula}>{t.matricula}</span>
+                    <span className={styles.taxiMotorista}>{t.marca} {t.modelo}</span>
+                  </div>
+                  <div className={styles.taxiActions}>
+                    <span className={styles.taxiConforto}>{t.nivel_conforto}</span>
+                    {taxiEmServico && (
+                      <button
+                        className={styles.taxiReabastecimentoBtn}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleIrParaReabastecimento();
+                        }}
+                      >
+                         Reabastecer
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <span className={styles.taxiConforto}>{t.nivel_conforto}</span>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
