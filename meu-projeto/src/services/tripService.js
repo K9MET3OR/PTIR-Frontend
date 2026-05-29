@@ -178,3 +178,19 @@ export async function listarViagensAceitesMotorista(driverId) {
     throw { message: error.message || 'Erro ao listar viagens do motorista' };
   }
 }
+
+
+export async function listarViagensFinalizadasMotorista(driverId) {
+  try {
+    const data = await api.get('/trip/');
+    if (data.trips) {
+      data.trips = data.trips.filter(
+        trip => trip.driver_id === driverId && trip.status_trip === 'finished'
+      );
+      data.total = data.trips.length;
+    }
+    return data;
+  } catch (error) {
+    throw { message: error.message || 'Erro ao listar viagens finalizadas' };
+  }
+}

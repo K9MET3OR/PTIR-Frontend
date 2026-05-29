@@ -20,6 +20,7 @@ import RegistarViagemPage from "./pages/motorista/RegistarViagemPage";
 import ReabastecimentoPage from "./pages/motorista/ReabastecimentoPage";
 import PedirTaxiPage      from "./pages/cliente/PedirTaxiPage";
 import ClientePagamentoPage from "./pages/cliente/ClientePagamentoPage";
+import FaturaPage from "./pages/motorista/FaturaPage";
 
 
 export default function App() {
@@ -52,6 +53,7 @@ export default function App() {
             <Route path="/motorista/pedidos" element={<PedidosMotoristaPage />} />
             <Route path="/motorista/viagem" element={<RegistarViagemPage />} />
             <Route path="/motorista/reabastecimento" element={<ReabastecimentoPage />} />
+            <Route path="/motorista/faturas" element={<FaturaPage />} />
           </Route>
 
           <Route element={<PrivateRoute allowedRoles={["cliente"]} />}>

@@ -1,9 +1,11 @@
 import { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { listarViagensPendentes, aceitarViagem, listarViagensAceitesMotorista } from '../../services/tripService';
 import styles from './PedidosMotoristaPage.module.css';
 
 export default function PedidosMotoristaPage() {
+  const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [tab, setTab] = useState('pendentes'); // 'pendentes' | 'aceites'
   const [viagensPendentes, setViagensPendentes] = useState([]);
@@ -182,6 +184,14 @@ export default function PedidosMotoristaPage() {
                     <span className={styles.status}>
                       {viagem.status_trip === 'accepted' ? '🔄 Aceite' : '🚗 Em Progresso'}
                     </span>
+                    {viagem.status_trip === 'accepted' && (
+                      <button
+                        className={`${styles.btn} ${styles.btnPrimario}`}
+                        onClick={() => navigate(`/motorista/viagem?trip=${viagem.id}`)}
+                      >
+                        Registar Viagem
+                      </button>
+                    )}
                   </div>
                 </div>
               ))

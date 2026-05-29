@@ -233,6 +233,7 @@ export default function ReabastecimentoPage() {
         kms_previos: refuels.length > 0 ? refuels[0].kms_taxi : 0,
         tipo: motorEletrico ? "eletrico" : "gasolina"
       };
+      
       if (motorEletrico) {
         payload.kwh = Number(form.kwh);
       } else {

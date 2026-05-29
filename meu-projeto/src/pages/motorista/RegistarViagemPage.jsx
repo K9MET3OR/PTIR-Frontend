@@ -1,16 +1,24 @@
 import { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import PaymentForm from '../../components/PaymentForm';
+import {
+  listarViagensAceitesMotorista,
+  obterDetalheViagem,
+  atualizarViagem,
+  finalizarViagem,
+} from '../../services/tripService';
 import styles from './RegistarViagemPage.module.css';
 
 export default function RegistarViagemPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
-  const token = localStorage.getItem('taxigest_token');
+  const [searchParams] = useSearchParams();
 
   // Estados
-  const [etapa, setEtapa] = useState('entrada'); // 'entrada', 'saida', 'resumo', 'pagamento'
+  const [etapa, setEtapa] = useState('entrada'); // 'entrada', 'saida', 'resumo'
+  const [acceptedTrips, setAcceptedTrips] = useState([]);
+  const [selectedTripId, setSelectedTripId] = useState('');
+  const [selectedTrip, setSelectedTrip] = useState(null);
   const [viagem, setViagem] = useState({
     endereco_inicio: '',
     coordenadas_inicio: null,
@@ -26,6 +34,58 @@ export default function RegistarViagemPage() {
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
   const [processando, setProcessando] = useState(false);
+
+  useEffect(() => {
+    async function carregarViagensAceites() {
+      if (!user?.id) return;
+      try {
+        const response = await listarViagensAceitesMotorista(user.id);
+        setAcceptedTrips(response.trips || []);
+      } catch (error) {
+        console.error('Erro ao carregar viagens aceites:', error);
+      }
+    }
+
+    carregarViagensAceites();
+  }, [user]);
+
+  useEffect(() => {
+    const tripParam = searchParams.get('trip');
+    if (tripParam) {
+      setSelectedTripId(tripParam);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!selectedTripId) {
+      setSelectedTrip(null);
+      return;
+    }
+
+    async function carregarTripSelecionada() {
+      try {
+        const response = await obterDetalheViagem(selectedTripId);
+        const trip = response.trip || response;
+        setSelectedTrip(trip);
+
+        setViagem({
+          endereco_inicio: trip.start_location || '',
+          coordenadas_inicio: null,
+          num_pessoas: trip.n_people || 1,
+          hora_inicio: trip.start_date ? new Date(trip.start_date).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }),
+          endereco_fim: trip.end_location || '',
+          coordenadas_fim: null,
+          hora_fim: trip.end_date ? new Date(trip.end_date).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : '',
+          quilometros: Number(trip.n_kms) || 0,
+          preco: Number(trip.price) || 0,
+        });
+      } catch (error) {
+        console.error('Erro ao carregar viagem selecionada:', error);
+      }
+    }
+
+    carregarTripSelecionada();
+  }, [selectedTripId]);
 
   // Obter localização atual quando carrega a página
   useEffect(() => {
@@ -119,6 +179,11 @@ export default function RegistarViagemPage() {
     e.preventDefault();
     setErro('');
 
+    if (!selectedTripId) {
+      setErro('Seleciona primeiro uma viagem aceite.');
+      return;
+    }
+
     if (!viagem.endereco_inicio || viagem.num_pessoas < 1) {
       setErro('Preenche todos os campos obrigatórios.');
       return;
@@ -181,16 +246,38 @@ export default function RegistarViagemPage() {
     setEtapa('resumo');
   };
 
-  // Passo 3: Pagar viagem
-  const handlePagamentoSucesso = (tripData) => {
-    setSucesso('✅ Pagamento realizado com sucesso!');
-    setTimeout(() => {
-      navigate('/motorista/mapa', { replace: true });
-    }, 2000);
-  };
+  const handleFinalizarViagem = async () => {
+    setErro('');
+    setSucesso('');
 
-  const handlePagamentoErro = (errorMessage) => {
-    setErro(`❌ Erro no pagamento: ${errorMessage}`);
+    if (!selectedTripId) {
+      setErro('Seleciona primeiro uma viagem aceite.');
+      return;
+    }
+
+    setProcessando(true);
+    try {
+      await atualizarViagem(selectedTripId, {
+        start_location: viagem.endereco_inicio,
+        end_location: viagem.endereco_fim,
+        n_people: viagem.num_pessoas,
+        n_kms: viagem.quilometros,
+        price: viagem.preco,
+      });
+
+      await finalizarViagem(selectedTripId);
+
+      setSucesso('✅ Viagem finalizada com sucesso. Agora podes emitir a fatura.');
+      setSelectedTripId('');
+      setSelectedTrip(null);
+      setAcceptedTrips((current) => current.filter((trip) => trip.id !== selectedTripId));
+      setEtapa('entrada');
+    } catch (error) {
+      console.error('Erro ao finalizar viagem:', error);
+      setErro(error.message || 'Erro ao finalizar viagem.');
+    } finally {
+      setProcessando(false);
+    }
   };
 
   return (
@@ -204,6 +291,23 @@ export default function RegistarViagemPage() {
         {/* ETAPA 1: ENTRADA */}
         {etapa === 'entrada' && (
           <form onSubmit={handleRegistarEntrada} className={styles.form}>
+            <h2>📍 Viagem Aceite</h2>
+
+            <div className={styles.formGroup}>
+              <label>Seleciona uma viagem aceite *</label>
+              <select
+                value={selectedTripId}
+                onChange={(e) => setSelectedTripId(e.target.value)}
+              >
+                <option value="">— Seleciona uma viagem —</option>
+                {acceptedTrips.map((trip) => (
+                  <option key={trip.id} value={trip.id}>
+                    {trip.start_location} → {trip.end_location} · {trip.n_people} pessoa{trip.n_people > 1 ? 's' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <h2>📍 Local de Entrada</h2>
 
             <div className={styles.formGroup}>
@@ -331,39 +435,18 @@ export default function RegistarViagemPage() {
               <button
                 className={styles.btnSecundario}
                 onClick={() => setEtapa('saida')}
+                disabled={processando}
               >
                 ← Corrigir
               </button>
               <button
                 className={styles.btnPrimario}
-                onClick={() => setEtapa('pagamento')}
+                onClick={handleFinalizarViagem}
+                disabled={processando}
               >
-                💳 Pagar Agora
+                {processando ? '⏳ A finalizar...' : '✅ Finalizar Viagem'}
               </button>
             </div>
-          </div>
-        )}
-
-        {/* ETAPA 4: PAGAMENTO */}
-        {etapa === 'pagamento' && (
-          <div className={styles.pagamento}>
-            <h2>💳 Pagamento</h2>
-            <p className={styles.montante}>Montante: <strong>€{viagem.preco.toFixed(2)}</strong></p>
-
-            <PaymentForm
-              tripId="temp-trip-id"
-              amount={viagem.preco}
-              onSuccess={handlePagamentoSucesso}
-              onError={handlePagamentoErro}
-            />
-
-            <button
-              className={styles.btnSecundario}
-              onClick={() => setEtapa('resumo')}
-              style={{ marginTop: '1rem' }}
-            >
-              ← Voltar
-            </button>
           </div>
         )}
       </div>
