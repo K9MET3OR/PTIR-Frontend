@@ -123,8 +123,9 @@ export default function IniciarTurnoPage() {
       });
 
       // Guardar turno_id e turno_ativo no localStorage
-      if (data.shift && data.shift.id) {
-        localStorage.setItem('turno_id', data.shift.id);
+      const shiftId = data?.shift?.id ?? data?.id ?? data?.shiftId;
+      if (shiftId) {
+        localStorage.setItem('turno_id', String(shiftId));
         localStorage.setItem('turno_ativo', 'true');
       }
 

@@ -128,6 +128,13 @@ export default function MapaPedidosPage() {
         }
       }
 
+      if (turno?.end_date || turno?.end) {
+        const fim = new Date(turno.end_date || turno.end);
+        setTempoRestanteTurno(Math.max(0, fim.getTime() - Date.now()));
+      } else {
+        setTempoRestanteTurno(0);
+      }
+
       setLoadingTurno(false);
     }
 
@@ -142,8 +149,12 @@ export default function MapaPedidosPage() {
 
     function atualizaTempo() {
       const agora = new Date();
-      const fim = new Date(turnoAtivo.end_date || turnoAtivo.end);
-      setTempoRestanteTurno(Math.max(0, fim - agora));
+      const fim = new Date(turnoAtivo.end_date || turnoAtivo.end || turnoAtivo.fim);
+      if (Number.isNaN(fim.getTime())) {
+        setTempoRestanteTurno(0);
+        return;
+      }
+      setTempoRestanteTurno(Math.max(0, fim.getTime() - agora.getTime()));
     }
 
     atualizaTempo();
@@ -152,17 +163,25 @@ export default function MapaPedidosPage() {
   }, [turnoAtivo]);
 
   function formatarTempo(ms) {
-    if (ms <= 0) return "0m";
-    const total = Math.floor(ms / 1000);
-    const horas = Math.floor(total / 3600);
-    const minutos = Math.floor((total % 3600) / 60);
-    const segundos = total % 60;
+    const totalMs = Math.max(0, Number(ms) || 0);
+    const totalSegundos = Math.floor(totalMs / 1000);
+    const horas = Math.floor(totalSegundos / 3600);
+    const minutos = Math.floor((totalSegundos % 3600) / 60);
+    const segundos = totalSegundos % 60;
+
+    if (horas === 0 && minutos === 0 && segundos === 0) return "0h 0m 0s";
     return `${horas}h ${minutos}m ${segundos}s`;
   }
 
   function handleIrParaReabastecimento() {
     navigate("/motorista/reabastecimento");
   }
+
+  function handleAtivarTurno() {
+    navigate("/motorista/turno");
+  }
+
+  const estaEmServico = Boolean(turnoAtivo || localStorage.getItem("turno_ativo") === "true");
 
   // Carregar rota do pedido ativo
   useEffect(() => {
@@ -317,6 +336,9 @@ export default function MapaPedidosPage() {
       await terminarShift(shiftId);
       localStorage.removeItem('turno_ativo');
       localStorage.removeItem('turno_id');
+      setTurnoAtivo(null);
+      setTaxiDoTurno(null);
+      setTempoRestanteTurno(0);
       alert('Turno terminado com sucesso');
       navigate("/motorista/turno", { replace: true });
     } catch (error) {
@@ -377,6 +399,18 @@ export default function MapaPedidosPage() {
             <strong>{formatarTempo(tempoRestanteTurno)}</strong>
           </div>
         )}
+
+        <button
+          type="button"
+          className={`${styles.ativarTurnoBtn} ${estaEmServico ? styles.ativarTurnoBtnAtivo : ""}`}
+          onClick={estaEmServico ? handleTerminarTurno : handleAtivarTurno}
+        >
+          {estaEmServico ? "Desativar turno" : "Ativar turno"}
+        </button>
+
+        <div className={styles.statusPill}>
+          {estaEmServico ? "Em serviço" : "Fora de serviço"}
+        </div>
 
         <div className={styles.statsCard}>
           <div className={styles.statItem}>
@@ -600,9 +634,8 @@ export default function MapaPedidosPage() {
               <button className={styles.profileMenuItem} type="button">
                 Editar perfil
               </button>
-              <button className={styles.profileMenuItem} type="button" onClick={handleTerminarTurno}>
-                🛑 Terminar Turno
-              </button>
+              
+              
               <button className={styles.profileMenuItem} type="button" onClick={handleLogout}>
                 Logout
               </button>

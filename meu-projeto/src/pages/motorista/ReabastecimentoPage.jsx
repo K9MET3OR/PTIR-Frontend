@@ -24,6 +24,15 @@ const formatRemaining = (milliseconds) => {
   return `${hours}h ${minutes}m ${seconds}s`;
 };
 
+const toUtcIsoString = (localDateTime) => {
+  if (!localDateTime) return "";
+
+  const date = new Date(localDateTime);
+  if (Number.isNaN(date.getTime())) return "";
+
+  return date.toISOString();
+};
+
 export default function ReabastecimentoPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -214,14 +223,16 @@ export default function ReabastecimentoPage() {
     setSucesso("");
 
     try {
+
       const payload = {
         shift: shift.id,
-        data_inicio: new Date(form.data_inicio).toISOString(),
-        data_fim: new Date(form.data_fim).toISOString(),
+        data_inicio: toUtcIsoString(form.data_inicio),
+        data_fim: toUtcIsoString(form.data_fim),
         euros_pagos: Number(form.euros_pagos),
         kms_taxi: Number(form.kms_taxi),
+        kms_previos: refuels.length > 0 ? refuels[0].kms_taxi : 0,
+        tipo: motorEletrico ? "eletrico" : "gasolina"
       };
-
       if (motorEletrico) {
         payload.kwh = Number(form.kwh);
       } else {
