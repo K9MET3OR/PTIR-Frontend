@@ -1,23 +1,34 @@
 import { useState, useEffect } from "react";
 import MapaBase from "../../components/MapaBase";
-import { taxiService } from "../../services/taxiService";
-import { listarViagensPendentes, listarViagensAceitesMotorista, aceitarViagem } from "../../services/tripService";
+import {
+  listarViagensPendentes,
+  listarViagensAceitesMotorista,
+  aceitarViagem,
+} from "../../services/tripService";
 import { terminarShift, obterShift, verificarTurnoAtivo } from "../../services/shiftService";
-import { COR_ESTADO } from "../../services/mockData";
 import styles from "./MapaPedidosPage.module.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
 
-// Coordenadas da Faculdade de Ciências de Lisboa (default)
 const FCT_LISBOA = {
   lat: 38.7623,
   lon: -9.1585,
 };
 
-export default function MapaPedidosPage() {
+function turnoEstaAtivoAgora(turno) {
+  if (!turno) return false;
 
+  const inicio = new Date(turno.start_date);
+  const fim = new Date(turno.end_date);
+  const agora = new Date();
+
+  return turno.status_shift !== "inactive" && inicio <= agora && agora < fim;
+}
+
+export default function MapaPedidosPage() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [abaAtiva, setAbaAtiva] = useState("pedidos");
 
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -35,11 +46,8 @@ export default function MapaPedidosPage() {
     return normalized.slice(0, 2).toUpperCase();
   })();
 
-  const [taxis, setTaxis] = useState([]);
-  const [taxiSelecionado, setTaxiSelecionado] = useState(null);
   const [pedidoAtivo, setPedidoAtivo] = useState(null);
-  const [filtro, setFiltro] = useState("todos");
-  const [loading, setLoading] = useState(true);
+  const [loading] = useState(false);
 
   const [viagensPendentes, setViagensPendentes] = useState([]);
   const [viagensMotorista, setViagensMotorista] = useState([]);
@@ -50,94 +58,91 @@ export default function MapaPedidosPage() {
 
   const [routePoints, setRoutePoints] = useState([]);
   const [pedidoCoords, setPedidoCoords] = useState(null);
+
   const [turnoAtivo, setTurnoAtivo] = useState(null);
-  const [taxiDoTurno, setTaxiDoTurno] = useState(null);
   const [tempoRestanteTurno, setTempoRestanteTurno] = useState(0);
   const [loadingTurno, setLoadingTurno] = useState(true);
+  const [turnosMotorista, setTurnosMotorista] = useState([]);
 
-  // Carregar táxis da API ao montar o componente
-  useEffect(() => {
-    carregarTaxis();
-  }, []);
-
-  // Carregar viagens da API ao montar o componente
   useEffect(() => {
     carregarViagens();
   }, [user]);
 
-  // Auto-refresh a cada 5 segundos
   useEffect(() => {
+    carregarTurnosMotorista();
+  }, [user]);
+
+  useEffect(() => {
+    async function refreshTudo() {
+      await carregarViagens();
+      await carregarTurnoAtivo();
+      await carregarTurnosMotorista();
+    }
+
     const interval = setInterval(() => {
-      carregarTaxis();
-      carregarViagens();
+      refreshTudo();
     }, 3000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
-  useEffect(() => {
-    async function carregarTurnoAtivo() {
-      setLoadingTurno(true);
-      let turno = null;
-      let shiftId = localStorage.getItem("turno_id");
+  async function carregarTurnoAtivo() {
+    setLoadingTurno(true);
+    let turno = null;
+    let shiftId = localStorage.getItem("turno_id");
 
-      if (shiftId) {
-        try {
-          const response = await obterShift(shiftId);
-          turno = response.shift || response;
-          if (!turno || !turno.id) {
-            turno = null;
-          }
-        } catch (error) {
-          console.warn("Erro ao carregar turno ativo pelo ID armazenado:", error);
-          shiftId = null;
+    if (shiftId) {
+      try {
+        const response = await obterShift(shiftId);
+        turno = response.shift || response;
+        if (!turno || !turno.id || !turnoEstaAtivoAgora(turno)) {
+          turno = null;
           localStorage.removeItem("turno_id");
           localStorage.removeItem("turno_ativo");
         }
+      } catch (error) {
+        console.warn("Erro ao carregar turno ativo pelo ID armazenado:", error);
+        localStorage.removeItem("turno_id");
+        localStorage.removeItem("turno_ativo");
       }
-
-      if (!turno && user?.id) {
-        try {
-          turno = await verificarTurnoAtivo(user.id);
-          if (turno?.id) {
-            localStorage.setItem("turno_id", turno.id);
-            localStorage.setItem("turno_ativo", "true");
-          }
-        } catch (error) {
-          console.warn("Erro ao verificar turno ativo do motorista:", error);
-          turno = null;
-        }
-      }
-
-      if (!turno) {
-        setTurnoAtivo(null);
-        setTaxiDoTurno(null);
-        setLoadingTurno(false);
-        return;
-      }
-
-      setTurnoAtivo(turno);
-
-      if (turno?.taxi_id) {
-        try {
-          const taxiResponse = await taxiService.get(turno.taxi_id);
-          setTaxiDoTurno(taxiResponse.taxi || taxiResponse);
-        } catch (error) {
-          console.warn("Erro ao carregar taxi do turno:", error);
-          setTaxiDoTurno(null);
-        }
-      }
-
-      if (turno?.end_date || turno?.end) {
-        const fim = new Date(turno.end_date || turno.end);
-        setTempoRestanteTurno(Math.max(0, fim.getTime() - Date.now()));
-      } else {
-        setTempoRestanteTurno(0);
-      }
-
-      setLoadingTurno(false);
     }
 
+    if (!turno && user?.id) {
+      try {
+        const turnoEncontrado = await verificarTurnoAtivo(user.id);
+        if (turnoEncontrado && turnoEstaAtivoAgora(turnoEncontrado)) {
+          turno = turnoEncontrado;
+          localStorage.setItem("turno_id", turno.id);
+          localStorage.setItem("turno_ativo", "true");
+        } else {
+          localStorage.removeItem("turno_id");
+          localStorage.removeItem("turno_ativo");
+        }
+      } catch (error) {
+        console.warn("Erro ao verificar turno ativo do motorista:", error);
+        turno = null;
+      }
+    }
+
+    if (!turno) {
+      setTurnoAtivo(null);
+      setLoadingTurno(false);
+      return;
+    }
+
+    setTurnoAtivo(turno);
+
+    if (turno?.end_date || turno?.end) {
+      const fim = new Date(turno.end_date || turno.end);
+      setTempoRestanteTurno(Math.max(0, fim.getTime() - Date.now()));
+    } else {
+      setTempoRestanteTurno(0);
+    }
+
+    setLoadingTurno(false);
+  }
+
+  useEffect(() => {
     carregarTurnoAtivo();
   }, [user]);
 
@@ -173,17 +178,12 @@ export default function MapaPedidosPage() {
     return `${horas}h ${minutos}m ${segundos}s`;
   }
 
-  function handleIrParaReabastecimento() {
-    navigate("/motorista/reabastecimento");
-  }
-
   function handleAtivarTurno() {
     navigate("/motorista/turno");
   }
 
-  const estaEmServico = Boolean(turnoAtivo || localStorage.getItem("turno_ativo") === "true");
+  const estaEmServico = Boolean(turnoAtivo);
 
-  // Carregar rota do pedido ativo
   useEffect(() => {
     async function carregarRotaPedido() {
       if (!pedidoAtivo) {
@@ -234,40 +234,6 @@ export default function MapaPedidosPage() {
     carregarRotaPedido();
   }, [pedidoAtivo]);
 
-  const carregarTaxis = async () => {
-    setLoading(true);
-    try {
-      const response = await taxiService.list();
-      const todosTaxis = response.data || [];
-
-      // Mapear para o formato do mapa
-      const taxisFormatados = todosTaxis.map((taxi) => ({
-        id: taxi.id,
-        matricula: taxi.matricula,
-        marca: taxi.marca || "",
-        modelo: taxi.modelo || "",
-        nivel_conforto: taxi.nivel_conforto || "Standard",
-        estado: taxi.estado || "disponivel",
-        motorista: "Driver", // placeholder, poderia ser vindo da API
-        // Usar coordenadas default se não existirem
-        lat: taxi.latitude ? parseFloat(taxi.latitude) : FCT_LISBOA.lat,
-        lon: taxi.longitude ? parseFloat(taxi.longitude) : FCT_LISBOA.lon,
-      }));
-
-      setTaxis(taxisFormatados);
-    } catch (error) {
-      console.error("Erro ao carregar táxis:", error);
-      setTaxis([]); // Usar lista vazia em caso de erro
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Converte táxis em markers para o mapa
-  const taxisFiltrados = taxis.filter((t) =>
-    filtro === "todos" ? true : t.estado === filtro
-  );
-
   async function carregarViagens() {
     setLoadingViagens(true);
     setErroViagens("");
@@ -287,6 +253,24 @@ export default function MapaPedidosPage() {
       setErroViagens(error.message || "Erro ao carregar viagens.");
     } finally {
       setLoadingViagens(false);
+    }
+  }
+
+  async function carregarTurnosMotorista() {
+    if (!user?.id) {
+      setTurnosMotorista([]);
+      return;
+    }
+
+    try {
+      const data = await fetch(`/api/shift/driver/${user.id}`).then(async (res) => {
+        if (!res.ok) throw new Error("Erro ao carregar turnos");
+        return res.json();
+      });
+      setTurnosMotorista(data.shifts || []);
+    } catch (error) {
+      console.error("Erro ao carregar turnos do motorista:", error);
+      setTurnosMotorista([]);
     }
   }
 
@@ -311,10 +295,6 @@ export default function MapaPedidosPage() {
     }
   };
 
-  function handleMarkerClick(marker) {
-    setTaxiSelecionado(marker);
-  }
-
   async function handleLogout() {
     setProfileMenuOpen(false);
     await logout();
@@ -322,25 +302,24 @@ export default function MapaPedidosPage() {
   }
 
   async function handleTerminarTurno() {
-    const shiftId = localStorage.getItem('turno_id');
+    const shiftId = turnoAtivo?.id;
     if (!shiftId) {
-      alert('Turno não encontrado');
+      alert("Turno não encontrado");
       return;
     }
 
-    if (!window.confirm('Tem a certeza que quer terminar o turno?')) {
+    if (!window.confirm("Tem a certeza que quer terminar o turno?")) {
       return;
     }
 
     try {
       await terminarShift(shiftId);
-      localStorage.removeItem('turno_ativo');
-      localStorage.removeItem('turno_id');
+      localStorage.removeItem("turno_ativo");
+      localStorage.removeItem("turno_id");
       setTurnoAtivo(null);
-      setTaxiDoTurno(null);
       setTempoRestanteTurno(0);
-      alert('Turno terminado com sucesso');
-      navigate("/motorista/turno", { replace: true });
+      alert("Turno terminado com sucesso");
+      navigate("/motorista/mapa", { replace: true });
     } catch (error) {
       alert(`Erro ao terminar turno: ${error.message}`);
     }
@@ -350,12 +329,24 @@ export default function MapaPedidosPage() {
     setProfileMenuOpen((value) => !value);
   }
 
+  const pedidosVisiveis = viagensPendentes.filter(
+    (p) => !viagensIgnoradas.includes(p.id)
+  );
+
+  const agora = new Date();
+
+  const proximosTurnos = turnosMotorista
+    .filter((turno) => {
+      const inicio = new Date(turno.start_date);
+      return turno.status_shift !== "inactive" && inicio > agora;
+    })
+    .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+  const turnoAtualTexto = turnoAtivo?.taxi_matricula
+    ? `${turnoAtivo.taxi_matricula} · ${turnoAtivo.taxi_marca} ${turnoAtivo.taxi_modelo}`
+    : "Sem táxi associado";
+
   const markers = [
-    ...taxisFiltrados.map((t) => ({
-      ...t,
-      label: t.matricula,
-      color: COR_ESTADO[t.estado] ?? COR_ESTADO.offline,
-    })),
     ...(pedidoCoords
       ? [
           {
@@ -373,25 +364,26 @@ export default function MapaPedidosPage() {
             color: "#c084fc",
           },
         ]
-      : []),
+      : [
+          {
+            id: "default-centro",
+            lon: FCT_LISBOA.lon,
+            lat: FCT_LISBOA.lat,
+            label: "Lisboa",
+            color: "#7c3aed",
+          },
+        ]),
   ];
-
-  const pedidosVisiveis = viagensPendentes.filter(
-    (p) => !viagensIgnoradas.includes(p.id)
-  );
 
   return (
     <div className={styles.root}>
-      {/* Painel lateral */}
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <div>
-            <h2 className={styles.title}>Mapa da frota</h2>
+            <h2 className={styles.title}>Painel do Motorista</h2>
             <p className={styles.subtitle}>Lisboa</p>
           </div>
         </div>
-
-       
 
         {turnoAtivo && (
           <div className={styles.remainingTimeBanner}>
@@ -405,7 +397,7 @@ export default function MapaPedidosPage() {
           className={`${styles.ativarTurnoBtn} ${estaEmServico ? styles.ativarTurnoBtnAtivo : ""}`}
           onClick={estaEmServico ? handleTerminarTurno : handleAtivarTurno}
         >
-          {estaEmServico ? "Desativar turno" : "Ativar turno"}
+          {estaEmServico ? "Terminar turno" : "Iniciar turno"}
         </button>
 
         <div className={styles.statusPill}>
@@ -414,8 +406,8 @@ export default function MapaPedidosPage() {
 
         <div className={styles.statsCard}>
           <div className={styles.statItem}>
-            <span className={styles.statLabel}>Táxis</span>
-            <span className={styles.statValue}>{taxis.length}</span>
+            <span className={styles.statLabel}>Turno</span>
+            <span className={styles.statValue}>{turnoAtivo ? "Ativo" : "Sem turno"}</span>
           </div>
           <div className={styles.statDivider} />
           <div className={styles.statItem}>
@@ -425,208 +417,207 @@ export default function MapaPedidosPage() {
         </div>
 
         <div className={styles.filterCard}>
-          <div className={styles.sectionTitle}>Filtrar táxis</div>
-
-          <div className={styles.filtros}>
-            {[
-              { key: "todos", label: "Todos" },
-              { key: "disponivel", label: "Disponíveis" },
-              { key: "ocupado", label: "Ocupados" },
-              { key: "indisponivel", label: "Indisponíveis" },
-            ].map((f) => (
-              <button
-                key={f.key}
-                className={`${styles.filtroBtn} ${filtro === f.key ? styles.filtroAtivo : ""}`}
-                onClick={() => setFiltro(f.key)}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-        {/* Legenda */}
-          <div className={styles.legenda}>
-            <div className={styles.legendaItem}>
-              <div className={styles.legendaDot} style={{ background: "#16a34a" }} />
-              <span>Disponível</span>
-            </div>
-            <div className={styles.legendaItem}>
-              <div className={styles.legendaDot} style={{ background: "#ea580c" }} />
-              <span>Indisponível</span>
-            </div>
-            <div className={styles.legendaItem}>
-              <div className={styles.legendaDot} style={{ background: "#dc2626" }} />
-              <span>Ocupado</span>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.divider} />
-
-        {/* Lista de táxis */}
-        <div className={styles.listTitle}>
-          Táxis ({taxisFiltrados.length})
-        </div>
-        <div className={styles.lista}>
-          {loading ? (
-            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
-              A carregar táxis...
-            </div>
-          ) : taxisFiltrados.length === 0 ? (
-            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
-              Nenhum táxi disponível
-            </div>
+          <div className={styles.sectionTitle}>Turno Atual</div>
+          {loadingTurno ? (
+            <p className={styles.subtitle}>A carregar turno...</p>
+          ) : turnoAtivo ? (
+            <>
+              <div className={styles.turnoAtualLinha}>
+                <strong>
+                  {new Date(turnoAtivo.start_date).toLocaleTimeString("pt-PT", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
+                  -
+                  {" "}
+                  {new Date(turnoAtivo.end_date).toLocaleTimeString("pt-PT", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </strong>
+              </div>
+              <div className={styles.turnoAtualLinha}>{turnoAtualTexto}</div>
+            </>
           ) : (
-            taxisFiltrados.map((t) => {
-              const taxiEmServico = taxiDoTurno && String(t.id) === String(taxiDoTurno.id);
-              return (
-                <div
-                  key={t.id}
-                  className={`${styles.taxiItem} ${taxiSelecionado?.id === t.id ? styles.taxiItemAtivo : ""}`}
-                  onClick={() => setTaxiSelecionado(t)}
-                >
-                  <div className={styles.taxiDot} style={{ background: COR_ESTADO[t.estado] }} />
-                  <div className={styles.taxiInfo}>
-                    <span className={styles.taxiMatricula}>{t.matricula}</span>
-                    <span className={styles.taxiMotorista}>{t.marca} {t.modelo}</span>
-                  </div>
-                  <div className={styles.taxiActions}>
-                    <span className={styles.taxiConforto}>{t.nivel_conforto}</span>
-                    {taxiEmServico && (
-                      <button
-                        className={styles.taxiReabastecimentoBtn}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleIrParaReabastecimento();
-                        }}
-                      >
-                         Reabastecer
-                      </button>
+            <p className={styles.subtitle}>Não tens nenhum turno ativo neste momento.</p>
+          )}
+        </div>
+
+        <div className={styles.tabsRow}>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${abaAtiva === "pedidos" ? styles.tabBtnAtiva : ""}`}
+            onClick={() => setAbaAtiva("pedidos")}
+          >
+            Pedidos
+          </button>
+          <button
+            type="button"
+            className={`${styles.tabBtn} ${abaAtiva === "turnos" ? styles.tabBtnAtiva : ""}`}
+            onClick={() => setAbaAtiva("turnos")}
+          >
+            Turnos
+          </button>
+        </div>
+
+        {abaAtiva === "pedidos" && (
+          <>
+            <div className={styles.divider} />
+            <div className={styles.sectionTitle}>Pedidos Pendentes</div>
+            <div className={styles.lista}>
+              {loadingViagens ? (
+                <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
+                  A carregar pedidos...
+                </div>
+              ) : erroViagens ? (
+                <div style={{ padding: "16px", textAlign: "center", color: "#dc2626" }}>
+                  {erroViagens}
+                </div>
+              ) : pedidosVisiveis.length === 0 ? (
+                <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
+                  Não há pedidos pendentes
+                </div>
+              ) : (
+                pedidosVisiveis.map((p) => (
+                  <div
+                    key={p.id}
+                    className={`${styles.pedidoItem} ${pedidoAtivo?.id === p.id ? styles.pedidoAtivo : ""}`}
+                    onClick={() => setPedidoAtivo(pedidoAtivo?.id === p.id ? null : p)}
+                  >
+                    <div className={styles.pedidoCliente}>Cliente</div>
+                    <div className={styles.pedidoRota}>
+                      <span>{p.start_location}</span>
+                      <span className={styles.rotaArrow}>→</span>
+                      <span>{p.end_location}</span>
+                    </div>
+                    <div className={styles.pedidoMeta}>
+                      {p.n_people} pessoa{p.n_people > 1 ? "s" : ""} · {p.nivel_conforto}
+                    </div>
+                    {pedidoAtivo?.id === p.id && (
+                      <div className={styles.pedidoActions}>
+                        <button
+                          className={styles.btnRejeitar}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleIgnorarViagem(p.id);
+                          }}
+                          disabled={carregandoId === p.id}
+                        >
+                          Ignorar
+                        </button>
+
+                        <button
+                          className={styles.btnAceitar}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAceitarViagem(p.id);
+                          }}
+                          disabled={carregandoId === p.id}
+                        >
+                          {carregandoId === p.id ? "A processar..." : "Aceitar"}
+                        </button>
+                      </div>
                     )}
                   </div>
-                </div>
-              );
-            })
-          )}
-        </div>
+                ))
+              )}
+            </div>
 
-        {/* Pedidos Pendentes */}
-        <div className={styles.divider} />
-        <div className={styles.sectionTitle}>Pedidos Pendentes</div>
-        <div className={styles.lista}>
-          {loadingViagens ? (
-            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
-              A carregar pedidos...
-            </div>
-          ) : erroViagens ? (
-            <div style={{ padding: "16px", textAlign: "center", color: "#dc2626" }}>
-              {erroViagens}
-            </div>
-          ) : pedidosVisiveis.length === 0 ? (
-            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
-              Não há pedidos pendentes
-            </div>
-          ) : (
-            pedidosVisiveis.map((p) => (
-              <div
-                key={p.id}
-                className={`${styles.pedidoItem} ${pedidoAtivo?.id === p.id ? styles.pedidoAtivo : ""}`}
-                onClick={() => setPedidoAtivo(pedidoAtivo?.id === p.id ? null : p)}
-              >
-                <div className={styles.pedidoCliente}>Cliente</div>
-                <div className={styles.pedidoRota}>
-                  <span>{p.start_location}</span>
-                  <span className={styles.rotaArrow}>→</span>
-                  <span>{p.end_location}</span>
+            <div className={styles.divider} />
+            <div className={styles.sectionTitle}>Histórico de Viagens</div>
+            <div className={styles.historicList}>
+              {loadingViagens ? (
+                <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
+                  A carregar histórico...
                 </div>
-                <div className={styles.pedidoMeta}>
-                  {p.n_people} pessoa{p.n_people > 1 ? "s" : ""} · {p.nivel_conforto}
+              ) : viagensMotorista.length === 0 ? (
+                <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
+                  Ainda não tens viagens aceites
                 </div>
-                {pedidoAtivo?.id === p.id && (
-                  <div className={styles.pedidoActions}>
-                    <button
-                      className={styles.btnRejeitar}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleIgnorarViagem(p.id);
-                      }}
-                      disabled={carregandoId === p.id}
-                    >
-                      Ignorar
-                    </button>
-
-                    <button
-                      className={styles.btnAceitar}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAceitarViagem(p.id);
-                      }}
-                      disabled={carregandoId === p.id}
-                    >
-                      {carregandoId === p.id ? "A processar..." : "Aceitar"}
-                    </button>
+              ) : (
+                viagensMotorista.map((v) => (
+                  <div key={v.id} className={styles.historicoItem}>
+                    <div className={styles.historicoHeader}>
+                      <span className={styles.historicoCliente}>Viagem</span>
+                      <span className={styles.historicoGanho}>
+                        {v.price ? `${Number(v.price).toFixed(2)} €` : "-"}
+                      </span>
+                    </div>
+                    <div className={styles.historicoRota}>
+                      <span>{v.start_location}</span>
+                      <span className={styles.rotaArrow}>→</span>
+                      <span>{v.end_location}</span>
+                    </div>
+                    <div className={styles.historicoMeta}>
+                      <span>{v.n_kms ? `${v.n_kms} km` : "-"}</span>
+                      <span className={styles.metaDot}>•</span>
+                      <span>{v.status_trip}</span>
+                      <span className={styles.metaDot}>•</span>
+                      <span>
+                        {v.start_date
+                          ? new Date(v.start_date).toLocaleTimeString("pt-PT", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })
+                          : "-"}
+                      </span>
+                    </div>
                   </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
 
-        {/* Histórico de Viagens */}
-        <div className={styles.divider} />
-        <div className={styles.sectionTitle}>Histórico de Viagens</div>
-        <div className={styles.historicList}>
-          {loadingViagens ? (
-            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
-              A carregar histórico...
-            </div>
-          ) : viagensMotorista.length === 0 ? (
-            <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
-              Ainda não tens viagens aceites
-            </div>
-          ) : (
-            viagensMotorista.map((v) => (
-              <div key={v.id} className={styles.historicoItem}>
-                <div className={styles.historicoHeader}>
-                  <span className={styles.historicoCliente}>Viagem</span>
-                  <span className={styles.historicoGanho}>
-                    {v.price ? `${Number(v.price).toFixed(2)} €` : "-"}
-                  </span>
+        {abaAtiva === "turnos" && (
+          <>
+            <div className={styles.divider} />
+            <div className={styles.sectionTitle}>Próximos Turnos</div>
+            <div className={styles.lista}>
+              {proximosTurnos.length === 0 ? (
+                <div style={{ padding: "16px", textAlign: "center", color: "#666" }}>
+                  Não tens próximos turnos agendados
                 </div>
-                <div className={styles.historicoRota}>
-                  <span>{v.start_location}</span>
-                  <span className={styles.rotaArrow}>→</span>
-                  <span>{v.end_location}</span>
-                </div>
-                <div className={styles.historicoMeta}>
-                  <span>{v.n_kms ? `${v.n_kms} km` : "-"}</span>
-                  <span className={styles.metaDot}>•</span>
-                  <span>{v.status_trip}</span>
-                  <span className={styles.metaDot}>•</span>
-                  <span>
-                    {v.start_date
-                      ? new Date(v.start_date).toLocaleTimeString("pt-PT", {
+              ) : (
+                proximosTurnos.map((turno) => (
+                  <div key={turno.id} className={styles.historicoItem}>
+                    <div className={styles.historicoHeader}>
+                      <span className={styles.historicoCliente}>
+                        {new Date(turno.start_date).toLocaleDateString("pt-PT")}
+                      </span>
+                    </div>
+                    <div className={styles.historicoMeta}>
+                      <span>
+                        {new Date(turno.start_date).toLocaleTimeString("pt-PT", {
                           hour: "2-digit",
                           minute: "2-digit",
-                        })
-                      : "-"}
-                  </span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+                        })}{" "}
+                        -
+                        {" "}
+                        {new Date(turno.end_date).toLocaleTimeString("pt-PT", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                    <div className={styles.historicoRota}>
+                      <span>
+                        {turno.taxi_matricula
+                          ? `${turno.taxi_matricula} · ${turno.taxi_marca} ${turno.taxi_modelo}`
+                          : turno.taxi_id}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </>
+        )}
       </aside>
 
-      {/* Mapa */}
       <div className={styles.mapaWrap}>
-        {/* Profile Card */}
         <div className={styles.profileCardWrapper}>
-          <button
-            className={styles.profileBtn}
-            onClick={handleProfileToggle}
-          >
+          <button className={styles.profileBtn} onClick={handleProfileToggle}>
             {initials}
           </button>
           {profileMenuOpen && (
@@ -634,19 +625,18 @@ export default function MapaPedidosPage() {
               <button className={styles.profileMenuItem} type="button">
                 Editar perfil
               </button>
-              
-              
               <button className={styles.profileMenuItem} type="button" onClick={handleLogout}>
                 Logout
               </button>
             </div>
           )}
         </div>
+
         <MapaBase
           markers={markers}
           routePoints={routePoints}
           height="100%"
-          onMarkerClick={handleMarkerClick}
+          onMarkerClick={() => {}}
         />
       </div>
     </div>

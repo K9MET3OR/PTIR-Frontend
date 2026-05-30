@@ -9,10 +9,22 @@ export async function verificarTurnoAtivo(motoristId) {
     const response = await api.get(`/shift/driver/${motoristId}`);
     console.log('[SHIFT] Resposta do backend:', response);
 
-    // O backend retorna uma lista de shifts. Procuramos um com status 'active'
     if (response && response.shifts && Array.isArray(response.shifts)) {
-      console.log('[SHIFT] Turnos encontrados:', response.shifts);
-      const turnoAtivo = response.shifts.find(shift => shift.status_shift === 'active');
+      const agora = new Date();
+
+      const turnoAtivo = response.shifts.find((shift) => {
+        if (shift.status_shift === 'inactive') return false;
+
+        const inicio = new Date(shift.start_date);
+        const fim = new Date(shift.end_date);
+
+        if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) {
+          return false;
+        }
+
+        return inicio <= agora && agora < fim;
+      });
+
       console.log('[SHIFT] Turno ativo:', turnoAtivo);
       return turnoAtivo || null;
     }
@@ -22,7 +34,6 @@ export async function verificarTurnoAtivo(motoristId) {
   } catch (error) {
     console.error('[SHIFT] Erro ao verificar turno ativo:', error);
     console.error('[SHIFT] Erro detalhado:', error.message);
-    // Retorna null para que motorista vá para página de criar turno
     return null;
   }
 }
@@ -32,7 +43,7 @@ export async function verificarTurnoAtivo(motoristId) {
  */
 export async function terminarShift(shiftId) {
   try {
-    const response = await api.post(`/shift/${shiftId}/finish`, {});
+    const response = await api.post(`/shift/${shiftId}/terminar/`, {});
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao terminar turno' };
@@ -73,7 +84,6 @@ export async function criarShift(shiftData) {
       taxi: shiftData.taxiId,
       start_date: shiftData.startDate,
       end_date: shiftData.endDate,
-      status_shift: shiftData.statusShift || 'active',
     });
     return response;
   } catch (error) {
