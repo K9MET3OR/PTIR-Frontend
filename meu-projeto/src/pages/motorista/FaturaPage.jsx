@@ -26,7 +26,8 @@ export default function FaturaPage() {
       let shiftData = null;
       const storedShiftId = localStorage.getItem("turno_id");
 
-      if (storedShiftId) {
+      // Tentar carregar pelo ID armazenado (apenas se for um UUID válido)
+      if (storedShiftId && storedShiftId.includes('-')) {
         try {
           const shiftResponse = await obterShift(storedShiftId);
           const candidate = shiftResponse.shift || shiftResponse;
@@ -41,8 +42,13 @@ export default function FaturaPage() {
           localStorage.removeItem("turno_id");
           localStorage.removeItem("turno_ativo");
         }
+      } else if (storedShiftId) {
+        // Se o ID armazenado não é um UUID, remove
+        localStorage.removeItem("turno_id");
+        localStorage.removeItem("turno_ativo");
       }
 
+      // Se não encontrou pelo ID, tenta verificar turno ativo do motorista
       if (!shiftData && user?.id) {
         try {
           const turnoAtivo = await verificarTurnoAtivo(user.id);
@@ -66,12 +72,25 @@ export default function FaturaPage() {
         setShift(shiftData);
 
         // Carregar viagens finalizadas do motorista
-        const tripsResponse = await listarViagensFinalizadasMotorista(user.id);
-        const todasViagens = tripsResponse.trips || [];
+        let todasViagens = [];
+        try {
+          const tripsResponse = await listarViagensFinalizadasMotorista(user.id);
+          todasViagens = tripsResponse.trips || [];
+        } catch (tripError) {
+          console.warn("Erro ao carregar viagens do motorista:", tripError);
+          // Continua mesmo sem viagens
+        }
 
         // Carregar faturas já emitidas pelo motorista
-        const invoicesResponse = await invoiceService.listByDriver(user.id);
-        const invoicesList = invoicesResponse.invoices || [];
+        let invoicesList = [];
+        try {
+          const invoicesResponse = await invoiceService.listByDriver(user.id);
+          invoicesList = invoicesResponse.invoices || [];
+        } catch (invoiceError) {
+          console.warn("Erro ao carregar faturas do motorista:", invoiceError);
+          // Continua mesmo sem faturas
+        }
+
         setInvoices(invoicesList);
 
         const invoiceTripIds = new Set(invoicesList.map((inv) => inv.trip_id));
@@ -209,28 +228,32 @@ export default function FaturaPage() {
                           <div className={styles.tripRow}>
                             <span>Início</span>
                             <strong>
-                              {new Date(tripSelecionadaObj.start_date).toLocaleString("pt-PT", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              })}
+                              {tripSelecionadaObj.start_date
+                                ? new Date(tripSelecionadaObj.start_date).toLocaleString("pt-PT", {
+                                    dateStyle: "short",
+                                    timeStyle: "short",
+                                  })
+                                : "—"}
                             </strong>
                           </div>
                           <div className={styles.tripRow}>
                             <span>Fim</span>
                             <strong>
-                              {new Date(tripSelecionadaObj.end_date).toLocaleString("pt-PT", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              })}
+                              {tripSelecionadaObj.end_date
+                                ? new Date(tripSelecionadaObj.end_date).toLocaleString("pt-PT", {
+                                    dateStyle: "short",
+                                    timeStyle: "short",
+                                  })
+                                : "—"}
                             </strong>
                           </div>
                           <div className={styles.tripRow}>
                             <span>Pessoas</span>
-                            <strong>{tripSelecionadaObj.n_pessoas ?? "—"}</strong>
+                            <strong>{tripSelecionadaObj.n_people ?? "—"}</strong>
                           </div>
                           <div className={styles.tripRow}>
                             <span>Quilómetros</span>
-                            <strong>{tripSelecionadaObj.kms ?? "—"} km</strong>
+                            <strong>{tripSelecionadaObj.n_kms ?? "—"} km</strong>
                           </div>
                           <div className={`${styles.tripRow} ${styles.tripRowValor}`}>
                             <span>Valor a faturar</span>

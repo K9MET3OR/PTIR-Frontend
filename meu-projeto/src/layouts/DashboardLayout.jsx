@@ -12,9 +12,11 @@ const NAV_ITEMS_GESTOR = [
 
 const NAV_ITEMS_MOTORISTA = [
   { to: "/motorista/turno",    label: "Iniciar Turno", icon: "⏰", end: true },
-  { to: "/motorista/pedidos",  label: "Pedidos",       icon: "📋" },
   { to: "/motorista/mapa",     label: "Mapa",          icon: "🗺️" },
+  { to: "/motorista/pedidos",  label: "Pedidos",       icon: "📋" },
+  { to: "/motorista/viagem",   label: "Viagens",       icon: "�️" },
   { to: "/motorista/reabastecimento", label: "Reabastecimento", icon: "⛽" },
+  { to: "/motorista/faturas",  label: "Faturas",       icon: "📄" },
 ];
 
 export default function DashboardLayout() {

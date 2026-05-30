@@ -6,11 +6,16 @@ import { api } from '../services/api';
 import styles from './PaymentForm.module.css';
 
 const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY?.trim();
-const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
+const stripePromise = stripeKey 
+  ? loadStripe(stripeKey).catch((err) => {
+      console.error('[STRIPE] Erro ao carregar Stripe:', err);
+      return null;
+    })
+  : Promise.resolve(null);
 
 export default function PaymentForm({ tripId, amount, onSuccess, onError }) {
   if (!stripeKey) {
-    return <div className={styles.error}>Erro: Stripe publishable key não configurada.</div>;
+    return <div className={styles.error}>Erro: Stripe publishable key não configurada. Verifique .env.local</div>;
   }
 
   return (
@@ -33,10 +38,11 @@ function CheckoutForm({ tripId, amount, onSuccess, onError }) {
     const loadUserData = async () => {
       if (!user) return;
       try {
-        const response = await api.get(`/user/${user.id}/`);
+        const response = await api.get(`/user/${user.id}`);
         setUserData(response);
       } catch (error) {
         console.error('Erro ao carregar dados do utilizador:', error);
+        // Continua mesmo sem dados do utilizador
       }
     };
     loadUserData();
@@ -46,7 +52,8 @@ function CheckoutForm({ tripId, amount, onSuccess, onError }) {
     e.preventDefault();
     
     if (!stripe || !elements) {
-      setMessage('Stripe não está carregado');
+      setMessage('❌ Stripe não está carregado. Tenta novamente.');
+      console.error('[PAYMENT] Stripe ou elements não disponível:', { stripe, elements });
       return;
     }
 

@@ -71,6 +71,17 @@ export default function SignupPage() {
       return;
     }
 
+    // Validação de NIF para cliente e motorista
+    if ((selectedRole === "cliente" || selectedRole === "motorista") && !nif) {
+      setError("NIF é obrigatório.");
+      return;
+    }
+
+    if (nif && !validarNIF(nif)) {
+      setError("NIF inválido. Verifique o número.");
+      return;
+    }
+
     // Validações específicas para motorista
     if (selectedRole === "motorista") {
       if (!nif || !nCarta || !dataNasc || !telefone || !codigoPostal) {
@@ -116,6 +127,14 @@ export default function SignupPage() {
         name,
         selectedRole,
       };
+
+      // Se for cliente, adicionar NIF
+      if (selectedRole === "cliente" && nif) {
+        signupData = {
+          ...signupData,
+          nif,
+        };
+      }
 
       // Se for motorista, adicionar campos extras
       if (selectedRole === "motorista") {
@@ -246,21 +265,24 @@ export default function SignupPage() {
             />
           </div>
 
+          {/* NIF para cliente e motorista */}
+          {(selectedRole === "cliente" || selectedRole === "motorista") && (
+            <div className={styles.field}>
+              <label htmlFor="nif">NIF</label>
+              <input
+                id="nif"
+                type="text"
+                placeholder="123456789"
+                value={nif}
+                onChange={(e) => setNif(e.target.value)}
+                required
+              />
+            </div>
+          )}
+
           {/* Campos específicos para motorista */}
           {selectedRole === "motorista" && (
             <>
-              <div className={styles.field}>
-                <label htmlFor="nif">NIF</label>
-                <input
-                  id="nif"
-                  type="text"
-                  placeholder="123456789"
-                  value={nif}
-                  onChange={(e) => setNif(e.target.value)}
-                  required
-                />
-              </div>
-
               <div className={styles.field}>
                 <label htmlFor="dataNasc">Data de Nascimento</label>
                 <input

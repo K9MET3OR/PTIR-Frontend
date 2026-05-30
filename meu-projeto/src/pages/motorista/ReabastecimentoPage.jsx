@@ -393,18 +393,27 @@ export default function ReabastecimentoPage() {
                   <p>Sem reabastecimentos registados para este táxi.</p>
                 ) : (
                   <div className={styles.refuelList}>
-                    {refuels.map((item) => (
-                      <div key={item.id} className={styles.refuelItem}>
-                        <div>
-                          <strong>{new Date(item.data_inicio).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}</strong>
-                          <p>{item.tipo === "eletrico" ? `${item.kwh} kWh` : `${item.litros} L`}</p>
+                    {refuels.map((item) => {
+                      // Determinar se é elétrico verificando o tipo de motor
+                      const isEletrico = item.tipo && (item.tipo.toLowerCase().includes("eletrico") || item.tipo.toLowerCase().includes("elétrico"));
+                      // Mostrar a quantidade apropriada baseado no tipo
+                      const quantidade = isEletrico 
+                        ? (item.kwh ? `${item.kwh} kWh` : "—") 
+                        : (item.litros ? `${item.litros} L` : "—");
+                      
+                      return (
+                        <div key={item.id} className={styles.refuelItem}>
+                          <div>
+                            <strong>{new Date(item.data_inicio).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}</strong>
+                            <p>{quantidade}</p>
+                          </div>
+                          <div className={styles.refuelMeta}>
+                            <span>{item.kms_taxi} km</span>
+                            <span>€{item.euros_pagos}</span>
+                          </div>
                         </div>
-                        <div className={styles.refuelMeta}>
-                          <span>{item.kms_taxi} km</span>
-                          <span>€{item.euros_pagos}</span>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>

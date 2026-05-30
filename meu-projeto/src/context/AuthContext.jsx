@@ -108,6 +108,16 @@ export function AuthProvider({ children }) {
           telefone: extraFields.telefone,
         });
         console.log("[AUTH] Motorista criado no backend");
+      } else if (selectedRole === "cliente") {
+        console.log("[AUTH] Criando cliente no backend...");
+        data = await api.post(`/client/register`, {
+          username,
+          email,
+          password,
+          name,
+          nif: extraFields.nif,
+        });
+        console.log("[AUTH] Cliente criado no backend");
       } else {
         console.log("[AUTH] Criando user no Django backend...");
         data = await api.post(`/user/`, {
@@ -127,6 +137,14 @@ export function AuthProvider({ children }) {
           username: data.motorista.username,
           name: data.motorista.nome,
           role: "motorista",
+        };
+      } else if (selectedRole === "cliente" && data.user) {
+        userData = {
+          id: data.user.id,
+          username: data.user.username,
+          name: data.user.name,
+          role: "cliente",
+          nif: data.user.nif,
         };
       } else if (data.user) {
         userData = data.user;
