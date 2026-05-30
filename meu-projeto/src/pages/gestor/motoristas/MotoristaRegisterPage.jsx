@@ -13,6 +13,13 @@ function validateCarta(carta) {
   return carta.trim().length > 0;
 }
 
+function formatCodigoPostal(value) {
+  const clean = value.replace(/\D/g, "").slice(0, 7);
+
+  if (clean.length <= 4) return clean;
+  return `${clean.slice(0, 4)}-${clean.slice(4)}`;
+}
+
 export default function MotoristaRegisterPage() {
   const navigate = useNavigate();
   const [taxis, setTaxis] = useState([]);
@@ -250,8 +257,7 @@ export default function MotoristaRegisterPage() {
               placeholder="1234-567"
               maxLength="8"
               value={form.codigo_postal}
-              onChange={(e) => set("codigo_postal", e.target.value)}
-            />
+              onChange={(e) => set("codigo_postal", formatCodigoPostal(e.target.value))}/>
             {localidadeLoading && <small style={{ color: "#666" }}>A carregar localidade…</small>}
             {errors.codigo_postal && <span className={styles.fieldError}>{errors.codigo_postal}</span>}
           </div>
@@ -264,7 +270,6 @@ export default function MotoristaRegisterPage() {
               value={form.localidade}
               readOnly
               disabled={localidadeLoading}
-              style={{ backgroundColor: form.localidade ? "#fff" : "#f5f5f5" }}
             />
           </div>
 

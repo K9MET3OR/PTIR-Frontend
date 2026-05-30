@@ -123,18 +123,20 @@ export default function MotoristaListPage() {
                           </span>
                         </td>
                         <td className={styles.actions}>
-                          <button
-                            className={styles.editBtn}
-                            onClick={() => navigate(`/gestor/motoristas/${m.id}/editar`)}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            className={styles.deleteBtn}
-                            onClick={() => handleDelete(m.id)}
-                          >
-                            Remover
-                          </button>
+                          <div className={styles.actionsInner}>
+                            <button
+                              className={styles.editBtn}
+                              onClick={() => navigate(`/gestor/motoristas/${m.id}/editar`)}
+                            >
+                              Editar
+                            </button>
+                            <button
+                              className={styles.deleteBtn}
+                              onClick={() => handleDelete(m.id)}
+                            >
+                              Remover
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );

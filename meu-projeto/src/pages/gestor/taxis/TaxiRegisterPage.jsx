@@ -27,6 +27,14 @@ function validateMatricula(v) {
   return /^[A-Z]{2}-\d{2}-[A-Z]{2}$|^\d{2}-[A-Z]{2}-\d{2}$|^\d{2}-\d{2}-[A-Z]{2}$/.test(v.toUpperCase());
 }
 
+function formatMatricula(value) {
+  const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+
+  if (clean.length <= 2) return clean;
+  if (clean.length <= 4) return `${clean.slice(0, 2)}-${clean.slice(2)}`;
+  return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4)}`;
+}
+
 export default function TaxiRegisterPage() {
   const navigate = useNavigate();
 
@@ -129,8 +137,8 @@ export default function TaxiRegisterPage() {
               className={styles.input}
               placeholder="AA-00-BB"
               value={form.matricula}
-              onChange={(e) => set("matricula", e.target.value)}
-              style={{ textTransform: "uppercase" }}
+              onChange={(e) => set("matricula", formatMatricula(e.target.value))}
+              maxLength={8}
             />
             {errors.matricula && <span className={styles.fieldError}>{errors.matricula}</span>}
           </div>

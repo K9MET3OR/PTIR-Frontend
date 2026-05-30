@@ -1,14 +1,40 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { taxiService } from "../../../services/taxiService";
+import { listarViagens } from "../../../services/tripService";
 import styles from "../../../styles/Form.module.css";
 
-const MOTOR_TYPES  = ["Combustão", "Elétrico"];
+const MOTOR_TYPES = ["Combustão", "Elétrico"];
 const COMFORT_TYPES = ["Básico", "Luxuoso"];
+
+const TAXI_BRANDS = [
+  { brand: "Toyota", models: ["Prius", "Corolla", "Camry", "Yaris"] },
+  { brand: "Hyundai", models: ["Ioniq", "i30", "i20", "Elantra"] },
+  { brand: "Kia", models: ["Niro", "Ceed", "Picanto", "Sportage"] },
+  { brand: "Mercedes-Benz", models: ["E-Class", "C-Class", "A-Class", "V-Class"] },
+  { brand: "BMW", models: ["3 Series", "5 Series", "1 Series", "X5"] },
+  { brand: "Volkswagen", models: ["Passat", "Golf", "Polo", "Tiguan"] },
+  { brand: "Renault", models: ["Megane", "Clio", "Espace", "Scenic"] },
+  { brand: "Peugeot", models: ["308", "307", "3008", "5008"] },
+  { brand: "Citroën", models: ["C5", "C3", "C-Elysée", "Berlingo"] },
+  { brand: "Fiat", models: ["500", "Panda", "Tipo", "Ducato"] },
+  { brand: "Nissan", models: ["Qashqai", "Altima", "Micra", "X-Trail"] },
+  { brand: "Chevrolet", models: ["Cruze", "Spark", "Cobalt", "Onix"] },
+];
 
 // Valida matrícula portuguesa: XX-00-XX, 00-XX-00, etc.
 function validateMatricula(v) {
-  return /^[A-Z]{2}-\d{2}-[A-Z]{2}$|^\d{2}-[A-Z]{2}-\d{2}$|^\d{2}-\d{2}-[A-Z]{2}$/.test(v.toUpperCase());
+  return /^[A-Z]{2}-\d{2}-[A-Z]{2}$|^\d{2}-[A-Z]{2}-\d{2}$|^\d{2}-\d{2}-[A-Z]{2}$/.test(
+    v.toUpperCase()
+  );
+}
+
+function formatMatricula(value) {
+  const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+
+  if (clean.length <= 2) return clean;
+  if (clean.length <= 4) return `${clean.slice(0, 2)}-${clean.slice(2)}`;
+  return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4)}`;
 }
 
 export default function TaxiEditPage() {
@@ -16,81 +42,124 @@ export default function TaxiEditPage() {
   const { id } = useParams();
 
   const [form, setForm] = useState({
-    matricula:    "",
-    marca:        "",
-    modelo:       "",
-    ano_compra:   "",
+    matricula: "",
+    marca: "",
+    modelo: "",
+    ano_compra: "",
     consumo_medio: "",
-    tipo_motor:   "Combustão",
+    tipo_motor: "Combustão",
     nivel_conforto: "Básico",
-    observacoes:  "",
+    observacoes: "",
   });
 
   const [originalForm, setOriginalForm] = useState(null);
-  const [errors,  setErrors]  = useState({});
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [confortoBloqueado, setConfortoBloqueado] = useState(false);
 
-  // Carregar dados do táxi
+
   useEffect(() => {
-    taxiService.get(id)
-      .then((response) => {
+    async function carregarTaxi() {
+      try {
+        const response = await taxiService.get(id);
         const taxi = response?.taxi || response;
+
         const taxiData = {
-          matricula:      taxi.matricula || "",
-          marca:          taxi.marca || "",
-          modelo:         taxi.modelo || "",
-          ano_compra:     taxi.ano_compra || "",
-          consumo_medio:  taxi.consumo_medio ?? "",
-          tipo_motor:     taxi.tipo_motor || "Combustão",
+          matricula: taxi.matricula || "",
+          marca: taxi.marca || "",
+          modelo: taxi.modelo || "",
+          ano_compra: taxi.ano_compra || "",
+          consumo_medio: taxi.consumo_medio ?? "",
+          tipo_motor: taxi.tipo_motor || "Combustão",
           nivel_conforto: taxi.nivel_conforto || "Básico",
-          observacoes:    taxi.observacoes || "",
+          observacoes: taxi.observacoes || "",
         };
+
         setForm(taxiData);
         setOriginalForm(taxiData);
-      })
-      .catch(() => setApiError("Não foi possível carregar os dados do táxi."))
-      .finally(() => setLoading(false));
+
+        const viagensResponse = await listarViagens();
+        const trips = viagensResponse?.trips || [];
+
+        const temViagens = trips.some((trip) => trip.taxi_id === taxi.id);
+        setConfortoBloqueado(temViagens);
+      } catch {
+        setApiError("Não foi possível carregar os dados do táxi.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    carregarTaxi();
   }, [id]);
 
+  function getAvailableModels() {
+    const brandObj = TAXI_BRANDS.find((b) => b.brand === form.marca);
+    return brandObj ? brandObj.models : [];
+  }
+
   function set(field, value) {
-    setForm((f) => ({ ...f, [field]: value }));
-    // Limpa o erro do campo quando o utilizador começa a escrever
-    if (errors[field]) setErrors((e) => ({ ...e, [field]: "" }));
+    setForm((f) => {
+      const updated = { ...f, [field]: value };
+
+      if (field === "marca") {
+        updated.modelo = "";
+      }
+
+      return updated;
+    });
+
+    if (errors[field]) {
+      setErrors((e) => ({ ...e, [field]: "" }));
+    }
+
+    if (field === "marca" && errors.modelo) {
+      setErrors((e) => ({ ...e, modelo: "" }));
+    }
   }
 
   function validate() {
     const e = {};
-    
-    // Para edição, validar apenas campos que foram alterados
+
     if (form.matricula !== originalForm?.matricula) {
-      if (!form.matricula)
+      if (!form.matricula) {
         e.matricula = "Matrícula obrigatória.";
-      else if (!validateMatricula(form.matricula))
+      } else if (!validateMatricula(form.matricula)) {
         e.matricula = "Formato inválido. Ex: AA-00-BB";
+      }
     }
 
-    if (form.marca !== originalForm?.marca && !form.marca)
+    if (form.marca !== originalForm?.marca && !form.marca) {
       e.marca = "Marca obrigatória.";
+    }
 
-    if (form.modelo !== originalForm?.modelo && !form.modelo)
+    if (form.modelo !== originalForm?.modelo && !form.modelo) {
       e.modelo = "Modelo obrigatório.";
+    }
+
+    const brandObj = TAXI_BRANDS.find((b) => b.brand === form.marca);
+    if (form.marca && brandObj && !brandObj.models.includes(form.modelo)) {
+      e.modelo = "Modelo inválido para a marca selecionada.";
+    }
 
     if (form.ano_compra !== originalForm?.ano_compra) {
       const ano = parseInt(form.ano_compra, 10);
-      if (!form.ano_compra)
+      if (!form.ano_compra) {
         e.ano_compra = "Ano obrigatório.";
-      else if (ano < 1990 || ano > new Date().getFullYear())
+      } else if (ano < 1990 || ano > new Date().getFullYear()) {
         e.ano_compra = `Ano entre 1990 e ${new Date().getFullYear()}.`;
+      }
     }
 
     if (form.consumo_medio !== originalForm?.consumo_medio) {
       const consumo = parseFloat(form.consumo_medio);
-      if (!form.consumo_medio)
+      if (!form.consumo_medio) {
         e.consumo_medio = "Consumo médio obrigatório.";
-      else if (Number.isNaN(consumo) || consumo <= 0)
+      } else if (Number.isNaN(consumo) || consumo <= 0) {
         e.consumo_medio = "Consumo médio deve ser maior que 0.";
+      }
     }
 
     return e;
@@ -99,29 +168,40 @@ export default function TaxiEditPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     const e2 = validate();
-    if (Object.keys(e2).length) { setErrors(e2); return; }
+    if (Object.keys(e2).length) {
+      setErrors(e2);
+      return;
+    }
 
     setSubmitting(true);
     setApiError("");
-    
-    // Enviar apenas os campos alterados
+
     const changes = {};
-    if (form.matricula !== originalForm?.matricula) 
+
+    if (form.matricula !== originalForm?.matricula) {
       changes.matricula = form.matricula.toUpperCase();
-    if (form.marca !== originalForm?.marca)
+    }
+    if (form.marca !== originalForm?.marca) {
       changes.marca = form.marca;
-    if (form.modelo !== originalForm?.modelo)
+    }
+    if (form.modelo !== originalForm?.modelo) {
       changes.modelo = form.modelo;
-    if (form.ano_compra !== originalForm?.ano_compra)
+    }
+    if (form.ano_compra !== originalForm?.ano_compra) {
       changes.ano_compra = parseInt(form.ano_compra, 10);
-    if (form.consumo_medio !== originalForm?.consumo_medio)
+    }
+    if (form.consumo_medio !== originalForm?.consumo_medio) {
       changes.consumo_medio = parseFloat(form.consumo_medio);
-    if (form.tipo_motor !== originalForm?.tipo_motor)
+    }
+    if (form.tipo_motor !== originalForm?.tipo_motor) {
       changes.tipo_motor = form.tipo_motor;
-    if (form.nivel_conforto !== originalForm?.nivel_conforto)
+    }
+    if (form.nivel_conforto !== originalForm?.nivel_conforto) {
       changes.nivel_conforto = form.nivel_conforto;
-    if (form.observacoes !== originalForm?.observacoes)
+    }
+    if (form.observacoes !== originalForm?.observacoes) {
       changes.observacoes = form.observacoes;
+    }
 
     try {
       await taxiService.update(id, changes);
@@ -135,7 +215,7 @@ export default function TaxiEditPage() {
 
   if (loading) {
     return (
-      <div>
+      <div className={styles.root}>
         <button className={styles.backBtn} onClick={() => navigate("/gestor/taxis")}>
           ← Voltar à lista
         </button>
@@ -147,7 +227,7 @@ export default function TaxiEditPage() {
   }
 
   return (
-    <div>
+    <div className={styles.root}>
       <button className={styles.backBtn} onClick={() => navigate("/gestor/taxis")}>
         ← Voltar à lista
       </button>
@@ -159,14 +239,14 @@ export default function TaxiEditPage() {
 
       <form className={styles.formCard} onSubmit={handleSubmit} noValidate>
         <div className={styles.grid}>
-
           <div className={styles.field}>
             <label>Matrícula *</label>
             <input
+              className={styles.input}
               placeholder="AA-00-BB"
               value={form.matricula}
-              onChange={(e) => set("matricula", e.target.value)}
-              style={{ textTransform: "uppercase" }}
+              onChange={(e) => set("matricula", formatMatricula(e.target.value))}
+              maxLength={8}
             />
             {errors.matricula && <span className={styles.fieldError}>{errors.matricula}</span>}
           </div>
@@ -174,6 +254,7 @@ export default function TaxiEditPage() {
           <div className={styles.field}>
             <label>Ano de compra *</label>
             <input
+              className={styles.input}
               type="number"
               placeholder="2024"
               value={form.ano_compra}
@@ -185,6 +266,7 @@ export default function TaxiEditPage() {
           <div className={styles.field}>
             <label>Consumo médio (L/100km) *</label>
             <input
+              className={styles.input}
               type="number"
               step="0.01"
               min="0.01"
@@ -192,46 +274,88 @@ export default function TaxiEditPage() {
               value={form.consumo_medio}
               onChange={(e) => set("consumo_medio", e.target.value)}
             />
-            {errors.consumo_medio && <span className={styles.fieldError}>{errors.consumo_medio}</span>}
+            {errors.consumo_medio && (
+              <span className={styles.fieldError}>{errors.consumo_medio}</span>
+            )}
           </div>
 
           <div className={styles.field}>
             <label>Marca *</label>
-            <input
-              placeholder="Toyota"
+            <select
+              className={styles.select}
               value={form.marca}
               onChange={(e) => set("marca", e.target.value)}
-            />
+            >
+              <option value="">Selecione uma marca</option>
+              {TAXI_BRANDS.map((b) => (
+                <option key={b.brand} value={b.brand}>
+                  {b.brand}
+                </option>
+              ))}
+            </select>
             {errors.marca && <span className={styles.fieldError}>{errors.marca}</span>}
           </div>
 
           <div className={styles.field}>
             <label>Modelo *</label>
-            <input
-              placeholder="Corolla"
+            <select
+              className={styles.select}
               value={form.modelo}
               onChange={(e) => set("modelo", e.target.value)}
-            />
+              disabled={!form.marca}
+            >
+              <option value="">
+                {form.marca ? "Selecione um modelo" : "Selecione primeiro uma marca"}
+              </option>
+              {getAvailableModels().map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </select>
             {errors.modelo && <span className={styles.fieldError}>{errors.modelo}</span>}
           </div>
 
           <div className={styles.field}>
             <label>Tipo de motor *</label>
-            <select value={form.tipo_motor} onChange={(e) => set("tipo_motor", e.target.value)}>
-              {MOTOR_TYPES.map((m) => <option key={m}>{m}</option>)}
+            <select
+              className={styles.select}
+              value={form.tipo_motor}
+              onChange={(e) => set("tipo_motor", e.target.value)}
+            >
+              {MOTOR_TYPES.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
             </select>
           </div>
 
           <div className={styles.field}>
             <label>Nível de conforto *</label>
-            <select value={form.nivel_conforto} onChange={(e) => set("nivel_conforto", e.target.value)}>
-              {COMFORT_TYPES.map((c) => <option key={c}>{c}</option>)}
+            <select
+              className={styles.select}
+              value={form.nivel_conforto}
+              onChange={(e) => set("nivel_conforto", e.target.value)}
+              disabled={confortoBloqueado}
+            >
+              {COMFORT_TYPES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
+            {confortoBloqueado && (
+              <span className={styles.fieldError}>
+                O nível de conforto não pode ser alterado porque este táxi já fez viagens com clientes.
+              </span>
+            )}
           </div>
 
           <div className={`${styles.field} ${styles.fullWidth}`}>
             <label>Observações</label>
             <textarea
+              className={styles.textarea}
               rows={3}
               placeholder="Informações adicionais sobre o veículo..."
               value={form.observacoes}

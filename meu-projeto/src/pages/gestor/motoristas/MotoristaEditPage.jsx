@@ -3,11 +3,22 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motoristaService } from "../../../services/motoristaService";
 import styles from "../../../styles/Form.module.css";
 
-const GENERO_TYPES = ["M", "F", "Outro"];
+const GENERO_TYPES = [
+  { value: "M", label: "Masculino" },
+  { value: "F", label: "Feminino" },
+];
+
 const ESTADO_TYPES = ["disponivel", "indisponivel"];
 
 function validateNIF(v) {
   return /^[123456789]\d{8}$/.test(v);
+}
+
+function formatCodigoPostal(value) {
+  const clean = value.replace(/\D/g, "").slice(0, 7);
+
+  if (clean.length <= 4) return clean;
+  return `${clean.slice(0, 4)}-${clean.slice(4)}`;
 }
 
 export default function MotoristaEditPage() {
@@ -33,6 +44,7 @@ export default function MotoristaEditPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState("");
+  const [localidadeLoading, setLocalidadeLoading] = useState(false);
 
   useEffect(() => {
     motoristaService.get(id)
@@ -62,9 +74,47 @@ export default function MotoristaEditPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  async function fetchLocalidade(codigoPostal) {
+    setLocalidadeLoading(true);
+    try {
+      const response = await fetch(`/api/driver/localidade/${codigoPostal}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setForm((f) => ({ ...f, localidade: data.localidade || "" }));
+        setErrors((e) => ({ ...e, codigo_postal: "" }));
+      } else {
+        setForm((f) => ({ ...f, localidade: "" }));
+        setErrors((e) => ({
+          ...e,
+          codigo_postal: data.message || "Código postal não encontrado.",
+        }));
+      }
+    } catch {
+      setForm((f) => ({ ...f, localidade: "" }));
+      setErrors((e) => ({
+        ...e,
+        codigo_postal: "Erro ao consultar código postal.",
+      }));
+    } finally {
+      setLocalidadeLoading(false);
+    }
+  }
+
   function set(field, value) {
     setForm((f) => ({ ...f, [field]: value }));
-    if (errors[field]) setErrors((e) => ({ ...e, [field]: "" }));
+
+    if (errors[field]) {
+      setErrors((e) => ({ ...e, [field]: "" }));
+    }
+
+    if (field === "codigo_postal") {
+      if (/^\d{4}-\d{3}$/.test(value)) {
+        fetchLocalidade(value);
+      } else {
+        setForm((f) => ({ ...f, codigo_postal: value, localidade: "" }));
+      }
+    }
   }
 
   function validate() {
@@ -141,10 +191,9 @@ export default function MotoristaEditPage() {
     if (form.telefone !== originalForm?.telefone) changes.telefone = form.telefone;
     if (form.n_carta !== originalForm?.n_carta) changes.n_carta = form.n_carta;
     if (form.validade_carta !== originalForm?.validade_carta) changes.validade_carta = form.validade_carta;
-    if (form.localidade !== originalForm?.localidade) changes.localidade = form.localidade;
     if (form.codigo_postal !== originalForm?.codigo_postal) changes.codigo_postal = form.codigo_postal;
     if (form.estado !== originalForm?.estado) changes.estado = form.estado;
-    
+
     try {
       await motoristaService.update(id, changes);
       navigate("/gestor/motoristas");
@@ -157,7 +206,7 @@ export default function MotoristaEditPage() {
 
   if (loading) {
     return (
-      <div>
+      <div className={styles.root}>
         <button className={styles.backBtn} onClick={() => navigate("/gestor/motoristas")}>
           ← Voltar à lista
         </button>
@@ -169,7 +218,7 @@ export default function MotoristaEditPage() {
   }
 
   return (
-    <div>
+    <div className={styles.root}>
       <button className={styles.backBtn} onClick={() => navigate("/gestor/motoristas")}>
         ← Voltar à lista
       </button>
@@ -184,6 +233,7 @@ export default function MotoristaEditPage() {
           <div className={styles.field}>
             <label>Nome completo *</label>
             <input
+              className={styles.input}
               placeholder="João Silva"
               value={form.nome}
               onChange={(e) => set("nome", e.target.value)}
@@ -194,6 +244,7 @@ export default function MotoristaEditPage() {
           <div className={styles.field}>
             <label>NIF *</label>
             <input
+              className={styles.input}
               placeholder="123456789"
               maxLength={9}
               value={form.nif}
@@ -205,6 +256,7 @@ export default function MotoristaEditPage() {
           <div className={styles.field}>
             <label>Data de nascimento *</label>
             <input
+              className={styles.input}
               type="date"
               value={form.data_nascimento}
               onChange={(e) => set("data_nascimento", e.target.value)}
@@ -213,10 +265,16 @@ export default function MotoristaEditPage() {
           </div>
 
           <div className={styles.field}>
-            <label>Género *</label>
-            <select value={form.genero} onChange={(e) => set("genero", e.target.value)}>
+            <label className={styles.label}>Género *</label>
+            <select
+              className={styles.select}
+              value={form.genero}
+              onChange={(e) => set("genero", e.target.value)}
+            >
               {GENERO_TYPES.map((g) => (
-                <option key={g} value={g}>{g}</option>
+                <option key={g.value} value={g.value}>
+                  {g.label}
+                </option>
               ))}
             </select>
           </div>
@@ -224,6 +282,7 @@ export default function MotoristaEditPage() {
           <div className={styles.field}>
             <label>Email *</label>
             <input
+              className={styles.input}
               type="email"
               placeholder="joao@email.com"
               value={form.email}
@@ -235,6 +294,7 @@ export default function MotoristaEditPage() {
           <div className={styles.field}>
             <label>Telefone *</label>
             <input
+              className={styles.input}
               placeholder="912345678"
               maxLength={9}
               value={form.telefone}
@@ -246,6 +306,7 @@ export default function MotoristaEditPage() {
           <div className={styles.field}>
             <label>N.º carta de condução *</label>
             <input
+              className={styles.input}
               placeholder="A12345PT"
               value={form.n_carta}
               onChange={(e) => set("n_carta", e.target.value.toUpperCase())}
@@ -256,6 +317,7 @@ export default function MotoristaEditPage() {
           <div className={styles.field}>
             <label>Validade da carta *</label>
             <input
+              className={styles.input}
               type="date"
               value={form.validade_carta}
               onChange={(e) => set("validade_carta", e.target.value)}
@@ -264,27 +326,35 @@ export default function MotoristaEditPage() {
           </div>
 
           <div className={styles.field}>
-            <label>Localidade</label>
-            <input
-              placeholder="Lisboa"
-              value={form.localidade}
-              onChange={(e) => set("localidade", e.target.value)}
-            />
-          </div>
-
-          <div className={styles.field}>
             <label>Código postal</label>
             <input
+              className={styles.input}
               placeholder="1000-001"
+              maxLength={8}
               value={form.codigo_postal}
-              onChange={(e) => set("codigo_postal", e.target.value)}
-            />
+              onChange={(e) => set("codigo_postal", formatCodigoPostal(e.target.value))}            />
+            {localidadeLoading && <small style={{ color: "#b7a7ff" }}>A carregar localidade…</small>}
             {errors.codigo_postal && <span className={styles.fieldError}>{errors.codigo_postal}</span>}
           </div>
 
           <div className={styles.field}>
+            <label>Localidade</label>
+            <input
+              className={styles.input}
+              placeholder="Será preenchida automaticamente"
+              value={form.localidade}
+              readOnly
+              disabled={localidadeLoading}
+            />
+          </div>
+
+          <div className={styles.field}>
             <label>Estado</label>
-            <select value={form.estado} onChange={(e) => set("estado", e.target.value)}>
+            <select
+              className={styles.select}
+              value={form.estado}
+              onChange={(e) => set("estado", e.target.value)}
+            >
               {ESTADO_TYPES.map((estado) => (
                 <option key={estado} value={estado}>
                   {estado === "disponivel" ? "Disponível" : "Indisponível"}

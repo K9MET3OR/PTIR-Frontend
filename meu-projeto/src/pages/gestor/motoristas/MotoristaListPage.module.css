@@ -157,9 +157,15 @@
 }
 
 .actions {
+  white-space: nowrap;
+}
+
+.actionsInner {
   display: flex;
   gap: 8px;
+  align-items: center;
 }
+
 
 .editBtn,
 .deleteBtn {

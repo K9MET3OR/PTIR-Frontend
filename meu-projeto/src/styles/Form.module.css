@@ -85,11 +85,21 @@
   padding: 10px 12px;
   font-size: 13px;
   color: #f8f7ff;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(183, 167, 255, 0.18);
   border-radius: 10px;
   outline: none;
-  transition: border-color 0.18s, box-shadow 0.18s;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  appearance: none;
+}
+
+.select {
+  color: #f8f7ff;
+}
+
+.select option {
+  color: #f8f7ff;
+  background: #190b2d;
 }
 
 .input::placeholder,
@@ -101,7 +111,16 @@
 .select:focus,
 .textarea:focus {
   border-color: #7c3aed;
+  background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+}
+
+.input:disabled,
+.select:disabled,
+.textarea:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.03);
 }
 
 /* FULL WIDTH */
