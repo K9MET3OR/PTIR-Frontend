@@ -203,6 +203,8 @@ export default function TaxiEditPage() {
       changes.observacoes = form.observacoes;
     }
 
+    alert("Táxi atualizado com sucesso!");
+
     try {
       await taxiService.update(id, changes);
       navigate("/gestor/taxis");

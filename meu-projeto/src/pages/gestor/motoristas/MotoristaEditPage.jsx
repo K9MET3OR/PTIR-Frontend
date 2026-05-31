@@ -194,6 +194,8 @@ export default function MotoristaEditPage() {
     if (form.codigo_postal !== originalForm?.codigo_postal) changes.codigo_postal = form.codigo_postal;
     if (form.estado !== originalForm?.estado) changes.estado = form.estado;
 
+    alert("Motorista atualizado com sucesso!");
+
     try {
       await motoristaService.update(id, changes);
       navigate("/gestor/motoristas");

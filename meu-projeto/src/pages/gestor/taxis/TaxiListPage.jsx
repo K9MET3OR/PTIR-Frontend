@@ -32,6 +32,9 @@ export default function TaxiListPage() {
 
   async function handleDelete(id) {
     if (!window.confirm("Tens a certeza que queres remover este táxi?")) return;
+
+    alert("Táxi removido com sucesso!");
+
     try {
       await taxiService.remove(id);
       setTaxis((prev) => prev.filter((t) => t.id !== id));

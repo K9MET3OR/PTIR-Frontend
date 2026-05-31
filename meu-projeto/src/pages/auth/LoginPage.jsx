@@ -5,22 +5,22 @@ import { verificarTurnoAtivo } from "../../services/shiftService";
 import styles from "./LoginPage.module.css";
 
 const ROLES = [
-  { id: "admin",     label: "Manager",     icon: "🏢" },
-  { id: "motorista",  label: "Driver",  icon: "🚗" },
-  { id: "cliente",    label: "Client",    icon: "👤" },
+  { id: "admin", label: "Manager", icon: "🏢" },
+  { id: "motorista", label: "Driver", icon: "🚗" },
+  { id: "cliente", label: "Client", icon: "👤" },
 ];
 
 export default function LoginPage() {
-  const { login }    = useAuth();
-  const navigate     = useNavigate();
+  const { login } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
   const initialRole = location.state?.selectedRole || "admin";
 
   const [selectedRole, setSelectedRole] = useState(initialRole);
-  const [email,        setEmail]        = useState("");
-  const [password,     setPassword]     = useState("");
-  const [error,        setError]        = useState("");
-  const [loading,      setLoading]      = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -31,10 +31,9 @@ export default function LoginPage() {
       const result = await login(email, password, selectedRole);
       console.log('[LOGIN] Resultado do login:', result);
       console.log('[LOGIN] User:', result.user);
-      
       // Redireciona para uma rota existente para cada role
       let routePath = "/login"; // default fallback
-      
+
       if (selectedRole === "admin") {
         routePath = "/gestor";
       } else if (selectedRole === "motorista") {
@@ -43,7 +42,7 @@ export default function LoginPage() {
           console.log('[LOGIN] Verificando turno para motorista ID:', result.user.id);
           const turnoAtivo = await verificarTurnoAtivo(result.user.id);
           console.log('[LOGIN] Resposta verificarTurnoAtivo:', turnoAtivo);
-          
+
           if (turnoAtivo && turnoAtivo.id) {
             // Motorista tem turno ativo, armazena e vai para mapa
             console.log('[LOGIN] Turno ativo encontrado:', turnoAtivo.id);
@@ -64,16 +63,16 @@ export default function LoginPage() {
       } else if (selectedRole === "cliente") {
         routePath = "/cliente/pedir";
       }
-      
+
       console.log('[LOGIN] Redirecionando para:', routePath);
       navigate(routePath, { replace: true });
     } catch (err) {
       // Mensagens legíveis em vez dos códigos Firebase
       const messages = {
-        "auth/invalid-credential":     "Email ou palavra-passe incorretos.",
-        "auth/user-not-found":         "Utilizador não encontrado.",
-        "auth/wrong-password":         "Palavra-passe incorreta.",
-        "auth/too-many-requests":      "Demasiadas tentativas. Tenta mais tarde.",
+        "auth/invalid-credential": "Email ou palavra-passe incorretos.",
+        "auth/user-not-found": "Utilizador não encontrado.",
+        "auth/wrong-password": "Palavra-passe incorreta.",
+        "auth/too-many-requests": "Demasiadas tentativas. Tenta mais tarde.",
         "auth/network-request-failed": "Sem ligação à internet.",
       };
       /* setError(messages[err.code] ?? "Erro ao entrar. Tenta novamente.");*/
@@ -81,6 +80,7 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+    alert("Registo realizado com sucesso!");
   }
 
   return (

@@ -135,6 +135,8 @@ export default function MotoristaRegisterPage() {
         role: "motorista",
       });
 
+      alert("Motorista registado com sucesso!");
+
       navigate("/gestor/motoristas");
     } catch (err) {
       setApiError(err.message || "Erro ao registar motorista.");
@@ -257,7 +259,7 @@ export default function MotoristaRegisterPage() {
               placeholder="1234-567"
               maxLength="8"
               value={form.codigo_postal}
-              onChange={(e) => set("codigo_postal", formatCodigoPostal(e.target.value))}/>
+              onChange={(e) => set("codigo_postal", formatCodigoPostal(e.target.value))} />
             {localidadeLoading && <small style={{ color: "#666" }}>A carregar localidade…</small>}
             {errors.codigo_postal && <span className={styles.fieldError}>{errors.codigo_postal}</span>}
           </div>

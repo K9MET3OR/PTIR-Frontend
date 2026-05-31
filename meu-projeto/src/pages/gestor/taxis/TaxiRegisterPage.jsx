@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { taxiService } from "../../../services/taxiService";
 import styles from "../../../styles/Form.module.css";
 
-const MOTOR_TYPES  = ["Combustão", "Elétrico"];
+const MOTOR_TYPES = ["Combustão", "Elétrico"];
 const COMFORT_TYPES = ["Básico", "Luxuoso"];
 
 // Listas predefinidas de marcas e modelos
@@ -39,17 +39,17 @@ export default function TaxiRegisterPage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    matricula:    "",
-    marca:        "",
-    modelo:       "",
-    ano_compra:   "",
+    matricula: "",
+    marca: "",
+    modelo: "",
+    ano_compra: "",
     consumo_medio: "",
-    tipo_motor:   "Combustão",
+    tipo_motor: "Combustão",
     nivel_conforto: "Básico",
-    observacoes:  "",
+    observacoes: "",
   });
 
-  const [errors,  setErrors]  = useState({});
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
 
@@ -79,11 +79,11 @@ export default function TaxiRegisterPage() {
     else if (!validateMatricula(form.matricula))
       e.matricula = "Formato inválido. Ex: AA-00-BB";
 
-    if (!form.marca)   e.marca  = "Marca obrigatória.";
-    if (!form.modelo)  e.modelo = "Modelo obrigatório.";
+    if (!form.marca) e.marca = "Marca obrigatória.";
+    if (!form.modelo) e.modelo = "Modelo obrigatório.";
 
     const ano = parseInt(form.ano_compra, 10);
-    if (!form.ano_compra)           e.ano_compra = "Ano obrigatório.";
+    if (!form.ano_compra) e.ano_compra = "Ano obrigatório.";
     else if (ano < 1990 || ano > new Date().getFullYear())
       e.ano_compra = `Ano entre 1990 e ${new Date().getFullYear()}.`;
 
@@ -100,12 +100,14 @@ export default function TaxiRegisterPage() {
     const e2 = validate();
     if (Object.keys(e2).length) { setErrors(e2); return; }
 
+    alert("Táxi registado com sucesso!");
+
     setLoading(true);
     setApiError("");
     try {
       await taxiService.create({
         ...form,
-        matricula:  form.matricula.toUpperCase(),
+        matricula: form.matricula.toUpperCase(),
         ano_compra: parseInt(form.ano_compra, 10),
         consumo_medio: parseFloat(form.consumo_medio),
       });

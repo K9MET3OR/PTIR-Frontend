@@ -4,7 +4,7 @@ import { motoristaService } from "../../../services/motoristaService";
 import styles from "./MotoristaListPage.module.css";
 
 const ESTADO_LABEL = {
-  disponivel:   { text: "Disponível",   cls: "active" },
+  disponivel: { text: "Disponível", cls: "active" },
   indisponivel: { text: "Indisponível", cls: "inactive" },
 };
 
@@ -12,9 +12,9 @@ export default function MotoristaListPage() {
   const navigate = useNavigate();
 
   const [motoristas, setMotoristas] = useState([]);
-  const [search,     setSearch]     = useState("");
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState("");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     motoristaService.list()
@@ -31,6 +31,9 @@ export default function MotoristaListPage() {
 
   async function handleDelete(id) {
     if (!window.confirm("Tens a certeza que queres remover este motorista?")) return;
+
+    alert("Motorista removido com sucesso!");
+
     try {
       await motoristaService.remove(id);
       setMotoristas((prev) => prev.filter((m) => m.id !== id));
@@ -50,7 +53,7 @@ export default function MotoristaListPage() {
     if (!validade) return false;
     return new Date(validade) < new Date();
   }
-  
+
   return (
     <div className={styles.root}>
       <div className={styles.pageHeader}>
@@ -103,7 +106,7 @@ export default function MotoristaListPage() {
                   filtered.map((m) => {
                     const estado = ESTADO_LABEL[m.estado] ?? { text: m.estado, cls: "inactive" };
                     const expirando = cartaExpirando(m.validade_carta);
-                    const expirada  = cartaExpirada(m.validade_carta);
+                    const expirada = cartaExpirada(m.validade_carta);
                     return (
                       <tr key={m.id}>
                         <td className={styles.nome}>{m.nome}</td>
@@ -113,7 +116,7 @@ export default function MotoristaListPage() {
                           <span className={expirada ? styles.dateExpired : expirando ? styles.dateWarning : ""}>
                             {m.validade_carta}
                           </span>
-                          {expirada  && <span className={styles.alertTag}>Expirada</span>}
+                          {expirada && <span className={styles.alertTag}>Expirada</span>}
                           {expirando && <span className={styles.warnTag}>Expira em breve</span>}
                         </td>
                         <td>{m.telefone}</td>

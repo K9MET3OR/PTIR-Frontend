@@ -1,18 +1,18 @@
 import { useState } from "react";
-import { useNavigate, Link, useLocation} from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import styles from "./SignupPage.module.css";
 
 const ROLES = [
-  { id: "admin",     label: "Manager",     icon: "🏢" },
-  { id: "motorista",  label: "Driver",   icon: "🚗" },
-  { id: "cliente",    label: "Client",    icon: "👤" },
+  { id: "admin", label: "Manager", icon: "🏢" },
+  { id: "motorista", label: "Driver", icon: "🚗" },
+  { id: "cliente", label: "Client", icon: "👤" },
 ];
 
 // Função para validar NIF simples (9 dígitos positivos)
 function validarNIF(nif) {
   nif = String(nif).replace(/\s/g, "");
-  
+
   // Apenas verificar se tem 9 dígitos e são todos números positivos
   if (!/^\d{9}$/.test(nif)) {
     return false;
@@ -22,27 +22,27 @@ function validarNIF(nif) {
 }
 
 export default function SignupPage() {
-  const { signup }   = useAuth();
-  const navigate     = useNavigate();
+  const { signup } = useAuth();
+  const navigate = useNavigate();
   const location = useLocation();
   const initialRole = location.state?.selectedRole || "cliente";
 
   const [selectedRole, setSelectedRole] = useState(initialRole);
-  const [username,     setUsername]     = useState("");
-  const [name,         setName]         = useState("");
-  const [email,        setEmail]        = useState("");
-  const [password,     setPassword]     = useState("");
-  const [confirmPass,  setConfirmPass]  = useState("");
-  const [error,        setError]        = useState("");
-  const [loading,      setLoading]      = useState(false);
+  const [username, setUsername] = useState("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPass, setConfirmPass] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // Campos específicos para motorista
-  const [nif,          setNif]          = useState("");
+  const [nif, setNif] = useState("");
   const [genero, setGenero] = useState("");
-  const [nCarta,       setNCarta]       = useState("");
-  const [dataNasc,     setDataNasc]     = useState("");
+  const [nCarta, setNCarta] = useState("");
+  const [dataNasc, setDataNasc] = useState("");
   const [codigoPostal, setCodigoPostal] = useState("");
-  const [telefone,     setTelefone]     = useState("");
+  const [telefone, setTelefone] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -121,7 +121,7 @@ export default function SignupPage() {
         return;
       }
     }
-    
+
     setLoading(true);
 
     try {
@@ -160,6 +160,9 @@ export default function SignupPage() {
         };
       }
 
+
+
+
       const result = await signup(signupData);
       const routeByRole = {
         admin: "/gestor",
@@ -170,16 +173,17 @@ export default function SignupPage() {
       navigate(routePath, { replace: true });
     } catch (err) {
       const messages = {
-        "auth/email-already-in-use":    "Este email já tem conta registada.",
-        "auth/invalid-credential":      "Este email já existe no Firebase e a palavra-passe não coincide.",
-        "auth/invalid-email":           "Email inválido.",
-        "auth/weak-password":           "Palavra-passe muito fraca.",
-        "auth/network-request-failed":  "Sem ligação à internet.",
+        "auth/email-already-in-use": "Este email já tem conta registada.",
+        "auth/invalid-credential": "Este email já existe no Firebase e a palavra-passe não coincide.",
+        "auth/invalid-email": "Email inválido.",
+        "auth/weak-password": "Palavra-passe muito fraca.",
+        "auth/network-request-failed": "Sem ligação à internet.",
       };
       setError(messages[err.code] ?? err.message ?? "Erro ao registar. Tenta novamente.");
     } finally {
       setLoading(false);
     }
+    alert("Registo realizado com sucesso!");
   }
 
   return (
