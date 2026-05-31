@@ -1,47 +1,35 @@
-// Geocodificação com Nominatim (OpenStreetMap) — sem chave de API
-// Conforme definido no relatório (secção 1.3)
+import { api } from "./api";
 
-const BASE = "https://nominatim.openstreetmap.org";
+const OSRM_BASE = "https://router.project-osrm.org/route/v1/driving";
 
 /**
  * Converte uma morada em coordenadas [lon, lat]
- * Retorna null se não encontrar
+ * Usa o backend para evitar problemas de CORS e rate limit direto no frontend.
  */
 export async function geocodificar(morada) {
-  const params = new URLSearchParams({
-    q:              morada + ", Portugal",
-    format:         "json",
-    limit:          "5",
-    countrycodes:   "pt",
-  });
+  if (!morada || morada.trim().length < 3) return [];
 
-  const res = await fetch(`${BASE}/search?${params}`, {
-    headers: { "Accept-Language": "pt-PT" },
-  });
-
-  if (!res.ok) throw new Error("Erro na geocodificação");
-
-  const data = await res.json();
-  if (!data.length) return null;
-
-  return data.map((r) => ({
-    label: r.display_name,
-    lon:   parseFloat(r.lon),
-    lat:   parseFloat(r.lat),
-  }));
+  try {
+    const data = await api.get(`/geocoding/search?q=${encodeURIComponent(morada)}`);
+    return Array.isArray(data) ? data : [];
+  } catch (error) {
+    console.error("Erro na geocodificação:", error);
+    return [];
+  }
 }
 
 /**
  * Converte coordenadas em morada (geocodificação inversa)
+ * Mantido com chamada direta por agora.
  */
 export async function geocodificarInverso(lon, lat) {
   const params = new URLSearchParams({
-    lon:    lon,
-    lat:    lat,
+    lon: String(lon),
+    lat: String(lat),
     format: "json",
   });
 
-  const res = await fetch(`${BASE}/reverse?${params}`, {
+  const res = await fetch(`https://nominatim.openstreetmap.org/reverse?${params}`, {
     headers: { "Accept-Language": "pt-PT" },
   });
 
@@ -51,14 +39,15 @@ export async function geocodificarInverso(lon, lat) {
   return data.display_name ?? null;
 }
 
-const OSRM_BASE = "https://router.project-osrm.org/route/v1/driving";
-
+/**
+ * Calcula rota entre origem e destino
+ */
 export async function calcularRota(origem, destino) {
   const params = new URLSearchParams({
-    overview:   "full",
+    overview: "full",
     geometries: "geojson",
     alternatives: "false",
-    steps:      "false",
+    steps: "false",
   });
 
   const res = await fetch(

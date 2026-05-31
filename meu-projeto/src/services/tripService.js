@@ -146,11 +146,18 @@ export async function listarViagensCliente(clientId) {
 /**
  * Lista viagens pendentes para um motorista aceitar
  */
-export async function listarViagensPendentes() {
+export async function listarViagensPendentes(driverId) {
   try {
     const data = await api.get('/trip/');
     if (data.trips) {
-      data.trips = data.trips.filter(trip => trip.status_trip === 'pending');
+      data.trips = data.trips.filter((trip) => {
+        const rejeitados = trip.rejected_driver_ids || [];
+
+        return (
+          trip.status_trip === 'pending' &&
+          !rejeitados.includes(driverId)
+        );
+      });
       data.total = data.trips.length;
     }
     return data;
@@ -169,7 +176,12 @@ export async function listarViagensAceitesMotorista(driverId) {
       data.trips = data.trips.filter(
         trip =>
           trip.driver_id === driverId &&
-          (trip.status_trip === 'accepted' || trip.status_trip === 'in_progress')
+          (
+            trip.status_trip === 'driver_accepted' ||
+            trip.status_trip === 'client_confirmed' ||
+            trip.status_trip === 'in_progress' ||
+            trip.status_trip === 'awaiting_payment'
+          )
       );
       data.total = data.trips.length;
     }
@@ -186,5 +198,32 @@ export async function listarViagensFinalizadasMotorista(driverId) {
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao listar viagens finalizadas' };
+  }
+}
+
+export async function confirmarMotoristaCliente(tripId) {
+  try {
+    const response = await api.post(`/trip/${tripId}/client-confirm`);
+    return response;
+  } catch (error) {
+    throw { message: error.message || 'Erro ao confirmar motorista' };
+  }
+}
+
+export async function rejeitarMotoristaCliente(tripId) {
+  try {
+    const response = await api.post(`/trip/${tripId}/client-reject`);
+    return response;
+  } catch (error) {
+    throw { message: error.message || 'Erro ao rejeitar motorista' };
+  }
+}
+
+export async function iniciarViagem(tripId) {
+  try {
+    const response = await api.post(`/trip/${tripId}/start`);
+    return response;
+  } catch (error) {
+    throw { message: error.message || 'Erro ao iniciar viagem' };
   }
 }

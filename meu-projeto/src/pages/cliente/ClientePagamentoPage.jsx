@@ -177,7 +177,7 @@ export default function ClientePagamentoPage() {
 
         <button
           className={styles.backButton}
-          onClick={() => navigate("/cliente/pedir")}
+          onClick={() => navigate(`/cliente/pedir?tripId=${tripId}&resume=payment`)}
         >
           Cancelar
         </button>

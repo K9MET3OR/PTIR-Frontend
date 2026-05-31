@@ -1,7 +1,6 @@
 .root {
   display: flex;
   height: 100vh;
-  
   background: #09040f;
 }
 
@@ -298,7 +297,6 @@
 
 .submitBtn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-/* Legenda */
 .divider {
   height: 0.5px;
   background: rgba(255, 255, 255, 0.12);
@@ -333,7 +331,6 @@
   border-radius: 50%;
 }
 
-/* Confirmação */
 .confirmacao { display: flex; flex-direction: column; }
 
 .rotaCard {
@@ -386,7 +383,6 @@
 
 .metaLabel { color: #d8c8ff; }
 
-/* Aguardar */
 .aguardar {
   display: flex;
   flex-direction: column;
@@ -408,11 +404,9 @@
   color: #d9cffd;
 }
 
-/* Mapa */
 .mapaWrap {
   flex: 1;
   height: 100%;
-
   position: relative;
 }
 
@@ -445,7 +439,6 @@
   font-size: 11px;
   color: #b7a7ff;
 }
-
 
 .profileCardWrapper {
   position: absolute;
@@ -509,7 +502,6 @@
   .mapaWrap { height: 450px; }
 }
 
-/* Estados: Form, Opções, Aguardar, etc */
 .aguardar {
   display: flex;
   flex-direction: column;
@@ -531,7 +523,6 @@
   50% { transform: scale(1.1); }
 }
 
-/* Resumo do Pedido */
 .resumoPedido {
   width: 100%;
   background: rgba(124, 58, 237, 0.1);
@@ -598,7 +589,6 @@
   transition: all 0.15s;
 }
 
-
 @media (max-width: 768px) {
   .root {
     flex-direction: column;
@@ -607,7 +597,6 @@
     overflow: hidden;
   }
 
-  /* Mapa no topo, ~45% do ecrã */
   .mapaWrap {
     order: 0;
     width: 100%;
@@ -615,7 +604,6 @@
     flex-shrink: 0;
   }
 
-  /* Painel sobe como bottom sheet */
   .sidebar {
     order: 1;
     width: 100%;
@@ -634,7 +622,6 @@
     box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.45);
   }
 
-  /* Handle visual no topo do painel */
   .sidebar::before {
     content: "";
     display: block;
@@ -645,8 +632,28 @@
     margin: 10px auto 16px;
   }
 
-  /* iOS: evita zoom automático ao focar inputs */
   .input {
     font-size: 16px;
   }
+}
+
+.confirmacaoActions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 1rem;
+}
+
+.estadoBadge {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.22);
+  color: #d7ffe5;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
 }
