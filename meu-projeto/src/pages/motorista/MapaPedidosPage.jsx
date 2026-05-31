@@ -279,8 +279,14 @@ export default function MapaPedidosPage() {
   }
 
   const handleAceitarViagem = async (tripId) => {
+    if (!turnoAtivo) {
+      setErroViagens("Só podes aceitar pedidos durante um turno ativo.");
+      return;
+    }
+
     try {
       setCarregandoId(tripId);
+      setErroViagens("");
       await aceitarViagem(tripId, user.id);
       setPedidoAtivo(null);
       await carregarViagens();

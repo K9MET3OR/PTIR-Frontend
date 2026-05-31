@@ -108,19 +108,20 @@ export default function TaxiListPage() {
                             {estado.text}
                           </span>
                         </td>
-                        <td className={styles.actions}>
-                          <button
-                            className={styles.editBtn}
-                            onClick={() => navigate(`/gestor/taxis/${taxi.id}/editar`)}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            className={styles.deleteBtn}
-                            onClick={() => handleDelete(taxi.id)}
-                          >
-                            Remover
-                          </button>
+                        <td>
+                          <div className={styles.actions}>
+                            <button
+                              className={styles.editBtn}
+                              onClick={() => navigate(`/gestor/taxis/${taxi.id}/editar`)}>
+                                Editar
+                            </button>
+                            <button
+                              className={styles.deleteBtn}
+                              onClick={() => handleDelete(taxi.id)}
+                            >
+                              Remover
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
