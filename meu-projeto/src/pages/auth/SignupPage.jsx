@@ -38,7 +38,7 @@ export default function SignupPage() {
 
   // Campos específicos para motorista
   const [nif,          setNif]          = useState("");
-  const [genero,       setGenero]       = useState("M");
+  const [genero, setGenero] = useState("");
   const [nCarta,       setNCarta]       = useState("");
   const [dataNasc,     setDataNasc]     = useState("");
   const [codigoPostal, setCodigoPostal] = useState("");
@@ -82,6 +82,11 @@ export default function SignupPage() {
       return;
     }
 
+    if ((selectedRole === "cliente" || selectedRole === "motorista") && !genero) {
+      setError("Género é obrigatório.");
+      return;
+    }
+
     // Validações específicas para motorista
     if (selectedRole === "motorista") {
       if (!nif || !nCarta || !dataNasc || !telefone || !codigoPostal) {
@@ -116,7 +121,7 @@ export default function SignupPage() {
         return;
       }
     }
-
+    
     setLoading(true);
 
     try {
@@ -133,7 +138,13 @@ export default function SignupPage() {
         signupData = {
           ...signupData,
           nif,
+          genero,
         };
+      }
+
+      if ((selectedRole === "cliente" || selectedRole === "motorista") && !genero) {
+        setError("Género é obrigatório.");
+        return;
       }
 
       // Se for motorista, adicionar campos extras
@@ -280,6 +291,22 @@ export default function SignupPage() {
             </div>
           )}
 
+          {(selectedRole === "cliente" || selectedRole === "motorista") && (
+            <div className={styles.field}>
+              <label htmlFor="genero">Género</label>
+              <select
+                id="genero"
+                value={genero}
+                onChange={(e) => setGenero(e.target.value)}
+                required
+              >
+                <option value="">Seleciona o género</option>
+                <option value="masculino">Masculino</option>
+                <option value="feminino">Feminino</option>
+              </select>
+            </div>
+          )}
+
           {/* Campos específicos para motorista */}
           {selectedRole === "motorista" && (
             <>
@@ -292,19 +319,6 @@ export default function SignupPage() {
                   onChange={(e) => setDataNasc(e.target.value)}
                   required
                 />
-              </div>
-
-              <div className={styles.field}>
-                <label htmlFor="genero">Género</label>
-                <select
-                  id="genero"
-                  value={genero}
-                  onChange={(e) => setGenero(e.target.value)}
-                  required
-                >
-                  <option value="M">Masculino</option>
-                  <option value="F">Feminino</option>
-                </select>
               </div>
 
               <div className={styles.field}>

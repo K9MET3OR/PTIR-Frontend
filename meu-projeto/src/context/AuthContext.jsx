@@ -116,6 +116,7 @@ export function AuthProvider({ children }) {
           password,
           name,
           nif: extraFields.nif,
+          genero: extraFields.genero,
         });
         console.log("[AUTH] Cliente criado no backend");
       } else {
