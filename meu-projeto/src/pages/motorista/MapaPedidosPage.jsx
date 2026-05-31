@@ -28,7 +28,11 @@ function turnoEstaAtivoAgora(turno) {
   const fim = new Date(turno.end_date);
   const agora = new Date();
 
-  return turno.status_shift !== "inactive" && inicio <= agora && agora < fim;
+  return (
+    turno.status_shift !== "inactive" &&
+    inicio <= agora &&
+    agora < fim
+  );
 }
 
 export default function MapaPedidosPage() {
@@ -279,7 +283,9 @@ export default function MapaPedidosPage() {
   }
 
   const handleAceitarViagem = async (tripId) => {
-    if (!turnoAtivo) {
+    const podeAceitar = turnoEstaAtivoAgora(turnoAtivo);
+
+    if (!podeAceitar) {
       setErroViagens("Só podes aceitar pedidos durante um turno ativo.");
       return;
     }
