@@ -5,7 +5,12 @@ import {
   listarViagensAceitesMotorista,
   aceitarViagem,
 } from "../../services/tripService";
-import { terminarShift, obterShift, verificarTurnoAtivo } from "../../services/shiftService";
+import {
+  terminarShift,
+  obterShift,
+  verificarTurnoAtivo,
+  cancelarShift,
+} from "../../services/shiftService";
 import styles from "./MapaPedidosPage.module.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -47,7 +52,6 @@ export default function MapaPedidosPage() {
   })();
 
   const [pedidoAtivo, setPedidoAtivo] = useState(null);
-  const [loading] = useState(false);
 
   const [viagensPendentes, setViagensPendentes] = useState([]);
   const [viagensMotorista, setViagensMotorista] = useState([]);
@@ -295,6 +299,20 @@ export default function MapaPedidosPage() {
     }
   };
 
+  async function handleCancelarTurno(shiftId) {
+    if (!window.confirm("Tem a certeza que quer cancelar este turno?")) {
+      return;
+    }
+
+    try {
+      await cancelarShift(shiftId);
+      await carregarTurnosMotorista();
+      alert("Turno cancelado com sucesso");
+    } catch (error) {
+      alert(`Erro ao cancelar turno: ${error.message}`);
+    }
+  }
+
   async function handleLogout() {
     setProfileMenuOpen(false);
     await logout();
@@ -381,38 +399,9 @@ export default function MapaPedidosPage() {
         <div className={styles.sidebarHeader}>
           <div>
             <h2 className={styles.title}>Painel do Motorista</h2>
-            <p className={styles.subtitle}>Lisboa</p>
-          </div>
-        </div>
-
-        {turnoAtivo && (
-          <div className={styles.remainingTimeBanner}>
-            <span>Tempo restante do turno</span>
-            <strong>{formatarTempo(tempoRestanteTurno)}</strong>
-          </div>
-        )}
-
-        <button
-          type="button"
-          className={`${styles.ativarTurnoBtn} ${estaEmServico ? styles.ativarTurnoBtnAtivo : ""}`}
-          onClick={estaEmServico ? handleTerminarTurno : handleAtivarTurno}
-        >
-          {estaEmServico ? "Terminar turno" : "Iniciar turno"}
-        </button>
-
-        <div className={styles.statusPill}>
-          {estaEmServico ? "Em serviço" : "Fora de serviço"}
-        </div>
-
-        <div className={styles.statsCard}>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Turno</span>
-            <span className={styles.statValue}>{turnoAtivo ? "Ativo" : "Sem turno"}</span>
-          </div>
-          <div className={styles.statDivider} />
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>Pedidos</span>
-            <span className={styles.statValue}>{pedidosVisiveis.length}</span>
+            <p className={styles.subtitle}>
+              {user?.username || user?.name || "Motorista"} · Lisboa
+            </p>
           </div>
         </div>
 
@@ -442,6 +431,21 @@ export default function MapaPedidosPage() {
             <p className={styles.subtitle}>Não tens nenhum turno ativo neste momento.</p>
           )}
         </div>
+
+        {turnoAtivo && (
+          <div className={styles.remainingTimeBannerSmall}>
+            <span>Tempo restante</span>
+            <strong>{formatarTempo(tempoRestanteTurno)}</strong>
+          </div>
+        )}
+
+        <button
+          type="button"
+          className={`${styles.ativarTurnoBtn} ${estaEmServico ? styles.ativarTurnoBtnAtivo : ""}`}
+          onClick={estaEmServico ? handleTerminarTurno : handleAtivarTurno}
+        >
+          {estaEmServico ? "Terminar turno" : "Iniciar turno"}
+        </button>
 
         <div className={styles.tabsRow}>
           <button
@@ -606,6 +610,16 @@ export default function MapaPedidosPage() {
                           ? `${turno.taxi_matricula} · ${turno.taxi_marca} ${turno.taxi_modelo}`
                           : turno.taxi_id}
                       </span>
+                    </div>
+
+                    <div className={styles.turnoCardActions}>
+                      <button
+                        type="button"
+                        className={styles.btnCancelarTurno}
+                        onClick={() => handleCancelarTurno(turno.id)}
+                      >
+                        Cancelar turno
+                      </button>
                     </div>
                   </div>
                 ))

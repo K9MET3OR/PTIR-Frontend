@@ -90,3 +90,15 @@ export async function criarShift(shiftData) {
     throw { message: error.message || 'Erro ao criar turno' };
   }
 }
+
+/**
+ * Cancela um shift futuro
+ */
+export async function cancelarShift(shiftId) {
+  try {
+    const response = await api.post(`/shift/${shiftId}/cancelar/`, {});
+    return response;
+  } catch (error) {
+    throw { message: error.message || 'Erro ao cancelar turno' };
+  }
+}

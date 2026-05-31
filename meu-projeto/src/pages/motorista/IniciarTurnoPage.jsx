@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { criarShift } from '../../services/shiftService';
+import { criarShift, cancelarShift } from '../../services/shiftService';
 import { api } from '../../services/api';
 import styles from './IniciarTurnoPage.module.css';
 
@@ -208,6 +208,20 @@ export default function IniciarTurnoPage() {
     }
   }
 
+  async function handleCancelarTurno(shiftId) {
+    if (!window.confirm('Tem a certeza que quer cancelar este turno?')) {
+      return;
+    }
+
+    try {
+      await cancelarShift(shiftId);
+      await carregarTurnos();
+    } catch (error) {
+      console.error('Erro ao cancelar turno:', error);
+      setErro(error.message || 'Erro ao cancelar turno.');
+    }
+  }
+
   const duracao = calcularDuracaoHoras();
   const duracaoValida = duracao > 0 && duracao <= 8;
   const periodoValido = validarPeriodo(false);
@@ -257,7 +271,7 @@ export default function IniciarTurnoPage() {
                 <div className={styles.periodoTitulo}>Início</div>
 
                 <div className={styles.formField}>
-                  <label className={styles.fieldLabel}>Data</label>
+                  <label className={styles.fieldLabel}>Data de Início</label>
                   <input
                     type="date"
                     value={dataInicio}
@@ -267,7 +281,7 @@ export default function IniciarTurnoPage() {
                 </div>
 
                 <div className={styles.formField}>
-                  <label className={styles.fieldLabel}>Hora</label>
+                  <label className={styles.fieldLabel}>Hora de Início</label>
                   <input
                     type="time"
                     value={horaInicio}
@@ -281,7 +295,7 @@ export default function IniciarTurnoPage() {
                 <div className={styles.periodoTitulo}>Fim</div>
 
                 <div className={styles.formField}>
-                  <label className={styles.fieldLabel}>Data</label>
+                  <label className={styles.fieldLabel}>Data de Fim</label>
                   <input
                     type="date"
                     value={dataFim}
@@ -291,7 +305,7 @@ export default function IniciarTurnoPage() {
                 </div>
 
                 <div className={styles.formField}>
-                  <label className={styles.fieldLabel}>Hora</label>
+                  <label className={styles.fieldLabel}>Hora de Fim</label>
                   <input
                     type="time"
                     value={horaFim}
@@ -413,24 +427,38 @@ export default function IniciarTurnoPage() {
               <div className={styles.turnosList}>
                 {proximosTurnos.map((turno) => (
                   <div key={turno.id} className={styles.turnoItem}>
-                    <div className={styles.turnoData}>
-                      {new Date(turno.start_date).toLocaleDateString('pt-PT')}
+                    <div className={styles.turnoConteudo}>
+                      <div className={styles.turnoData}>
+                        {new Date(turno.start_date).toLocaleDateString('pt-PT')}
+                      </div>
+
+                      <div className={styles.turnoHora}>
+                        {new Date(turno.start_date).toLocaleTimeString('pt-PT', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}{' '}
+                        -
+                        {new Date(turno.end_date).toLocaleTimeString('pt-PT', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </div>
+
+                      <div className={styles.turnoTaxi}>
+                        {turno.taxi_matricula
+                          ? `${turno.taxi_matricula} · ${turno.taxi_marca} ${turno.taxi_modelo}`
+                          : turno.taxi_id}
+                      </div>
                     </div>
-                    <div className={styles.turnoHora}>
-                      {new Date(turno.start_date).toLocaleTimeString('pt-PT', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}{' '}
-                      -
-                      {new Date(turno.end_date).toLocaleTimeString('pt-PT', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </div>
-                    <div className={styles.turnoTaxi}>
-                      {turno.taxi_matricula
-                        ? `${turno.taxi_matricula} · ${turno.taxi_marca} ${turno.taxi_modelo}`
-                        : turno.taxi_id}
+
+                    <div className={styles.turnoAction}>
+                      <button
+                        type="button"
+                        className={styles.btnCancelarTurno}
+                        onClick={() => handleCancelarTurno(turno.id)}
+                      >
+                        Cancelar turno
+                      </button>
                     </div>
                   </div>
                 ))}

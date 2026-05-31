@@ -374,8 +374,174 @@
   cursor: not-allowed;
 }
 
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
 
-/* Responsivo */
+.formGrid > .formField:first-child {
+  grid-column: 1 / -1;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fieldLabel {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f8f7ff;
+}
+
+.input {
+  padding: 0.75rem 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.75rem;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8f7ff;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+.infoBox {
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 4px solid #7c3aed;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.infoBox p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #f8f7ff;
+}
+
+.alertaErro {
+  color: #ffb3c6;
+  font-weight: 600;
+}
+
+.alertaSucesso {
+  color: #4ade80;
+  font-weight: 600;
+}
+
+.turnosList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.turnoItem {
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.turnoItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(124, 58, 237, 0.22);
+  transform: translateY(-1px);
+}
+
+.turnoData {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f8f7ff;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.turnoHora {
+  font-size: 13px;
+  color: #d8cbff;
+  font-weight: 600;
+}
+
+.turnoTaxi {
+  font-size: 12px;
+  color: #b7a7ff;
+  line-height: 1.45;
+}
+
+.erroBottom {
+  margin-top: 16px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #ffb3c6;
+  background: rgba(255, 71, 125, 0.12);
+  border: 1px solid rgba(255, 71, 125, 0.2);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.periodoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 12px;
+}
+
+.periodoColuna {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.periodoTitulo {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f8f7ff;
+  margin-bottom: 2px;
+}
+
+.btnCancelarTurno {
+  padding: 6px 12px;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 71, 125, 0.08);
+  color: #ffb3c6;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  border: 1px solid rgba(255, 179, 198, 0.22);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.btnCancelarTurno:hover {
+  background: rgba(255, 71, 125, 0.14);
+  border-color: rgba(255, 179, 198, 0.45);
+  transform: translateY(-1px);
+}
+
 @media (max-width: 768px) {
   .container {
     min-height: 100dvh;
@@ -462,6 +628,10 @@
   .fieldLabel {
     font-size: 16px;
   }
+
+  .periodoGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 600px) {
@@ -502,143 +672,57 @@
   }
 }
 
-/* Formulário de período */
-.formGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.formGrid > .formField:first-child {
-  grid-column: 1 / -1;
-}
-
-.formField {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.fieldLabel {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #f8f7ff;
-}
-
-.input {
-  padding: 0.75rem 1rem;
-  border: 2px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.75rem;
-  font-size: 0.95rem;
-  transition: all 0.2s;
-  background: rgba(255, 255, 255, 0.04);
-  color: #f8f7ff;
-}
-
-.input:focus {
-  outline: none;
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-}
-
-/* Info Box */
-.infoBox {
-  background: rgba(255, 255, 255, 0.04);
-  border-left: 4px solid #7c3aed;
-  padding: 1rem;
-  border-radius: 0.75rem;
-  margin-bottom: 1.5rem;
-  margin-top: 1.5rem;
-}
-
-.infoBox p {
-  margin: 0;
-  font-size: 0.95rem;
-  color: #f8f7ff;
-}
-
-.alertaErro {
-  color: #ffb3c6;
-  font-weight: 600;
-}
-
-.alertaSucesso {
-  color: #4ade80;
-  font-weight: 600;
-}
-
-/* Turno Item */
-.turnosList {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
 .turnoItem {
+  padding: 14px 16px;
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.04);
-  padding: 1rem;
-  border-radius: 0.75rem;
-  border-left: 4px solid #7c3aed;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 1rem;
+  grid-template-columns: 1fr auto;
+  gap: 16px;
+  align-items: center;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
 
-.turnoData {
-  font-weight: 600;
-  color: #f8f7ff;
-  font-size: 0.9rem;
+.turnoItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(124, 58, 237, 0.22);
+  transform: translateY(-1px);
 }
 
-.turnoHora {
-  color: #d8c8ff;
-  font-size: 0.9rem;
-}
-
-.turnoTaxi {
-  color: #7c3aed;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.erroBottom {
-  margin-top: 16px;
-  margin-bottom: 8px;
-  font-size: 13px;
-  color: #ffb3c6;
-  background: rgba(255, 71, 125, 0.12);
-  border: 1px solid rgba(255, 71, 125, 0.2);
-  border-radius: 14px;
-  padding: 12px 14px;
-}
-
-.periodoGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  margin-top: 12px;
-}
-
-.periodoColuna {
+.turnoConteudo {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 6px;
+  min-width: 0;
 }
 
-.periodoTitulo {
-  font-size: 14px;
+.turnoAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btnCancelarTurno {
+  padding: 9px 16px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 71, 125, 0.08);
+  color: #ffb3c6;
+  font-size: 12px;
   font-weight: 700;
-  color: #f8f7ff;
-  margin-bottom: 2px;
+  line-height: 1;
+  border: 1px solid rgba(255, 179, 198, 0.22);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
-@media (max-width: 768px) {
-  .periodoGrid {
-    grid-template-columns: 1fr;
-  }
+.btnCancelarTurno:hover {
+  background: rgba(255, 71, 125, 0.14);
+  border-color: rgba(255, 179, 198, 0.45);
+  transform: translateY(-1px);
 }
