@@ -190,6 +190,10 @@ export default function MapaPedidosPage() {
     navigate("/motorista/turno");
   }
 
+  function handleIrParaReabastecimento() {
+    navigate("/motorista/reabastecimento");
+  }
+
   const estaEmServico = Boolean(turnoAtivo);
 
   useEffect(() => {
@@ -457,6 +461,16 @@ export default function MapaPedidosPage() {
           onClick={estaEmServico ? handleTerminarTurno : handleAtivarTurno}
         >
           {estaEmServico ? "Terminar turno" : "Iniciar turno"}
+        </button>
+
+        <button
+          type="button"
+          className={styles.refuelBtn}
+          onClick={handleIrParaReabastecimento}
+          disabled={!turnoAtivo}
+          title={!turnoAtivo ? "Só podes registar um reabastecimento durante um turno ativo." : ""}
+        >
+          Reabastecer táxi
         </button>
 
         <div className={styles.tabsRow}>

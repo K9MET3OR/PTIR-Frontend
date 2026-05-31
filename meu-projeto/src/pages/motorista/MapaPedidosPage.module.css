@@ -561,3 +561,28 @@
     font-size: 10px;
   }
 }
+
+.refuelBtn {
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: 0.72rem 0.95rem;
+  border-radius: 12px;
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  background: rgba(124, 58, 237, 0.08);
+  color: #e9ddff;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.refuelBtn:hover:not(:disabled) {
+  background: rgba(124, 58, 237, 0.14);
+  border-color: rgba(168, 85, 247, 0.38);
+  transform: translateY(-1px);
+}
+
+.refuelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
