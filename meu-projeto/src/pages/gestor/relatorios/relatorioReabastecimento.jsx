@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { obterRelatorioReabastecimentos } from '../../../services/relatoriosService';
+import {
+  obterRelatorioReabastecimentos,
+  obterRelatorioReabastecimentosPorTaxi,
+  obterDetalheTaxi
+} from '../../../services/relatoriosService';
 import styles from './relatorioReabastecimento.module.css';
 
 export default function RelatorioReabastecimento() {
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+
   const [data, setData] = useState(null);
+  const [taxisDetalhe, setTaxisDetalhe] = useState([]);
+  const [selectedTaxi, setSelectedTaxi] = useState(null);
+
   const [loading, setLoading] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState(null);
+
   const [viewLevel, setViewLevel] = useState('total');
+  const [selectedMotor, setSelectedMotor] = useState(null);
+  const [selectedMetric, setSelectedMetric] = useState('euros');
 
   const carregarRelatorio = async () => {
     setLoading(true);
@@ -17,12 +29,13 @@ export default function RelatorioReabastecimento() {
     try {
       const resultado = await obterRelatorioReabastecimentos(startDate, endDate);
 
-      console.log('Resultado relatório reabastecimentos:', resultado);
-
       setData(resultado.data);
       setViewLevel('total');
+      setSelectedMotor(null);
+      setSelectedMetric('euros');
+      setTaxisDetalhe([]);
+      setSelectedTaxi(null);
     } catch (err) {
-      console.error('Erro ao carregar relatório:', err);
       setError(err.message || 'Erro ao carregar relatório de reabastecimentos');
     } finally {
       setLoading(false);
@@ -69,6 +82,45 @@ export default function RelatorioReabastecimento() {
     return `🚕 ${tipoMotor}`;
   };
 
+  const carregarDetalhesPorTaxi = async (tipoMotor, metric = 'euros') => {
+    setDetailsLoading(true);
+    setError(null);
+
+    try {
+      const resultado = await obterRelatorioReabastecimentosPorTaxi(
+        tipoMotor,
+        metric,
+        startDate,
+        endDate
+      );
+
+      setSelectedMotor(tipoMotor);
+      setSelectedMetric(metric);
+      setTaxisDetalhe(resultado.taxis || []);
+      setViewLevel('detalhes');
+    } catch (err) {
+      setError(err.message || 'Erro ao carregar detalhes por táxi');
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
+  const carregarDetalheTaxi = async (taxiId) => {
+    setDetailsLoading(true);
+    setError(null);
+
+    try {
+      const resultado = await obterDetalheTaxi(taxiId);
+
+      setSelectedTaxi(resultado.taxi);
+      setViewLevel('detalheTaxi');
+    } catch (err) {
+      setError(err.message || 'Erro ao carregar detalhes do táxi');
+    } finally {
+      setDetailsLoading(false);
+    }
+  };
+
   const renderTotal = () => {
     if (!data?.summary) {
       return (
@@ -83,14 +135,22 @@ export default function RelatorioReabastecimento() {
         <h2>Resumo Total de Reabastecimentos</h2>
 
         <div className={styles.totalCard}>
-          <div className={styles.metric}>
+          <div
+            className={styles.metric}
+            onClick={() => setViewLevel('subtotais')}
+            style={{ cursor: 'pointer' }}
+          >
             <span className={styles.label}>Total de Euros Pagos:</span>
             <span className={styles.value}>
               {formatarEuros(data.summary.total_euros)}
             </span>
           </div>
 
-          <div className={styles.metric}>
+          <div
+            className={styles.metric}
+            onClick={() => setViewLevel('subtotais')}
+            style={{ cursor: 'pointer' }}
+          >
             <span className={styles.label}>Total de Horas Gastas:</span>
             <span className={styles.value}>
               {formatarHoras(data.summary.total_hours)}
@@ -155,6 +215,139 @@ export default function RelatorioReabastecimento() {
               <div className={styles.subtotalDetails}>
                 <span>Tipo de motor: {motor.tipo_motor}</span>
                 <span>Reabastecimentos: {motor.total_refuels || 0}</span>
+                <span>Horas: {formatarHoras(motor.total_hours)}</span>
+              </div>
+
+              <button
+                className={styles.detalhesBtn}
+                onClick={() => carregarDetalhesPorTaxi(motor.tipo_motor, 'euros')}
+                disabled={detailsLoading}
+              >
+                Ver euros por táxi →
+              </button>
+
+              <button
+                className={styles.detalhesBtn}
+                onClick={() => carregarDetalhesPorTaxi(motor.tipo_motor, 'hours')}
+                disabled={detailsLoading}
+                style={{ marginTop: '8px' }}
+              >
+                Ver horas por táxi →
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  const renderDetalhes = () => {
+    return (
+      <div className={styles.section}>
+        <div className={styles.header}>
+          <button
+            className={styles.backBtn}
+            onClick={() => {
+              setViewLevel('subtotais');
+              setTaxisDetalhe([]);
+              setSelectedMotor(null);
+            }}
+          >
+            ← Voltar
+          </button>
+
+          <h2>
+            Táxis com motor {selectedMotor} —{' '}
+            {selectedMetric === 'hours'
+              ? 'Ordenados por horas'
+              : 'Ordenados por euros pagos'}
+          </h2>
+        </div>
+
+        {detailsLoading && (
+          <div className={styles.loading}>Carregando detalhes...</div>
+        )}
+
+        {!detailsLoading && taxisDetalhe.length === 0 && (
+          <p>Não existem táxis para este subtotal.</p>
+        )}
+
+        {!detailsLoading && taxisDetalhe.length > 0 && (
+          <div className={styles.subtotaisGrid}>
+            {taxisDetalhe.map((taxi) => (
+              <div key={taxi.taxi_id} className={styles.subtotalCard}>
+                <div className={styles.subtotalHeader}>
+                  <span
+                    onClick={() => carregarDetalheTaxi(taxi.taxi_id)}
+                    style={{ cursor: 'pointer' }}
+                    title="Ver detalhes do táxi"
+                  >
+                    {taxi.matricula || `Táxi ${taxi.taxi_id}`}
+                  </span>
+
+                  <span className={styles.value}>
+                    {selectedMetric === 'hours'
+                      ? formatarHoras(taxi.total_hours)
+                      : formatarEuros(taxi.total_euros)}
+                  </span>
+                </div>
+
+                <div className={styles.subtotalDetails}>
+                  <span>Modelo: {taxi.modelo || '-'}</span>
+                  <span>Marca: {taxi.marca || '-'}</span>
+                  <span>Tipo de motor: {taxi.tipo_motor || '-'}</span>
+                  <span>Reabastecimentos: {taxi.total_refuels || 0}</span>
+                  <span>Euros pagos: {formatarEuros(taxi.total_euros)}</span>
+                  <span>Horas gastas: {formatarHoras(taxi.total_hours)}</span>
+                </div>
+
+                <button
+                  className={styles.detalhesBtn}
+                  onClick={() => carregarDetalheTaxi(taxi.taxi_id)}
+                  disabled={detailsLoading}
+                >
+                  Ver detalhes do táxi →
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderDetalheTaxi = () => {
+    if (!selectedTaxi) {
+      return (
+        <div className={styles.section}>
+          <p>Não foi possível carregar os detalhes do táxi.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className={styles.section}>
+        <div className={styles.header}>
+          <button
+            className={styles.backBtn}
+            onClick={() => setViewLevel('detalhes')}
+          >
+            ← Voltar
+          </button>
+
+          <h2>Detalhes do Táxi</h2>
+        </div>
+
+        <div className={styles.detalhesList}>
+          {Object.entries(selectedTaxi).map(([key, value]) => (
+            <div key={key} className={styles.detalheCard}>
+              <div className={styles.detalhContent}>
+                <span>
+                  <strong>{key}:</strong>{' '}
+                  {value === null || value === undefined || value === ''
+                    ? '-'
+                    : String(value)}
+                </span>
               </div>
             </div>
           ))}
@@ -201,9 +394,13 @@ export default function RelatorioReabastecimento() {
 
       {loading && <div className={styles.loading}>Carregando dados...</div>}
 
-      {data && !loading && viewLevel === 'total' && renderTotal()}
+      {!loading && data && viewLevel === 'total' && renderTotal()}
 
-      {data && !loading && viewLevel === 'subtotais' && renderSubtotais()}
+      {!loading && data && viewLevel === 'subtotais' && renderSubtotais()}
+
+      {!loading && data && viewLevel === 'detalhes' && renderDetalhes()}
+
+      {!loading && data && viewLevel === 'detalheTaxi' && renderDetalheTaxi()}
     </div>
   );
 }

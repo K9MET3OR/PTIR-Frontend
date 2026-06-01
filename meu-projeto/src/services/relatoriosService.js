@@ -172,8 +172,8 @@ export async function obterRelatorioReabastecimentos(startDate = null, endDate =
   try {
     const params = new URLSearchParams();
 
-    if (startDate) params.append('start_date', startDate);
-    if (endDate) params.append('end_date', endDate);
+    if (startDate) params.append('start', startDate);
+    if (endDate) params.append('end', endDate);
 
     const query = params.toString() ? `?${params.toString()}` : '';
 
@@ -190,14 +190,44 @@ export async function obterRelatorioReabastecimentos(startDate = null, endDate =
       }
     };
   } catch (error) {
-    console.error('Erro relatório reabastecimentos:', error);
-
     throw {
       message:
         error.response?.data?.detail ||
         error.response?.data?.message ||
         error.message ||
         'Erro ao obter relatório de reabastecimentos'
+    };
+  }
+}
+
+/**
+ * User Story 16: Obter táxis que explicam um subtotal por tipo de motor
+ */
+export async function obterRelatorioReabastecimentosPorTaxi(
+  tipoMotor,
+  metric = 'euros',
+  startDate = null,
+  endDate = null
+) {
+  try {
+    const params = new URLSearchParams();
+
+    params.append('tipo_motor', tipoMotor);
+    params.append('metric', metric);
+
+    if (startDate) params.append('start', startDate);
+    if (endDate) params.append('end', endDate);
+
+    const response = await api.get(`/report/refuel/by-taxi?${params.toString()}`);
+
+    return response.data || response;
+  } catch (error) {
+    throw {
+      message:
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao obter detalhes dos reabastecimentos por táxi'
     };
   }
 }
