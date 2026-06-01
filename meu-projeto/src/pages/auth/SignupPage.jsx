@@ -10,6 +10,17 @@ const ROLES = [
   { id: "cliente", label: "Client", icon: "👤" },
 ];
 
+const LIMITES = {
+  username: 30,
+  name: 100,
+  email: 150,
+  password: 128,
+  nif: 9,
+  nCarta: 20,
+  telefone: 9,
+  codigoPostal: 8,
+};
+
 function validarNIF(nif) {
   nif = String(nif).replace(/\s/g, "");
 
@@ -18,6 +29,44 @@ function validarNIF(nif) {
   }
 
   return true;
+}
+
+function limitarTexto(value, max) {
+  return String(value || "").slice(0, max);
+}
+
+function limparUsername(value) {
+  return limitarTexto(
+    String(value || "")
+      .replace(/\s/g, "")
+      .replace(/[^a-zA-Z0-9._-]/g, ""),
+    LIMITES.username
+  );
+}
+
+function limparNome(value) {
+  return limitarTexto(
+    String(value || "").replace(/\s{2,}/g, " "),
+    LIMITES.name
+  );
+}
+
+function limparEmail(value) {
+  return limitarTexto(
+    String(value || "")
+      .trim()
+      .replace(/\s/g, ""),
+    LIMITES.email
+  );
+}
+
+function limparCarta(value) {
+  return limitarTexto(
+    String(value || "")
+      .toUpperCase()
+      .replace(/[^A-Z0-9-]/g, ""),
+    LIMITES.nCarta
+  );
 }
 
 function formatarCodigoPostal(value) {
@@ -34,6 +83,18 @@ function dataHojeISO() {
 function dataMaxValidadeCartaISO() {
   const data = new Date();
   data.setFullYear(data.getFullYear() + 15);
+  return data.toISOString().slice(0, 10);
+}
+
+function dataMinNascimentoISO() {
+  const data = new Date();
+  data.setFullYear(data.getFullYear() - 100);
+  return data.toISOString().slice(0, 10);
+}
+
+function dataMaxNascimentoISO() {
+  const data = new Date();
+  data.setFullYear(data.getFullYear() - 18);
   return data.toISOString().slice(0, 10);
 }
 
@@ -83,6 +144,30 @@ function calcularIdade(dataNascimento) {
   return idade;
 }
 
+function validarLimitesTexto({ username, name, email, password, nCarta }) {
+  if (username.length > LIMITES.username) {
+    return `Username não pode ter mais de ${LIMITES.username} caracteres.`;
+  }
+
+  if (name.length > LIMITES.name) {
+    return `Nome não pode ter mais de ${LIMITES.name} caracteres.`;
+  }
+
+  if (email.length > LIMITES.email) {
+    return `Email não pode ter mais de ${LIMITES.email} caracteres.`;
+  }
+
+  if (password.length > LIMITES.password) {
+    return `Palavra-passe não pode ter mais de ${LIMITES.password} caracteres.`;
+  }
+
+  if (nCarta && nCarta.length > LIMITES.nCarta) {
+    return `Número da carta não pode ter mais de ${LIMITES.nCarta} caracteres.`;
+  }
+
+  return null;
+}
+
 export default function SignupPage() {
   const { signup } = useAuth();
   const feedback = useFeedback();
@@ -117,8 +202,41 @@ export default function SignupPage() {
     e.preventDefault();
     setError("");
 
-    if (!username || !name || !email || !password) {
+    const usernameFinal = username.trim();
+    const nameFinal = name.trim();
+    const emailFinal = email.trim().toLowerCase();
+    const nCartaFinal = nCarta.trim().toUpperCase();
+
+    const erroLimites = validarLimitesTexto({
+      username: usernameFinal,
+      name: nameFinal,
+      email: emailFinal,
+      password,
+      nCarta: nCartaFinal,
+    });
+
+    if (erroLimites) {
+      showValidationError(erroLimites);
+      return;
+    }
+
+    if (!usernameFinal || !nameFinal || !emailFinal || !password) {
       showValidationError("Todos os campos são obrigatórios.");
+      return;
+    }
+
+    if (usernameFinal.length < 3) {
+      showValidationError("Username deve ter pelo menos 3 caracteres.");
+      return;
+    }
+
+    if (nameFinal.length < 2) {
+      showValidationError("Nome deve ter pelo menos 2 caracteres.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailFinal)) {
+      showValidationError("Email inválido.");
       return;
     }
 
@@ -156,13 +274,18 @@ export default function SignupPage() {
     }
 
     if (selectedRole === "motorista") {
-      if (!nCarta || !dataNasc || !telefone || !codigoPostal || !validadeCarta) {
+      if (!nCartaFinal || !dataNasc || !telefone || !codigoPostal || !validadeCarta) {
         showValidationError("Todos os campos são obrigatórios para motorista.");
         return;
       }
 
-      if (nCarta.trim().length < 5) {
+      if (nCartaFinal.length < 5) {
         showValidationError("Número de carta deve ter pelo menos 5 caracteres.");
+        return;
+      }
+
+      if (!/^[A-Z0-9-]{5,20}$/.test(nCartaFinal)) {
+        showValidationError("Número de carta só pode conter letras, números e hífen.");
         return;
       }
 
@@ -188,6 +311,11 @@ export default function SignupPage() {
         return;
       }
 
+      if (idade > 100) {
+        showValidationError("Data de nascimento inválida. Idade máxima permitida: 100 anos.");
+        return;
+      }
+
       const erroValidadeCarta = validarValidadeCarta(validadeCarta);
 
       if (erroValidadeCarta) {
@@ -200,10 +328,10 @@ export default function SignupPage() {
 
     try {
       let signupData = {
-        email,
+        email: emailFinal,
         password,
-        username,
-        name,
+        username: usernameFinal,
+        name: nameFinal,
         selectedRole,
       };
 
@@ -220,7 +348,7 @@ export default function SignupPage() {
           ...signupData,
           nif,
           genero,
-          n_carta: nCarta.trim().toUpperCase(),
+          n_carta: nCartaFinal,
           data_nascimento: dataNasc,
           validade_carta: validadeCarta,
           codigo_postal: codigoPostal,
@@ -301,8 +429,9 @@ export default function SignupPage() {
               type="text"
               placeholder="seu_utilizador"
               value={username}
+              maxLength={LIMITES.username}
               onChange={(e) => {
-                setUsername(e.target.value);
+                setUsername(limparUsername(e.target.value));
                 clearError();
               }}
               required
@@ -317,8 +446,9 @@ export default function SignupPage() {
               type="text"
               placeholder="João Silva"
               value={name}
+              maxLength={LIMITES.name}
               onChange={(e) => {
-                setName(e.target.value);
+                setName(limparNome(e.target.value));
                 clearError();
               }}
               required
@@ -333,8 +463,9 @@ export default function SignupPage() {
               type="email"
               placeholder="seu@email.com"
               value={email}
+              maxLength={LIMITES.email}
               onChange={(e) => {
-                setEmail(e.target.value);
+                setEmail(limparEmail(e.target.value));
                 clearError();
               }}
               required
@@ -349,8 +480,9 @@ export default function SignupPage() {
               type="password"
               placeholder="••••••••"
               value={password}
+              maxLength={LIMITES.password}
               onChange={(e) => {
-                setPassword(e.target.value);
+                setPassword(limitarTexto(e.target.value, LIMITES.password));
                 clearError();
               }}
               required
@@ -365,8 +497,9 @@ export default function SignupPage() {
               type="password"
               placeholder="••••••••"
               value={confirmPass}
+              maxLength={LIMITES.password}
               onChange={(e) => {
-                setConfirmPass(e.target.value);
+                setConfirmPass(limitarTexto(e.target.value, LIMITES.password));
                 clearError();
               }}
               required
@@ -380,11 +513,12 @@ export default function SignupPage() {
               <input
                 id="nif"
                 type="text"
+                inputMode="numeric"
                 placeholder="123456789"
                 value={nif}
-                maxLength={9}
+                maxLength={LIMITES.nif}
                 onChange={(e) => {
-                  setNif(e.target.value.replace(/\D/g, ""));
+                  setNif(e.target.value.replace(/\D/g, "").slice(0, LIMITES.nif));
                   clearError();
                 }}
                 required
@@ -419,6 +553,8 @@ export default function SignupPage() {
                   id="dataNasc"
                   type="date"
                   value={dataNasc}
+                  min={dataMinNascimentoISO()}
+                  max={dataMaxNascimentoISO()}
                   onChange={(e) => {
                     setDataNasc(e.target.value);
                     clearError();
@@ -434,8 +570,9 @@ export default function SignupPage() {
                   type="text"
                   placeholder="AB123456"
                   value={nCarta}
+                  maxLength={LIMITES.nCarta}
                   onChange={(e) => {
-                    setNCarta(e.target.value.toUpperCase());
+                    setNCarta(limparCarta(e.target.value));
                     clearError();
                   }}
                   required
@@ -463,11 +600,14 @@ export default function SignupPage() {
                 <input
                   id="telefone"
                   type="tel"
+                  inputMode="numeric"
                   placeholder="912345678"
                   value={telefone}
-                  maxLength={9}
+                  maxLength={LIMITES.telefone}
                   onChange={(e) => {
-                    setTelefone(e.target.value.replace(/\D/g, ""));
+                    setTelefone(
+                      e.target.value.replace(/\D/g, "").slice(0, LIMITES.telefone)
+                    );
                     clearError();
                   }}
                   required
@@ -479,9 +619,10 @@ export default function SignupPage() {
                 <input
                   id="codigoPostal"
                   type="text"
+                  inputMode="numeric"
                   placeholder="1000-001"
                   value={codigoPostal}
-                  maxLength={8}
+                  maxLength={LIMITES.codigoPostal}
                   onChange={(e) => {
                     setCodigoPostal(formatarCodigoPostal(e.target.value));
                     clearError();

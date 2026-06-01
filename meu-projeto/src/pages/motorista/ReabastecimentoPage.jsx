@@ -7,6 +7,13 @@ import { refuelService } from "../../services/refuelService";
 import { useFeedback } from "../../context/FeedbackContext";
 import styles from "./ReabastecimentoPage.module.css";
 
+const LIMITES_REABASTECIMENTO = {
+  litros: 999,
+  kwh: 999,
+  euros_pagos: 9999.99,
+  kms_taxi: 999999,
+};
+
 const toLocalInputValue = (isoString) => {
   if (!isoString) return "";
 
@@ -48,6 +55,47 @@ const ordenarRefuelsPorDataDesc = (lista = []) => {
 const ordenarRefuelsPorDataAsc = (lista = []) => {
   return [...lista].sort((a, b) => new Date(a.data_inicio) - new Date(b.data_inicio));
 };
+
+function limitarDecimalInput(value, { maxInteiros = 3, maxDecimais = 2 } = {}) {
+  const limpo = String(value || "")
+    .replace(",", ".")
+    .replace(/[^\d.]/g, "");
+
+  const partes = limpo.split(".");
+  const inteiros = partes[0].slice(0, maxInteiros);
+  const decimais = partes.slice(1).join("").slice(0, maxDecimais);
+
+  if (limpo.includes(".")) {
+    return `${inteiros}.${decimais}`;
+  }
+
+  return inteiros;
+}
+
+function limitarCampoNumerico(field, value) {
+  if (field === "litros" || field === "kwh") {
+    return limitarDecimalInput(value, {
+      maxInteiros: 3,
+      maxDecimais: 2,
+    });
+  }
+
+  if (field === "euros_pagos") {
+    return limitarDecimalInput(value, {
+      maxInteiros: 4,
+      maxDecimais: 2,
+    });
+  }
+
+  if (field === "kms_taxi") {
+    return limitarDecimalInput(value, {
+      maxInteiros: 6,
+      maxDecimais: 1,
+    });
+  }
+
+  return value;
+}
 
 export default function ReabastecimentoPage() {
   const { user } = useContext(AuthContext);
@@ -182,7 +230,9 @@ export default function ReabastecimentoPage() {
   }, [shift]);
 
   const handleChange = (field, value) => {
-    setForm((current) => ({ ...current, [field]: value }));
+    const valorFinal = limitarCampoNumerico(field, value);
+
+    setForm((current) => ({ ...current, [field]: valorFinal }));
 
     if (erro) {
       setErro("");
@@ -220,29 +270,50 @@ export default function ReabastecimentoPage() {
       return definirErroValidacao("A data de início deve ser anterior à data de fim.");
     }
 
-    if (
-      !form.euros_pagos ||
-      Number.isNaN(Number(form.euros_pagos)) ||
-      Number(form.euros_pagos) <= 0
-    ) {
+    const eurosPagos = Number(form.euros_pagos);
+    const kmsTaxi = Number(form.kms_taxi);
+    const litros = Number(form.litros);
+    const kwh = Number(form.kwh);
+
+    if (!form.euros_pagos || Number.isNaN(eurosPagos) || eurosPagos <= 0) {
       return definirErroValidacao("Insere o valor em euros pagos e superior a 0.");
     }
 
-    if (
-      form.kms_taxi === "" ||
-      Number.isNaN(Number(form.kms_taxi)) ||
-      Number(form.kms_taxi) <= 0
-    ) {
+    if (eurosPagos > LIMITES_REABASTECIMENTO.euros_pagos) {
+      return definirErroValidacao(
+        `Euros pagos não pode ser superior a ${LIMITES_REABASTECIMENTO.euros_pagos} €.`
+      );
+    }
+
+    if (form.kms_taxi === "" || Number.isNaN(kmsTaxi) || kmsTaxi <= 0) {
       return definirErroValidacao("Insere os quilómetros do táxi e devem ser superiores a 0.");
     }
 
+    if (kmsTaxi > LIMITES_REABASTECIMENTO.kms_taxi) {
+      return definirErroValidacao(
+        `Quilómetros do táxi não pode ser superior a ${LIMITES_REABASTECIMENTO.kms_taxi} km.`
+      );
+    }
+
     if (motorEletrico) {
-      if (!form.kwh || Number.isNaN(Number(form.kwh)) || Number(form.kwh) <= 0) {
+      if (!form.kwh || Number.isNaN(kwh) || kwh <= 0) {
         return definirErroValidacao("Insere a energia em kWh e superior a 0.");
       }
+
+      if (kwh > LIMITES_REABASTECIMENTO.kwh) {
+        return definirErroValidacao(
+          `Energia em kWh não pode ser superior a ${LIMITES_REABASTECIMENTO.kwh}.`
+        );
+      }
     } else {
-      if (!form.litros || Number.isNaN(Number(form.litros)) || Number(form.litros) <= 0) {
+      if (!form.litros || Number.isNaN(litros) || litros <= 0) {
         return definirErroValidacao("Insere a quantidade em litros e superior a 0.");
+      }
+
+      if (litros > LIMITES_REABASTECIMENTO.litros) {
+        return definirErroValidacao(
+          `Quantidade em litros não pode ser superior a ${LIMITES_REABASTECIMENTO.litros}.`
+        );
       }
     }
 
@@ -460,9 +531,9 @@ export default function ReabastecimentoPage() {
                       <label>
                         Energia (kWh)
                         <input
-                          type="number"
-                          min="0.1"
-                          step="0.1"
+                          type="text"
+                          inputMode="decimal"
+                          maxLength={6}
                           value={form.kwh}
                           onChange={(e) => handleChange("kwh", e.target.value)}
                           placeholder="kWh"
@@ -472,9 +543,9 @@ export default function ReabastecimentoPage() {
                       <label>
                         Litros
                         <input
-                          type="number"
-                          min="0.1"
-                          step="0.1"
+                          type="text"
+                          inputMode="decimal"
+                          maxLength={6}
                           value={form.litros}
                           onChange={(e) => handleChange("litros", e.target.value)}
                           placeholder="Litros"
@@ -487,9 +558,9 @@ export default function ReabastecimentoPage() {
                     <label>
                       Euros pagos
                       <input
-                        type="number"
-                        min="0.01"
-                        step="0.01"
+                        type="text"
+                        inputMode="decimal"
+                        maxLength={7}
                         value={form.euros_pagos}
                         onChange={(e) => handleChange("euros_pagos", e.target.value)}
                         placeholder="€"
@@ -499,9 +570,9 @@ export default function ReabastecimentoPage() {
                     <label>
                       Quilómetros do táxi
                       <input
-                        type="number"
-                        min="0.1"
-                        step="0.1"
+                        type="text"
+                        inputMode="decimal"
+                        maxLength={8}
                         value={form.kms_taxi}
                         onChange={(e) => handleChange("kms_taxi", e.target.value)}
                         placeholder="km"

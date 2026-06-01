@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef, useMemo } from "react";
 import MapaBase from "../../components/MapaBase";
 
@@ -126,6 +127,16 @@ function formatarDistancia(km) {
   }
 
   return `${valor.toFixed(1)} km`;
+}
+
+function formatarPreco(valor) {
+  const numero = Number(valor);
+
+  if (!Number.isFinite(numero) || numero <= 0) {
+    return "-";
+  }
+
+  return `${numero.toFixed(2)} €`;
 }
 
 function estimarMinutosPorDistanciaKm(distanciaKm) {
@@ -777,6 +788,18 @@ export default function MapaPedidosPage() {
     );
   }
 
+  function obterNivelConfortoTaxiTurnoTexto() {
+    const taxiTurno = obterTaxiAssociadoAoTurno();
+
+    return (
+      taxiTurno?.nivel_conforto ||
+      turnoAtivo?.taxi_nivel_conforto ||
+      turnoAtivo?.nivel_conforto ||
+      turnoAtivo?.taxi?.nivel_conforto ||
+      "Conforto não definido"
+    );
+  }
+
   const pedidosPendentes = useMemo(() => {
     if (!turnoAtivo) return [];
 
@@ -1008,8 +1031,12 @@ export default function MapaPedidosPage() {
     }
   }, [pedidoSelecionadoMapa, todasViagensVisiveis]);
 
+  const confortoTaxiTurnoTexto = turnoAtivo
+    ? obterNivelConfortoTaxiTurnoTexto()
+    : "";
+
   const turnoAtualTexto = turnoAtivo?.taxi_matricula
-    ? `${turnoAtivo.taxi_matricula} · ${turnoAtivo.taxi_marca} ${turnoAtivo.taxi_modelo}`
+    ? `${turnoAtivo.taxi_matricula} · ${turnoAtivo.taxi_marca} ${turnoAtivo.taxi_modelo} · ${confortoTaxiTurnoTexto}`
     : "Sem táxi associado";
 
   function valorMatriculaValido(valor) {
@@ -1499,16 +1526,7 @@ export default function MapaPedidosPage() {
             {mensagemPainel && (
               <>
                 <div className={styles.divider} />
-                <div
-                  className={
-                    mensagemPainel.toLowerCase().includes("sucesso") ||
-                    mensagemPainel.toLowerCase().includes("emitida")
-                      ? styles.successMsg
-                      : styles.errorMsg
-                  }
-                >
-                  {mensagemPainel}
-                </div>
+                <div className={styles.errorMsg}>{mensagemPainel}</div>
               </>
             )}
 
@@ -1555,8 +1573,16 @@ export default function MapaPedidosPage() {
                           {p.n_people} pessoa{p.n_people > 1 ? "s" : ""} · {p.nivel_conforto}
                         </div>
 
-                        <div className={styles.pedidoMeta}>
-                          Distância: {formatarDistancia(p.distancia_motorista_km)}
+                        <div className={styles.pedidoInfoGrid}>
+                          <div className={styles.pedidoInfoItem}>
+                            <span>Preço</span>
+                            <strong>{formatarPreco(p.price)}</strong>
+                          </div>
+
+                          <div className={styles.pedidoInfoItem}>
+                            <span>Distância</span>
+                            <strong>{formatarDistancia(p.distancia_motorista_km)}</strong>
+                          </div>
                         </div>
 
                         {pedidoSelecionadoMapa?.id === p.id && (
@@ -1711,20 +1737,8 @@ export default function MapaPedidosPage() {
                             <button
                               type="button"
                               className={styles.btnCancelarTurno}
-                              onClick={async (e) => {
+                              onClick={(e) => {
                                 e.stopPropagation();
-
-                                const confirmar = await confirm({
-                                  title: "Cancelar espera",
-                                  message:
-                                    "O cliente não respondeu dentro do tempo. Tens a certeza que queres cancelar este pedido?",
-                                  confirmText: "Cancelar pedido",
-                                  cancelText: "Continuar à espera",
-                                  variant: "danger",
-                                });
-
-                                if (!confirmar) return;
-
                                 handleCancelarEspera(v.id, false);
                               }}
                               disabled={carregandoId === v.id}

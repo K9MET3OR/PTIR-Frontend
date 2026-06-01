@@ -32,9 +32,21 @@ export default function MotoristaListPage() {
       .finally(() => setLoading(false));
   }, [feedback]);
 
+  const searchTerm = search.trim().toLowerCase();
+
   const filtered = motoristas.filter((m) =>
-    [m.nome, m.nif, m.n_carta].some((v) =>
-      v?.toLowerCase().includes(search.toLowerCase())
+    [
+      m.nome,
+      m.nif,
+      m.n_carta,
+      m.num_carta_conducao,
+      m.telefone,
+      m.phone,
+      m.email,
+    ].some((v) =>
+      String(v || "")
+        .toLowerCase()
+        .includes(searchTerm)
     )
   );
 
@@ -102,7 +114,7 @@ export default function MotoristaListPage() {
           </span>
 
           <input
-            placeholder="Pesquisar nome, NIF..."
+            placeholder="Pesquisar nome, NIF, carta, telefone ou email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className={styles.searchInput}
@@ -150,7 +162,7 @@ export default function MotoristaListPage() {
                         <td className={styles.nome}>{m.nome}</td>
                         <td>{m.nif}</td>
                         <td style={{ fontFamily: "monospace", fontSize: 12 }}>
-                          {m.n_carta}
+                          {m.n_carta || m.num_carta_conducao}
                         </td>
                         <td>
                           <span
@@ -175,7 +187,7 @@ export default function MotoristaListPage() {
                             </span>
                           )}
                         </td>
-                        <td>{m.telefone}</td>
+                        <td>{m.telefone || m.phone || "—"}</td>
                         <td>
                           <span
                             className={`${styles.badge} ${styles[estado.cls]}`}

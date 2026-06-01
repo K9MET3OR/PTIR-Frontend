@@ -794,3 +794,52 @@
   font-size: 0.86rem;
   line-height: 1.35;
 }
+
+/* Adicionar depois da classe .pedidoMeta */
+.pedidoInfoGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pedidoInfoItem {
+  padding: 8px 9px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.065);
+  min-width: 0;
+}
+
+.pedidoInfoItem span {
+  display: block;
+  margin-bottom: 3px;
+  color: #b7a7ff;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pedidoInfoItem strong {
+  display: block;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 600px) {
+  .pedidoInfoGrid {
+    gap: 6px;
+  }
+
+  .pedidoInfoItem {
+    padding: 7px 8px;
+  }
+
+  .pedidoInfoItem strong {
+    font-size: 11px;
+  }
+}

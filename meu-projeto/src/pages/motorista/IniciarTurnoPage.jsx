@@ -39,6 +39,7 @@ function formatarDataLocal(date) {
 
 function calcularFimPorDefeito(data, hora) {
   const inicio = combinarDataHora(data, hora);
+
   if (!inicio) {
     return { dataFim: data, horaFim: hora };
   }
@@ -62,6 +63,74 @@ function formatarTempo(ms) {
   const segundos = totalSegundos % 60;
 
   return `${horas}h ${minutos}m ${segundos}s`;
+}
+
+function formatarDuracaoMs(ms) {
+  if (!ms || ms <= 0) return "Período inválido";
+
+  const totalMinutos = Math.round(ms / 60000);
+  const horas = Math.floor(totalMinutos / 60);
+  const minutos = totalMinutos % 60;
+
+  if (horas === 0) {
+    return `${minutos}m`;
+  }
+
+  if (minutos === 0) {
+    return `${horas}h`;
+  }
+
+  return `${horas}h ${minutos}m`;
+}
+
+function obterErroPeriodo(dataInicio, horaInicio, dataFim, horaFim) {
+  const inicio = combinarDataHora(dataInicio, horaInicio);
+  const fim = combinarDataHora(dataFim, horaFim);
+
+  if (!dataInicio || !horaInicio || !dataFim || !horaFim) {
+    return "Preenche corretamente as datas e horas.";
+  }
+
+  if (!inicio || !fim) {
+    return "As datas e horas selecionadas são inválidas.";
+  }
+
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const agora = new Date();
+  agora.setSeconds(0, 0);
+
+  const inicioDia = new Date(inicio);
+  inicioDia.setHours(0, 0, 0, 0);
+
+  const fimDia = new Date(fim);
+  fimDia.setHours(0, 0, 0, 0);
+
+  if (inicioDia < hoje) {
+    return "A data de início já passou. Escolhe uma data igual ou posterior a hoje.";
+  }
+
+  if (fimDia < hoje) {
+    return "A data de fim já passou. Escolhe uma data igual ou posterior a hoje.";
+  }
+
+  if (inicio < agora) {
+    return "A hora de início já passou. Escolhe uma hora posterior à hora atual.";
+  }
+
+  if (fim <= inicio) {
+    return "A data/hora de fim deve ser posterior à data/hora de início.";
+  }
+
+  const duracaoMs = fim.getTime() - inicio.getTime();
+  const oitoHorasMs = 8 * 60 * 60 * 1000;
+
+  if (duracaoMs > oitoHorasMs) {
+    return "Um turno não pode durar mais de 8 horas.";
+  }
+
+  return null;
 }
 
 function turnoComecaAgoraOuEmBreve(turno) {
@@ -122,69 +191,68 @@ export default function IniciarTurnoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function calcularDuracaoHoras() {
+  function calcularDuracaoMs() {
     const inicio = combinarDataHora(dataInicio, horaInicio);
     const fim = combinarDataHora(dataFim, horaFim);
 
     if (!inicio || !fim) return 0;
-    return (fim.getTime() - inicio.getTime()) / (1000 * 60 * 60);
+
+    return fim.getTime() - inicio.getTime();
   }
 
   function validarPeriodo(mostrarErro = true) {
-    const inicio = combinarDataHora(dataInicio, horaInicio);
-    const fim = combinarDataHora(dataFim, horaFim);
+    const erroPeriodo = obterErroPeriodo(dataInicio, horaInicio, dataFim, horaFim);
 
-    if (!inicio || !fim) {
-      const message = "Preenche corretamente as datas e horas.";
+    if (erroPeriodo) {
       if (mostrarErro) {
-        setErro(message);
-        feedback.warning(message);
+        setErro(erroPeriodo);
+        feedback.warning(erroPeriodo);
       }
+
       return false;
     }
 
-    if (inicio >= fim) {
-      const message = "A data/hora de fim deve ser posterior à data/hora de início.";
-      if (mostrarErro) {
-        setErro(message);
-        feedback.warning(message);
-      }
-      return false;
-    }
-
-    const duracao = (fim.getTime() - inicio.getTime()) / (1000 * 60 * 60);
-
-    if (duracao > 8) {
-      const message = "Um turno não pode durar mais de 8 horas.";
-      if (mostrarErro) {
-        setErro(message);
-        feedback.warning(message);
-      }
-      return false;
-    }
-
-    if (duracao <= 0) {
-      const message = "Seleciona um período válido.";
-      if (mostrarErro) {
-        setErro(message);
-        feedback.warning(message);
-      }
-      return false;
-    }
-
-    const agora = new Date();
-    agora.setSeconds(0, 0);
-
-    if (inicio < agora) {
-      const message = "Não é possível iniciar um turno num período já passado.";
-      if (mostrarErro) {
-        setErro(message);
-        feedback.warning(message);
-      }
-      return false;
+    if (mostrarErro) {
+      setErro("");
     }
 
     return true;
+  }
+
+  function atualizarDataInicio(value) {
+    setDataInicio(value);
+    setTaxis([]);
+    setTaxiSelecionado(null);
+
+    const erroPeriodo = obterErroPeriodo(value, horaInicio, dataFim, horaFim);
+    setErro(erroPeriodo || "");
+  }
+
+  function atualizarHoraInicio(value) {
+    setHoraInicio(value);
+    setTaxis([]);
+    setTaxiSelecionado(null);
+
+    const erroPeriodo = obterErroPeriodo(dataInicio, value, dataFim, horaFim);
+    setErro(erroPeriodo || "");
+  }
+
+  function atualizarDataFim(value) {
+    setDataFim(value);
+    setTaxis([]);
+    setTaxiSelecionado(null);
+
+    const erroPeriodo = obterErroPeriodo(dataInicio, horaInicio, value, horaFim);
+    setErro(erroPeriodo || "");
+  }
+
+  function atualizarHoraFim(value) {
+    setHoraFim(value);
+    setTaxis([]);
+    setTaxiSelecionado(null);
+
+    const erroPeriodo = obterErroPeriodo(dataInicio, horaInicio, dataFim, value);
+    setErro(erroPeriodo || "");
   }
 
   async function carregarTaxisDisponiveis() {
@@ -337,9 +405,10 @@ export default function IniciarTurnoPage() {
     }
   }
 
-  const duracao = calcularDuracaoHoras();
-  const duracaoValida = duracao > 0 && duracao <= 8;
-  const periodoValido = validarPeriodo(false);
+  const duracaoMs = calcularDuracaoMs();
+  const duracaoValida = duracaoMs > 0 && duracaoMs <= 8 * 60 * 60 * 1000;
+  const periodoValido = !obterErroPeriodo(dataInicio, horaInicio, dataFim, horaFim);
+  const erroPeriodoAtual = obterErroPeriodo(dataInicio, horaInicio, dataFim, horaFim);
 
   const agora = new Date();
 
@@ -421,7 +490,8 @@ export default function IniciarTurnoPage() {
                   <input
                     type="date"
                     value={dataInicio}
-                    onChange={(e) => setDataInicio(e.target.value)}
+                    min={hoje}
+                    onChange={(e) => atualizarDataInicio(e.target.value)}
                     className={styles.input}
                   />
                 </div>
@@ -431,7 +501,7 @@ export default function IniciarTurnoPage() {
                   <input
                     type="time"
                     value={horaInicio}
-                    onChange={(e) => setHoraInicio(e.target.value)}
+                    onChange={(e) => atualizarHoraInicio(e.target.value)}
                     className={styles.input}
                   />
                 </div>
@@ -445,7 +515,8 @@ export default function IniciarTurnoPage() {
                   <input
                     type="date"
                     value={dataFim}
-                    onChange={(e) => setDataFim(e.target.value)}
+                    min={hoje}
+                    onChange={(e) => atualizarDataFim(e.target.value)}
                     className={styles.input}
                   />
                 </div>
@@ -455,7 +526,7 @@ export default function IniciarTurnoPage() {
                   <input
                     type="time"
                     value={horaFim}
-                    onChange={(e) => setHoraFim(e.target.value)}
+                    onChange={(e) => atualizarHoraFim(e.target.value)}
                     className={styles.input}
                   />
                 </div>
@@ -465,18 +536,15 @@ export default function IniciarTurnoPage() {
             <div className={styles.infoBox}>
               <p>
                 <strong>Duração:</strong>{" "}
-                {duracao > 0 ? `${duracao.toFixed(2)} horas` : "Período inválido"}
-                {duracao <= 0 && (
-                  <span className={styles.alertaErro}>
-                    {" "}
-                    (o fim tem de ser posterior ao início)
-                  </span>
+                {duracaoMs > 0 ? formatarDuracaoMs(duracaoMs) : "Período inválido"}
+                {duracaoValida && !erroPeriodoAtual && (
+                  <span className={styles.alertaSucesso}> ✓</span>
                 )}
-                {duracao > 8 && (
-                  <span className={styles.alertaErro}> (máximo 8 horas)</span>
-                )}
-                {duracaoValida && <span className={styles.alertaSucesso}> ✓</span>}
               </p>
+
+              {erroPeriodoAtual && (
+                <p className={styles.alertaErro}>{erroPeriodoAtual}</p>
+              )}
             </div>
 
             <button
@@ -540,6 +608,10 @@ export default function IniciarTurnoPage() {
                   <span className={styles.valor}>
                     {dataFim} {horaFim}
                   </span>
+                </div>
+                <div className={styles.resumoItem}>
+                  <span className={styles.label}>Duração:</span>
+                  <span className={styles.valor}>{formatarDuracaoMs(duracaoMs)}</span>
                 </div>
                 <div className={styles.resumoItem}>
                   <span className={styles.label}>Táxi:</span>

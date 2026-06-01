@@ -5,6 +5,11 @@ import styles from "./GestorPrecosPage.module.css";
 
 const CONFORTO_OPTS = ["Básico", "Luxuoso"];
 
+const LIMITES_PRECOS = {
+  preco_minuto_max: 99.99,
+  agravamento_max: 100,
+};
+
 function agoraDatetimeLocal() {
   const now = new Date();
   now.setSeconds(0, 0);
@@ -24,6 +29,22 @@ function adicionarMinutosDatetimeLocal(minutos) {
   const local = new Date(now.getTime() - offset * 60000);
 
   return local.toISOString().slice(0, 16);
+}
+
+function limitarDecimalInput(value, { maxInteiros = 2, maxDecimais = 2 } = {}) {
+  const limpo = String(value || "")
+    .replace(",", ".")
+    .replace(/[^\d.]/g, "");
+
+  const partes = limpo.split(".");
+  const inteiros = partes[0].slice(0, maxInteiros);
+  const decimais = partes.slice(1).join("").slice(0, maxDecimais);
+
+  if (limpo.includes(".")) {
+    return `${inteiros}.${decimais}`;
+  }
+
+  return inteiros;
 }
 
 export default function GestorPrecosPage() {
@@ -84,9 +105,14 @@ export default function GestorPrecosPage() {
   }
 
   function atualizarCampo(field, value) {
+    const valorLimitado = limitarDecimalInput(value, {
+      maxInteiros: field === "agravamento_noturno_percentual" ? 3 : 2,
+      maxDecimais: 2,
+    });
+
     setForm((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: valorLimitado,
     }));
 
     setErro("");
@@ -108,16 +134,32 @@ export default function GestorPrecosPage() {
     const luxuoso = Number(form.preco_luxuoso_minuto);
     const agravamento = Number(form.agravamento_noturno_percentual);
 
-    if (!basico || Number.isNaN(basico) || basico <= 0) {
+    if (!form.preco_basico_minuto || Number.isNaN(basico) || basico <= 0) {
       return "O preço por minuto do nível Básico deve ser maior que 0.";
     }
 
-    if (!luxuoso || Number.isNaN(luxuoso) || luxuoso <= 0) {
+    if (basico > LIMITES_PRECOS.preco_minuto_max) {
+      return `O preço por minuto do nível Básico não pode ser superior a ${LIMITES_PRECOS.preco_minuto_max}€.`;
+    }
+
+    if (!form.preco_luxuoso_minuto || Number.isNaN(luxuoso) || luxuoso <= 0) {
       return "O preço por minuto do nível Luxuoso deve ser maior que 0.";
     }
 
-    if (Number.isNaN(agravamento) || agravamento < 0) {
+    if (luxuoso > LIMITES_PRECOS.preco_minuto_max) {
+      return `O preço por minuto do nível Luxuoso não pode ser superior a ${LIMITES_PRECOS.preco_minuto_max}€.`;
+    }
+
+    if (
+      form.agravamento_noturno_percentual === "" ||
+      Number.isNaN(agravamento) ||
+      agravamento < 0
+    ) {
       return "O agravamento noturno não pode ser negativo.";
+    }
+
+    if (agravamento > LIMITES_PRECOS.agravamento_max) {
+      return `O agravamento noturno não pode ser superior a ${LIMITES_PRECOS.agravamento_max}%.`;
     }
 
     return null;
@@ -254,9 +296,10 @@ export default function GestorPrecosPage() {
               <label>Preço por minuto — Básico</label>
               <div className={styles.inputWithSuffix}>
                 <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  maxLength={5}
+                  placeholder="0.25"
                   value={form.preco_basico_minuto}
                   onChange={(e) =>
                     atualizarCampo("preco_basico_minuto", e.target.value)
@@ -264,15 +307,17 @@ export default function GestorPrecosPage() {
                 />
                 <span>€/min</span>
               </div>
+              <p className={styles.hint}>Máximo permitido: 99.99 €/min.</p>
             </div>
 
             <div className={styles.field}>
               <label>Preço por minuto — Luxuoso</label>
               <div className={styles.inputWithSuffix}>
                 <input
-                  type="number"
-                  min="0.01"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  maxLength={5}
+                  placeholder="0.40"
                   value={form.preco_luxuoso_minuto}
                   onChange={(e) =>
                     atualizarCampo("preco_luxuoso_minuto", e.target.value)
@@ -280,15 +325,17 @@ export default function GestorPrecosPage() {
                 />
                 <span>€/min</span>
               </div>
+              <p className={styles.hint}>Máximo permitido: 99.99 €/min.</p>
             </div>
 
             <div className={styles.field}>
               <label>Agravamento noturno</label>
               <div className={styles.inputWithSuffix}>
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  maxLength={6}
+                  placeholder="20.00"
                   value={form.agravamento_noturno_percentual}
                   onChange={(e) =>
                     atualizarCampo(
@@ -299,7 +346,9 @@ export default function GestorPrecosPage() {
                 />
                 <span>%</span>
               </div>
-              <p className={styles.hint}>Aplicado entre as 21h e as 6h.</p>
+              <p className={styles.hint}>
+                Aplicado entre as 21h e as 6h. Máximo permitido: 100%.
+              </p>
             </div>
 
             <button className={styles.primaryBtn} disabled={saving}>
