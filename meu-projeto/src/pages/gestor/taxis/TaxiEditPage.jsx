@@ -289,7 +289,7 @@ export default function TaxiEditPage() {
 
       <form className={styles.formCard} onSubmit={handleSubmit} noValidate>
         <div className={styles.grid}>
-          <div className={styles.field}>
+                    <div className={styles.field}>
             <label>Matrícula *</label>
             <input
               className={styles.input}
@@ -314,22 +314,6 @@ export default function TaxiEditPage() {
           </div>
 
           <div className={styles.field}>
-            <label>Consumo médio (L/100km) *</label>
-            <input
-              className={styles.input}
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="6.50"
-              value={form.consumo_medio}
-              onChange={(e) => set("consumo_medio", e.target.value)}
-            />
-            {errors.consumo_medio && (
-              <span className={styles.fieldError}>{errors.consumo_medio}</span>
-            )}
-          </div>
-
-          <div className={styles.field}>
             <label>Marca *</label>
             <select
               className={styles.select}
@@ -344,6 +328,22 @@ export default function TaxiEditPage() {
               ))}
             </select>
             {errors.marca && <span className={styles.fieldError}>{errors.marca}</span>}
+          </div>
+
+          <div className={styles.field}>
+            <label>Consumo médio (L/100km) *</label>
+            <input
+              className={styles.input}
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="6.50"
+              value={form.consumo_medio}
+              onChange={(e) => set("consumo_medio", e.target.value)}
+            />
+            {errors.consumo_medio && (
+              <span className={styles.fieldError}>{errors.consumo_medio}</span>
+            )}
           </div>
 
           <div className={styles.field}>

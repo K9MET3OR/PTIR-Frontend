@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motoristaService } from "../../../services/motoristaService";
-import { taxiService } from "../../../services/taxiService";
 import { api } from "../../../services/api";
 import styles from "../../../styles/Form.module.css";
 
@@ -22,7 +21,6 @@ function formatCodigoPostal(value) {
 
 export default function MotoristaRegisterPage() {
   const navigate = useNavigate();
-  const [taxis, setTaxis] = useState([]);
 
   const [form, setForm] = useState({
     nome: "",
@@ -35,7 +33,6 @@ export default function MotoristaRegisterPage() {
     validade_carta: "",
     codigo_postal: "",
     localidade: "",
-    taxi_id: "",
   });
 
   const [errors, setErrors] = useState({});
@@ -43,38 +40,57 @@ export default function MotoristaRegisterPage() {
   const [apiError, setApiError] = useState("");
   const [localidadeLoading, setLocalidadeLoading] = useState(false);
 
-  useEffect(() => {
-    taxiService.list()
-      .then((response) => setTaxis(Array.isArray(response?.data) ? response.data : []))
-      .catch(() => setTaxis([]));
-  }, []);
-
   async function fetchLocalidade(codigoPostal) {
     setLocalidadeLoading(true);
+
     try {
       const data = await api.get(`/driver/localidade/${codigoPostal}`);
-      setForm((f) => ({ ...f, localidade: data.localidade || "" }));
-      setErrors((e) => ({ ...e, codigo_postal: "" }));
+
+      setForm((f) => ({
+        ...f,
+        localidade: data.localidade || "",
+      }));
+
+      setErrors((e) => ({
+        ...e,
+        codigo_postal: "",
+      }));
     } catch (err) {
       setErrors((e) => ({
         ...e,
         codigo_postal: err.message || "Código postal não encontrado.",
       }));
-      setForm((f) => ({ ...f, localidade: "" }));
+
+      setForm((f) => ({
+        ...f,
+        localidade: "",
+      }));
     } finally {
       setLocalidadeLoading(false);
     }
   }
 
   function set(field, value) {
-    setForm((f) => ({ ...f, [field]: value }));
-    if (errors[field]) setErrors((e) => ({ ...e, [field]: "" }));
+    setForm((f) => ({
+      ...f,
+      [field]: value,
+    }));
+
+    if (errors[field]) {
+      setErrors((e) => ({
+        ...e,
+        [field]: "",
+      }));
+    }
 
     if (field === "codigo_postal") {
       if (/^\d{4}-\d{3}$/.test(value)) {
         fetchLocalidade(value);
       } else {
-        setForm((f) => ({ ...f, localidade: "" }));
+        setForm((f) => ({
+          ...f,
+          localidade: "",
+        }));
       }
     }
   }
@@ -110,8 +126,13 @@ export default function MotoristaRegisterPage() {
   function validate() {
     const e = {};
 
-    if (!form.nome.trim()) e.nome = "Nome obrigatório.";
-    if (!validateNIF(form.nif)) e.nif = "NIF inválido (9 dígitos positivos).";
+    if (!form.nome.trim()) {
+      e.nome = "Nome obrigatório.";
+    }
+
+    if (!validateNIF(form.nif)) {
+      e.nif = "NIF inválido (9 dígitos positivos).";
+    }
 
     if (!form.data_nascimento) {
       e.data_nascimento = "Data de nascimento obrigatória.";
@@ -121,23 +142,41 @@ export default function MotoristaRegisterPage() {
       let idade = today.getFullYear() - birthDate.getFullYear();
 
       const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+
+      if (
+        monthDiff < 0 ||
+        (monthDiff === 0 && today.getDate() < birthDate.getDate())
+      ) {
         idade--;
       }
 
-      if (idade < 18) e.data_nascimento = "O motorista deve ter pelo menos 18 anos.";
+      if (idade < 18) {
+        e.data_nascimento = "O motorista deve ter pelo menos 18 anos.";
+      }
     }
 
-    if (!form.email.includes("@")) e.email = "Email inválido.";
-    if (!/^\d{9}$/.test(form.telefone)) e.telefone = "Telefone inválido (9 dígitos).";
-    if (!validateCarta(form.n_carta)) e.n_carta = "Número de carta de condução obrigatório.";
+    if (!form.email.trim()) {
+      e.email = "Email obrigatório.";
+    } else if (!form.email.includes("@")) {
+      e.email = "Email inválido.";
+    }
+
+    if (!/^\d{9}$/.test(form.telefone)) {
+      e.telefone = "Telefone inválido (9 dígitos).";
+    }
+
+    if (!validateCarta(form.n_carta)) {
+      e.n_carta = "Número de carta de condução obrigatório.";
+    }
 
     const erroValidadeCarta = validarValidadeCarta(form.validade_carta);
     if (erroValidadeCarta) {
       e.validade_carta = erroValidadeCarta;
     }
 
-    if (form.codigo_postal && !/^\d{4}-\d{3}$/.test(form.codigo_postal)) {
+    if (!form.codigo_postal) {
+      e.codigo_postal = "Código postal obrigatório.";
+    } else if (!/^\d{4}-\d{3}$/.test(form.codigo_postal)) {
       e.codigo_postal = "Código postal inválido. Use XXXX-XXX.";
     }
 
@@ -146,6 +185,7 @@ export default function MotoristaRegisterPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
     const validationErrors = validate();
 
     if (Object.keys(validationErrors).length) {
@@ -163,7 +203,6 @@ export default function MotoristaRegisterPage() {
       });
 
       alert("Motorista registado com sucesso!");
-
       navigate("/gestor/motoristas");
     } catch (err) {
       setApiError(err.message || "Erro ao registar motorista.");
@@ -185,7 +224,6 @@ export default function MotoristaRegisterPage() {
 
       <form className={styles.formCard} onSubmit={handleSubmit} noValidate>
         <div className={styles.grid}>
-
           <div className={styles.field}>
             <label className={styles.label}>Nome completo *</label>
             <input
@@ -217,7 +255,9 @@ export default function MotoristaRegisterPage() {
               value={form.data_nascimento}
               onChange={(e) => set("data_nascimento", e.target.value)}
             />
-            {errors.data_nascimento && <span className={styles.fieldError}>{errors.data_nascimento}</span>}
+            {errors.data_nascimento && (
+              <span className={styles.fieldError}>{errors.data_nascimento}</span>
+            )}
           </div>
 
           <div className={styles.field}>
@@ -280,23 +320,30 @@ export default function MotoristaRegisterPage() {
                 .slice(0, 10)}
               onChange={(e) => set("validade_carta", e.target.value)}
             />
-            {errors.validade_carta && <span className={styles.fieldError}>{errors.validade_carta}</span>}
+            {errors.validade_carta && (
+              <span className={styles.fieldError}>{errors.validade_carta}</span>
+            )}
           </div>
 
           <div className={styles.field}>
-            <label>Código postal (opcional)</label>
+            <label>Código postal *</label>
             <input
               className={styles.input}
               placeholder="1234-567"
-              maxLength="8"
+              maxLength={8}
               value={form.codigo_postal}
-              onChange={(e) => set("codigo_postal", formatCodigoPostal(e.target.value))} />
-            {localidadeLoading && <small style={{ color: "#666" }}>A carregar localidade…</small>}
-            {errors.codigo_postal && <span className={styles.fieldError}>{errors.codigo_postal}</span>}
+              onChange={(e) => set("codigo_postal", formatCodigoPostal(e.target.value))}
+            />
+            {localidadeLoading && (
+              <small style={{ color: "#b7a7ff" }}>A carregar localidade…</small>
+            )}
+            {errors.codigo_postal && (
+              <span className={styles.fieldError}>{errors.codigo_postal}</span>
+            )}
           </div>
 
           <div className={styles.field}>
-            <label>Localidade (preenchida automaticamente)</label>
+            <label>Localidade</label>
             <input
               className={styles.input}
               placeholder="Será preenchida automaticamente"
@@ -304,22 +351,6 @@ export default function MotoristaRegisterPage() {
               readOnly
               disabled={localidadeLoading}
             />
-          </div>
-
-          <div className={`${styles.field} ${styles.fullWidth}`}>
-            <label>Táxi atribuído (opcional)</label>
-            <select
-              className={styles.select}
-              value={form.taxi_id}
-              onChange={(e) => set("taxi_id", e.target.value)}
-            >
-              <option value="">— selecionar —</option>
-              {taxis.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.matricula} — {t.marca} {t.modelo} {t.ano_compra}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 
@@ -329,6 +360,7 @@ export default function MotoristaRegisterPage() {
           <button type="submit" className={styles.submitBtn} disabled={loading}>
             {loading ? "A registar…" : "Registar motorista →"}
           </button>
+
           <button
             type="button"
             className={styles.cancelBtn}

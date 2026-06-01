@@ -135,7 +135,6 @@ export default function TaxiRegisterPage() {
 
       <form className={styles.formCard} onSubmit={handleSubmit} noValidate>
         <div className={styles.grid}>
-
           <div className={styles.field}>
             <label>Matrícula *</label>
             <input
@@ -161,20 +160,6 @@ export default function TaxiRegisterPage() {
           </div>
 
           <div className={styles.field}>
-            <label>Consumo médio (L/100km) *</label>
-            <input
-              className={styles.input}
-              type="number"
-              step="0.01"
-              min="0.01"
-              placeholder="6.50"
-              value={form.consumo_medio}
-              onChange={(e) => set("consumo_medio", e.target.value)}
-            />
-            {errors.consumo_medio && <span className={styles.fieldError}>{errors.consumo_medio}</span>}
-          </div>
-
-          <div className={styles.field}>
             <label>Marca *</label>
             <select
               className={styles.select}
@@ -189,6 +174,20 @@ export default function TaxiRegisterPage() {
               ))}
             </select>
             {errors.marca && <span className={styles.fieldError}>{errors.marca}</span>}
+          </div>
+
+          <div className={styles.field}>
+            <label>Consumo médio (L/100km) *</label>
+            <input
+              className={styles.input}
+              type="number"
+              step="0.01"
+              min="0.01"
+              placeholder="6.50"
+              value={form.consumo_medio}
+              onChange={(e) => set("consumo_medio", e.target.value)}
+            />
+            {errors.consumo_medio && <span className={styles.fieldError}>{errors.consumo_medio}</span>}
           </div>
 
           <div className={styles.field}>
@@ -213,15 +212,31 @@ export default function TaxiRegisterPage() {
 
           <div className={styles.field}>
             <label>Tipo de motor *</label>
-            <select className={styles.select} value={form.tipo_motor} onChange={(e) => set("tipo_motor", e.target.value)}>
-              {MOTOR_TYPES.map((m) => <option key={m}>{m}</option>)}
+            <select
+              className={styles.select}
+              value={form.tipo_motor}
+              onChange={(e) => set("tipo_motor", e.target.value)}
+            >
+              {MOTOR_TYPES.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
             </select>
           </div>
 
           <div className={styles.field}>
             <label>Nível de conforto *</label>
-            <select className={styles.select} value={form.nivel_conforto} onChange={(e) => set("nivel_conforto", e.target.value)}>
-              {COMFORT_TYPES.map((c) => <option key={c}>{c}</option>)}
+            <select
+              className={styles.select}
+              value={form.nivel_conforto}
+              onChange={(e) => set("nivel_conforto", e.target.value)}
+            >
+              {COMFORT_TYPES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
           </div>
 

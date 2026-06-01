@@ -188,11 +188,9 @@ export default function MotoristaEditPage() {
       }
     }
 
-    if (
-      form.codigo_postal !== originalForm?.codigo_postal &&
-      form.codigo_postal &&
-      !/^\d{4}-\d{3}$/.test(form.codigo_postal)
-    ) {
+    if (!form.codigo_postal) {
+      e.codigo_postal = "Código postal obrigatório.";
+    } else if (!/^\d{4}-\d{3}$/.test(form.codigo_postal)) {
       e.codigo_postal = "Código postal inválido. Use XXXX-XXX.";
     }
 
@@ -360,7 +358,7 @@ export default function MotoristaEditPage() {
           </div>
 
           <div className={styles.field}>
-            <label>Código postal</label>
+            <label>Código postal *</label>
             <input
               className={styles.input}
               placeholder="1000-001"
