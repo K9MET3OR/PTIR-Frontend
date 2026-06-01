@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PaymentForm from "../../components/PaymentForm";
 import { obterDetalheViagem } from "../../services/tripService";
+import { useFeedback } from "../../context/FeedbackContext";
 import styles from "./ClientePagamentoPage.module.css";
 
 export default function ClientePagamentoPage() {
   const navigate = useNavigate();
+  const feedback = useFeedback();
   const [searchParams] = useSearchParams();
 
   const tripId = searchParams.get("tripId");
@@ -20,7 +22,9 @@ export default function ClientePagamentoPage() {
   useEffect(() => {
     const carregarDetalhesViagem = async () => {
       if (!tripId) {
-        setErro("Viagem não encontrada.");
+        const message = "Viagem não encontrada.";
+        setErro(message);
+        feedback.error(message);
         setLoading(false);
         return;
       }
@@ -30,7 +34,9 @@ export default function ClientePagamentoPage() {
         const viagem = response?.trip || response?.data || response;
 
         if (!viagem) {
-          setErro("Não foi possível carregar os detalhes da viagem.");
+          const message = "Não foi possível carregar os detalhes da viagem.";
+          setErro(message);
+          feedback.error(message);
           setLoading(false);
           return;
         }
@@ -54,6 +60,7 @@ export default function ClientePagamentoPage() {
 
         if (viagem.status_trip === "finished") {
           setPagamentoSucesso(true);
+          feedback.info("Esta viagem já se encontra paga e finalizada.");
 
           setTimeout(() => {
             navigate(`/cliente/pedir?tripId=${viagem.id}&resume=payment`, {
@@ -65,20 +72,25 @@ export default function ClientePagamentoPage() {
         }
 
         if (viagem.status_trip !== "awaiting_payment") {
-          setErro(
-            "Esta viagem ainda não está pronta para pagamento ou já não pode ser paga."
-          );
+          const message =
+            "Esta viagem ainda não está pronta para pagamento ou já não pode ser paga.";
+
+          setErro(message);
+          feedback.warning(message);
         }
       } catch (error) {
         console.error("Erro ao carregar viagem:", error);
-        setErro("Erro ao carregar detalhes da viagem. Tenta novamente.");
+
+        const message = "Erro ao carregar detalhes da viagem. Tenta novamente.";
+        setErro(message);
+        feedback.error(message);
       } finally {
         setLoading(false);
       }
     };
 
     carregarDetalhesViagem();
-  }, [tripId, amountFromUrl, navigate]);
+  }, [tripId, amountFromUrl, navigate, feedback]);
 
   const handlePaymentSuccess = (data) => {
     console.log("Pagamento realizado com sucesso:", data);
@@ -91,6 +103,8 @@ export default function ClientePagamentoPage() {
     setPagamentoSucesso(true);
     setErro(null);
 
+    feedback.success("Pagamento confirmado com sucesso!");
+
     setTimeout(() => {
       navigate(`/cliente/pedir?tripId=${idFinal}&resume=payment`, {
         replace: true,
@@ -100,7 +114,10 @@ export default function ClientePagamentoPage() {
 
   const handlePaymentError = (error) => {
     console.error("Erro no pagamento:", error);
-    setErro(error?.message || error || "Erro ao processar pagamento.");
+
+    const message = error?.message || error || "Erro ao processar pagamento.";
+    setErro(message);
+    feedback.error(message);
   };
 
   const handleVoltar = () => {

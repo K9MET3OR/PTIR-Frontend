@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useFeedback } from "../../context/FeedbackContext";
 import styles from "./SignupPage.module.css";
 
 const ROLES = [
@@ -9,7 +10,6 @@ const ROLES = [
   { id: "cliente", label: "Client", icon: "👤" },
 ];
 
-// Função para validar NIF simples (9 dígitos positivos)
 function validarNIF(nif) {
   nif = String(nif).replace(/\s/g, "");
 
@@ -85,6 +85,7 @@ function calcularIdade(dataNascimento) {
 
 export default function SignupPage() {
   const { signup } = useAuth();
+  const feedback = useFeedback();
   const navigate = useNavigate();
   const location = useLocation();
   const initialRole = location.state?.selectedRole || "cliente";
@@ -98,33 +99,36 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Campos específicos para cliente/motorista
   const [nif, setNif] = useState("");
   const [genero, setGenero] = useState("");
 
-  // Campos específicos para motorista
   const [nCarta, setNCarta] = useState("");
   const [dataNasc, setDataNasc] = useState("");
   const [validadeCarta, setValidadeCarta] = useState("");
   const [codigoPostal, setCodigoPostal] = useState("");
   const [telefone, setTelefone] = useState("");
 
+  function showValidationError(message) {
+    setError(message);
+    feedback.warning(message);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
 
     if (!username || !name || !email || !password) {
-      setError("Todos os campos são obrigatórios.");
+      showValidationError("Todos os campos são obrigatórios.");
       return;
     }
 
     if (password !== confirmPass) {
-      setError("As palavras-passe não coincidem.");
+      showValidationError("As palavras-passe não coincidem.");
       return;
     }
 
     if (password.length < 6) {
-      setError("Palavra-passe deve ter pelo menos 6 caracteres.");
+      showValidationError("Palavra-passe deve ter pelo menos 6 caracteres.");
       return;
     }
 
@@ -132,62 +136,62 @@ export default function SignupPage() {
     const hasLetters = /[a-zA-Z]/.test(password);
 
     if (!hasDigits || !hasLetters) {
-      setError("Palavra-passe deve conter dígitos e letras.");
+      showValidationError("Palavra-passe deve conter dígitos e letras.");
       return;
     }
 
     if ((selectedRole === "cliente" || selectedRole === "motorista") && !nif) {
-      setError("NIF é obrigatório.");
+      showValidationError("NIF é obrigatório.");
       return;
     }
 
     if (nif && !validarNIF(nif)) {
-      setError("NIF inválido. Verifique o número.");
+      showValidationError("NIF inválido. Verifique o número.");
       return;
     }
 
     if ((selectedRole === "cliente" || selectedRole === "motorista") && !genero) {
-      setError("Género é obrigatório.");
+      showValidationError("Género é obrigatório.");
       return;
     }
 
     if (selectedRole === "motorista") {
       if (!nCarta || !dataNasc || !telefone || !codigoPostal || !validadeCarta) {
-        setError("Todos os campos são obrigatórios para motorista.");
+        showValidationError("Todos os campos são obrigatórios para motorista.");
         return;
       }
 
       if (nCarta.trim().length < 5) {
-        setError("Número de carta deve ter pelo menos 5 caracteres.");
+        showValidationError("Número de carta deve ter pelo menos 5 caracteres.");
         return;
       }
 
       if (!/^\d{9}$/.test(telefone)) {
-        setError("Telefone inválido. Deve ter 9 dígitos.");
+        showValidationError("Telefone inválido. Deve ter 9 dígitos.");
         return;
       }
 
       if (!/^\d{4}-\d{3}$/.test(codigoPostal)) {
-        setError("Código postal deve ter formato XXXX-XXX.");
+        showValidationError("Código postal deve ter formato XXXX-XXX.");
         return;
       }
 
       const idade = calcularIdade(dataNasc);
 
       if (idade === null) {
-        setError("Data de nascimento inválida.");
+        showValidationError("Data de nascimento inválida.");
         return;
       }
 
       if (idade < 18) {
-        setError("Deve ter pelo menos 18 anos.");
+        showValidationError("Deve ter pelo menos 18 anos.");
         return;
       }
 
       const erroValidadeCarta = validarValidadeCarta(validadeCarta);
 
       if (erroValidadeCarta) {
-        setError(erroValidadeCarta);
+        showValidationError(erroValidadeCarta);
         return;
       }
     }
@@ -226,7 +230,7 @@ export default function SignupPage() {
 
       await signup(signupData);
 
-      alert("Registo realizado com sucesso!");
+      feedback.success("Registo realizado com sucesso!");
 
       const routeByRole = {
         admin: "/gestor",
@@ -245,9 +249,17 @@ export default function SignupPage() {
         "auth/network-request-failed": "Sem ligação à internet.",
       };
 
-      setError(messages[err.code] ?? err.message ?? "Erro ao registar. Tenta novamente.");
+      const message = messages[err.code] ?? err.message ?? "Erro ao registar. Tenta novamente.";
+      setError(message);
+      feedback.error(message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  function clearError() {
+    if (error) {
+      setError("");
     }
   }
 
@@ -289,7 +301,10 @@ export default function SignupPage() {
               type="text"
               placeholder="seu_utilizador"
               value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              onChange={(e) => {
+                setUsername(e.target.value);
+                clearError();
+              }}
               required
               autoComplete="username"
             />
@@ -302,7 +317,10 @@ export default function SignupPage() {
               type="text"
               placeholder="João Silva"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                clearError();
+              }}
               required
               autoComplete="name"
             />
@@ -315,7 +333,10 @@ export default function SignupPage() {
               type="email"
               placeholder="seu@email.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                clearError();
+              }}
               required
               autoComplete="email"
             />
@@ -328,7 +349,10 @@ export default function SignupPage() {
               type="password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                clearError();
+              }}
               required
               autoComplete="new-password"
             />
@@ -341,7 +365,10 @@ export default function SignupPage() {
               type="password"
               placeholder="••••••••"
               value={confirmPass}
-              onChange={(e) => setConfirmPass(e.target.value)}
+              onChange={(e) => {
+                setConfirmPass(e.target.value);
+                clearError();
+              }}
               required
               autoComplete="new-password"
             />
@@ -356,7 +383,10 @@ export default function SignupPage() {
                 placeholder="123456789"
                 value={nif}
                 maxLength={9}
-                onChange={(e) => setNif(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => {
+                  setNif(e.target.value.replace(/\D/g, ""));
+                  clearError();
+                }}
                 required
               />
             </div>
@@ -368,7 +398,10 @@ export default function SignupPage() {
               <select
                 id="genero"
                 value={genero}
-                onChange={(e) => setGenero(e.target.value)}
+                onChange={(e) => {
+                  setGenero(e.target.value);
+                  clearError();
+                }}
                 required
               >
                 <option value="">Seleciona o género</option>
@@ -386,7 +419,10 @@ export default function SignupPage() {
                   id="dataNasc"
                   type="date"
                   value={dataNasc}
-                  onChange={(e) => setDataNasc(e.target.value)}
+                  onChange={(e) => {
+                    setDataNasc(e.target.value);
+                    clearError();
+                  }}
                   required
                 />
               </div>
@@ -398,7 +434,10 @@ export default function SignupPage() {
                   type="text"
                   placeholder="AB123456"
                   value={nCarta}
-                  onChange={(e) => setNCarta(e.target.value.toUpperCase())}
+                  onChange={(e) => {
+                    setNCarta(e.target.value.toUpperCase());
+                    clearError();
+                  }}
                   required
                 />
               </div>
@@ -411,7 +450,10 @@ export default function SignupPage() {
                   value={validadeCarta}
                   min={dataHojeISO()}
                   max={dataMaxValidadeCartaISO()}
-                  onChange={(e) => setValidadeCarta(e.target.value)}
+                  onChange={(e) => {
+                    setValidadeCarta(e.target.value);
+                    clearError();
+                  }}
                   required
                 />
               </div>
@@ -424,7 +466,10 @@ export default function SignupPage() {
                   placeholder="912345678"
                   value={telefone}
                   maxLength={9}
-                  onChange={(e) => setTelefone(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => {
+                    setTelefone(e.target.value.replace(/\D/g, ""));
+                    clearError();
+                  }}
                   required
                 />
               </div>
@@ -437,7 +482,10 @@ export default function SignupPage() {
                   placeholder="1000-001"
                   value={codigoPostal}
                   maxLength={8}
-                  onChange={(e) => setCodigoPostal(formatarCodigoPostal(e.target.value))}
+                  onChange={(e) => {
+                    setCodigoPostal(formatarCodigoPostal(e.target.value));
+                    clearError();
+                  }}
                   required
                 />
               </div>

@@ -21,6 +21,7 @@
 .logoRow {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   margin-bottom: 1.75rem;
 }
@@ -49,12 +50,14 @@
   font-weight: 700;
   color: #ffffff;
   margin-bottom: 6px;
+  text-align: center;
 }
 
 .subtitle {
   font-size: 13px;
   color: #b7a7ff;
   margin-bottom: 1.5rem;
+  text-align: center;
 }
 
 /* Role selector */
@@ -143,6 +146,7 @@
   background: rgba(255, 71, 125, 0.12);
   border-radius: 12px;
   border: 1px solid rgba(255, 71, 125, 0.2);
+  text-align: center;
 }
 
 .submitBtn {

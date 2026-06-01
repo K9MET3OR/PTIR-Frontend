@@ -13,6 +13,7 @@ import {
 } from "../../services/tripService";
 import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
+import { useFeedback } from "../../context/FeedbackContext";
 import styles from "./PedirTaxiPage.module.css";
 
 const CONFORTO_OPTS = ["Básico", "Luxuoso"];
@@ -91,10 +92,40 @@ function formatarCountdown(segundos) {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
+function obterIniciaisUtilizador(user) {
+  const nomeCompleto =
+    user?.name ||
+    user?.nome ||
+    user?.displayName ||
+    "";
+
+  const partesNome = nomeCompleto
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (partesNome.length >= 2) {
+    const primeira = partesNome[0][0] || "";
+    const ultima = partesNome[partesNome.length - 1][0] || "";
+
+    return `${primeira}${ultima}`.toUpperCase();
+  }
+
+  const username =
+    user?.username ||
+    user?.email?.split("@")[0] ||
+    "";
+
+  return username.slice(0, 2).toUpperCase() || "??";
+}
+
 export default function PedirTaxiPage() {
   const { user, logout } = useAuth();
+  const feedback = useFeedback();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const iniciaisUser = obterIniciaisUtilizador(user);
 
   const [origemInput, setOrigemInput] = useState("");
   const [destinoInput, setDestinoInput] = useState("");
@@ -127,6 +158,7 @@ export default function PedirTaxiPage() {
 
   const origemTimer = useRef(null);
   const destinoTimer = useRef(null);
+  const profileMenuRef = useRef(null);
 
   const [mapView, setMapView] = useState({
     center: [FCT_LISBOA.lon, FCT_LISBOA.lat],
@@ -136,6 +168,25 @@ export default function PedirTaxiPage() {
   useEffect(() => {
     carregarTaxis();
   }, []);
+
+  useEffect(() => {
+    function handleClickFora(event) {
+      if (!profileOpen) return;
+
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target)
+      ) {
+        setProfileOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickFora);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickFora);
+    };
+  }, [profileOpen]);
 
   function limparEstadoParaNovoPedido() {
     localStorage.removeItem("cliente_trip_id");
@@ -924,12 +975,16 @@ export default function PedirTaxiPage() {
     setErro("");
 
     if (!origemCoords) {
-      setErro("Seleciona um local de origem válido.");
+      const message = "Seleciona um local de origem válido.";
+      setErro(message);
+      feedback.warning(message);
       return;
     }
 
     if (!destinoCoords) {
-      setErro("Seleciona um local de destino válido.");
+      const message = "Seleciona um local de destino válido.";
+      setErro(message);
+      feedback.warning(message);
       return;
     }
 
@@ -941,15 +996,20 @@ export default function PedirTaxiPage() {
     );
 
     if (distanciaEntrePontos <= DISTANCIA_MINIMA_VIAGEM_KM) {
+      const message = "A origem e o destino não podem ser iguais ou demasiado próximos.";
+
       setPrecos({});
       setDistanciaKm(0);
       setDuracao(0);
-      setErro("A origem e o destino não podem ser iguais ou demasiado próximos.");
+      setErro(message);
+      feedback.warning(message);
       return;
     }
 
     if (nPessoas < 1 || nPessoas > 4) {
-      setErro("Número de pessoas entre 1 e 4.");
+      const message = "Número de pessoas entre 1 e 4.";
+      setErro(message);
+      feedback.warning(message);
       return;
     }
 
@@ -959,7 +1019,9 @@ export default function PedirTaxiPage() {
 
   function confirmarPedido() {
     if (!user || !user.id) {
-      setErro("Tens de estar autenticado para fazer um pedido.");
+      const message = "Tens de estar autenticado para fazer um pedido.";
+      setErro(message);
+      feedback.warning(message);
       return;
     }
 
@@ -967,7 +1029,9 @@ export default function PedirTaxiPage() {
     const preco = precoSelecionado ? Number(precoSelecionado.price) : 0;
 
     if (!preco || Number.isNaN(preco) || preco <= 0) {
-      setErro("Não foi possível calcular o preço desta viagem.");
+      const message = "Não foi possível calcular o preço desta viagem.";
+      setErro(message);
+      feedback.error(message);
       return;
     }
 
@@ -994,15 +1058,22 @@ export default function PedirTaxiPage() {
           setEstadoViagem(response.trip.status_trip || "pending");
           setLoading(false);
           setStep("aguardar");
+
+          feedback.success("Pedido enviado com sucesso. Estamos à procura de um motorista.");
         } else {
-          setErro("Resposta do servidor inválida.");
+          const message = "Resposta do servidor inválida.";
+          setErro(message);
           setLoading(false);
+          feedback.error(message);
         }
       })
       .catch((error) => {
         console.error("Erro ao criar solicitação:", error);
-        setErro(error.message || "Erro ao enviar pedido. Tenta novamente.");
+
+        const message = error.message || "Erro ao enviar pedido. Tenta novamente.";
+        setErro(message);
         setLoading(false);
+        feedback.error(message);
       });
   }
 
@@ -1018,8 +1089,12 @@ export default function PedirTaxiPage() {
       setEstadoViagem(trip?.status_trip || "client_confirmed");
       setStep("motorista_a_caminho");
       setAvisoTimeoutMotorista("");
+
+      feedback.success("Motorista confirmado. Está a caminho.");
     } catch (error) {
-      setErro(error.message || "Erro ao confirmar motorista.");
+      const message = error.message || "Erro ao confirmar motorista.";
+      setErro(message);
+      feedback.error(message);
     } finally {
       setLoading(false);
     }
@@ -1035,9 +1110,14 @@ export default function PedirTaxiPage() {
       setTripDetalhes(response.trip || null);
       setEstadoViagem(response.trip?.status_trip || "pending");
       setStep("aguardar");
-      setErro("Rejeitaste este motorista. O pedido voltou a ficar pendente.");
+
+      const message = "Rejeitaste este motorista. O pedido voltou a ficar pendente.";
+      setErro(message);
+      feedback.info(message);
     } catch (error) {
-      setErro(error.message || "Erro ao rejeitar motorista.");
+      const message = error.message || "Erro ao rejeitar motorista.";
+      setErro(message);
+      feedback.error(message);
     } finally {
       setLoading(false);
     }
@@ -1045,7 +1125,9 @@ export default function PedirTaxiPage() {
 
   function retomarPagamento() {
     if (!tripId) {
-      setErro("Não foi possível encontrar a viagem para pagamento.");
+      const message = "Não foi possível encontrar a viagem para pagamento.";
+      setErro(message);
+      feedback.error(message);
       return;
     }
 
@@ -1059,7 +1141,9 @@ export default function PedirTaxiPage() {
     const valorPagamento = Number(preco);
 
     if (!valorPagamento || Number.isNaN(valorPagamento) || valorPagamento <= 0) {
-      setErro("Não foi possível encontrar o valor da viagem para pagamento.");
+      const message = "Não foi possível encontrar o valor da viagem para pagamento.";
+      setErro(message);
+      feedback.error(message);
       return;
     }
 
@@ -1070,9 +1154,11 @@ export default function PedirTaxiPage() {
     try {
       if (tripId) {
         await atualizarViagem(tripId, { status_trip: "cancelled" });
+        feedback.info("Pedido cancelado.");
       }
     } catch (error) {
       console.error("Erro ao cancelar viagem:", error);
+      feedback.error("Erro ao cancelar viagem.");
     }
 
     localStorage.removeItem("cliente_trip_id");
@@ -1693,17 +1779,17 @@ export default function PedirTaxiPage() {
       </aside>
 
       <div className={styles.mapaWrap}>
-        <div className={styles.profileCardWrapper}>
+        <div className={styles.profileCardWrapper} ref={profileMenuRef}>
           <button
             className={styles.profileBtn}
             onClick={() => setProfileOpen((v) => !v)}
+            title={user?.name || user?.nome || user?.username || user?.email || "Utilizador"}
           >
-            {user?.email ? user.email.slice(0, 2).toUpperCase() : "??"}
+            {iniciaisUser}
           </button>
 
           {profileOpen && (
             <div className={styles.profileMenu}>
-              <button className={styles.profileMenuItem}>Editar perfil</button>
               <button className={styles.profileMenuItem} onClick={logout}>
                 Logout
               </button>
