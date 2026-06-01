@@ -22,9 +22,6 @@ export async function criarSolicitacaoViagem(tripData) {
   }
 }
 
-/**
- * Lista todas as viagens
- */
 export async function listarViagens() {
   try {
     const response = await api.get('/trip/');
@@ -34,9 +31,6 @@ export async function listarViagens() {
   }
 }
 
-/**
- * Obtém os detalhes de uma viagem específica
- */
 export async function obterDetalheViagem(tripId) {
   try {
     const response = await api.get(`/trip/${tripId}`);
@@ -46,9 +40,6 @@ export async function obterDetalheViagem(tripId) {
   }
 }
 
-/**
- * Motorista aceita uma viagem
- */
 export async function aceitarViagem(tripId, driverId) {
   try {
     const response = await api.post(`/trip/${tripId}/accept`, {
@@ -60,9 +51,6 @@ export async function aceitarViagem(tripId, driverId) {
   }
 }
 
-/**
- * Motorista rejeita uma viagem
- */
 export async function rejeitarViagem(tripId) {
   try {
     const response = await api.post(`/trip/${tripId}/reject`);
@@ -72,9 +60,6 @@ export async function rejeitarViagem(tripId) {
   }
 }
 
-/**
- * Finaliza uma viagem
- */
 export async function finalizarViagem(tripId) {
   try {
     const response = await api.post(`/trip/${tripId}/finish`);
@@ -84,9 +69,6 @@ export async function finalizarViagem(tripId) {
   }
 }
 
-/**
- * Atualiza dados de uma viagem
- */
 export async function atualizarViagem(tripId, updateData) {
   try {
     const response = await api.patch(`/trip/${tripId}`, updateData);
@@ -96,9 +78,6 @@ export async function atualizarViagem(tripId, updateData) {
   }
 }
 
-/**
- * Cria uma intenção de pagamento Stripe
- */
 export async function criarIntencaoPagamento(tripId, amount) {
   try {
     const response = await api.post('/trip/pagamento/create', {
@@ -112,9 +91,6 @@ export async function criarIntencaoPagamento(tripId, amount) {
   }
 }
 
-/**
- * Confirma um pagamento Stripe
- */
 export async function confirmarPagamento(tripId, paymentIntentId) {
   try {
     const response = await api.post('/trip/pagamento/confirm', {
@@ -127,9 +103,6 @@ export async function confirmarPagamento(tripId, paymentIntentId) {
   }
 }
 
-/**
- * Lista viagens de um cliente específico
- */
 export async function listarViagensCliente(clientId) {
   try {
     const data = await api.get('/trip/');
@@ -143,9 +116,6 @@ export async function listarViagensCliente(clientId) {
   }
 }
 
-/**
- * Lista viagens pendentes para um motorista aceitar
- */
 export async function listarViagensPendentes(driverId) {
   try {
     const data = await api.get('/trip/');
@@ -166,9 +136,6 @@ export async function listarViagensPendentes(driverId) {
   }
 }
 
-/**
- * Lista viagens aceites de um motorista
- */
 export async function listarViagensAceitesMotorista(driverId) {
   try {
     const data = await api.get('/trip/');
@@ -190,7 +157,6 @@ export async function listarViagensAceitesMotorista(driverId) {
     throw { message: error.message || 'Erro ao listar viagens do motorista' };
   }
 }
-
 
 export async function listarViagensFinalizadasMotorista(driverId) {
   try {
@@ -225,5 +191,14 @@ export async function iniciarViagem(tripId) {
     return response;
   } catch (error) {
     throw { message: error.message || 'Erro ao iniciar viagem' };
+  }
+}
+
+export async function cancelarEsperaMotorista(tripId) {
+  try {
+    const response = await api.post(`/trip/${tripId}/cancel-driver-wait`);
+    return response;
+  } catch (error) {
+    throw { message: error.message || 'Erro ao cancelar espera do cliente' };
   }
 }

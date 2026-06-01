@@ -8,6 +8,7 @@ import {
   aceitarViagem,
   iniciarViagem,
   finalizarViagem,
+  cancelarEsperaMotorista,
 } from "../../services/tripService";
 
 import {
@@ -46,6 +47,49 @@ function formatarTempo(ms) {
 
   if (horas === 0 && minutos === 0 && segundos === 0) return "0h 0m 0s";
   return `${horas}h ${minutos}m ${segundos}s`;
+}
+
+function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
+  const toRad = (valor) => (valor * Math.PI) / 180;
+
+  const R = 6371;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function formatarDistancia(km) {
+  if (km == null || Number.isNaN(Number(km))) return "A calcular...";
+  const valor = Number(km);
+
+  if (valor < 1) {
+    return `${Math.round(valor * 1000)} m`;
+  }
+
+  return `${valor.toFixed(1)} km`;
+}
+
+function estimarMinutosPorDistanciaKm(distanciaKm) {
+  if (distanciaKm == null || Number.isNaN(Number(distanciaKm))) return null;
+
+  const velocidadeMediaKmH = 40;
+  return Math.max(1, Math.round((Number(distanciaKm) / velocidadeMediaKmH) * 60));
+}
+
+function formatarCountdown(segundos) {
+  const total = Math.max(0, Number(segundos) || 0);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
 export default function MapaPedidosPage() {
@@ -88,6 +132,8 @@ export default function MapaPedidosPage() {
 
   const [turnoAtivo, setTurnoAtivo] = useState(null);
   const [tempoRestanteTurno, setTempoRestanteTurno] = useState(0);
+  const [pedidosPendentesComDistancia, setPedidosPendentesComDistancia] = useState([]);
+  const [segundosRestantesConfirmacao, setSegundosRestantesConfirmacao] = useState(60);
   const [loadingTurno, setLoadingTurno] = useState(true);
   const [turnosMotorista, setTurnosMotorista] = useState([]);
 
@@ -302,6 +348,27 @@ export default function MapaPedidosPage() {
     }
   };
 
+  async function handleCancelarEspera(tripId, silencioso = false) {
+    try {
+      setCarregandoId(tripId);
+      setErroViagens("");
+
+      await cancelarEsperaMotorista(tripId);
+      await carregarViagens();
+
+      if (!silencioso) {
+        setMensagemPainel("A espera pela resposta do cliente foi cancelada.");
+      } else {
+        setMensagemPainel("O cliente não respondeu a tempo. O pedido foi cancelado.");
+      }
+    } catch (error) {
+      console.error("Erro ao cancelar espera do cliente:", error);
+      setErroViagens(error.message || "Erro ao cancelar espera do cliente.");
+    } finally {
+      setCarregandoId(null);
+    }
+  }
+
   async function handleIniciarViagem(tripId) {
     try {
       setCarregandoId(tripId);
@@ -379,9 +446,105 @@ export default function MapaPedidosPage() {
     }
   }
 
-  const pedidosPendentes = turnoAtivo
-    ? viagensPendentes.filter((p) => !viagensIgnoradas.includes(p.id))
-    : [];
+  const pedidosPendentes = useMemo(() => {
+    if (!turnoAtivo) return [];
+
+    return viagensPendentes.filter((p) => !viagensIgnoradas.includes(p.id));
+  }, [turnoAtivo, viagensPendentes, viagensIgnoradas]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function enriquecerPedidosComDistancia() {
+      if (!turnoAtivo || pedidosPendentes.length === 0) {
+        setPedidosPendentesComDistancia([]);
+        return;
+      }
+
+      const taxiLat = FCT_LISBOA.lat;
+      const taxiLon = FCT_LISBOA.lon;
+      const tempoRestanteMin = Math.floor((tempoRestanteTurno || 0) / 1000 / 60);
+
+      const pedidosCalculados = await Promise.all(
+        pedidosPendentes.map(async (pedido) => {
+          try {
+            const origem = await obterCoordsLocal(pedido.start_location);
+            const destino = await obterCoordsLocal(pedido.end_location);
+
+            if (!origem || !destino) {
+              return {
+                ...pedido,
+                distancia_motorista_km: null,
+                distancia_viagem_km: null,
+                tempo_ate_origem_min: null,
+                tempo_viagem_min: null,
+                tempo_total_estimado_min: null,
+              };
+            }
+
+            const distanciaMotoristaKm = calcularDistanciaKm(
+              taxiLat,
+              taxiLon,
+              origem.lat,
+              origem.lon
+            );
+
+            const distanciaViagemKm = calcularDistanciaKm(
+              origem.lat,
+              origem.lon,
+              destino.lat,
+              destino.lon
+            );
+
+            const tempoAteOrigemMin = estimarMinutosPorDistanciaKm(distanciaMotoristaKm);
+            const tempoViagemMin = estimarMinutosPorDistanciaKm(distanciaViagemKm);
+
+            return {
+              ...pedido,
+              distancia_motorista_km: distanciaMotoristaKm,
+              distancia_viagem_km: distanciaViagemKm,
+              tempo_ate_origem_min: tempoAteOrigemMin,
+              tempo_viagem_min: tempoViagemMin,
+              tempo_total_estimado_min:
+                tempoAteOrigemMin != null && tempoViagemMin != null
+                  ? tempoAteOrigemMin + tempoViagemMin
+                  : null,
+            };
+          } catch {
+            return {
+              ...pedido,
+              distancia_motorista_km: null,
+              distancia_viagem_km: null,
+              tempo_ate_origem_min: null,
+              tempo_viagem_min: null,
+              tempo_total_estimado_min: null,
+            };
+          }
+        })
+      );
+
+      const pedidosFiltrados = pedidosCalculados.filter((pedido) => {
+        if (pedido.tempo_total_estimado_min == null) return false;
+        return pedido.tempo_total_estimado_min <= tempoRestanteMin;
+      });
+
+      if (!cancelled) {
+        const pedidosOrdenados = [...pedidosFiltrados].sort((a, b) => {
+          const distanciaA = a.distancia_motorista_km ?? Number.POSITIVE_INFINITY;
+          const distanciaB = b.distancia_motorista_km ?? Number.POSITIVE_INFINITY;
+          return distanciaA - distanciaB;
+        });
+
+        setPedidosPendentesComDistancia(pedidosOrdenados);
+      }
+    }
+
+    enriquecerPedidosComDistancia();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [turnoAtivo, pedidosPendentes, tempoRestanteTurno]);
 
   const pedidosAguardaConfirmacao = viagensMotorista.filter(
     (trip) => trip.status_trip === "driver_accepted"
@@ -437,6 +600,29 @@ export default function MapaPedidosPage() {
       setAbaAtiva("pedidos");
     }
   }, [temPedidoEmCurso, abaAtiva]);
+
+  useEffect(() => {
+    const tripId = pedidosAguardaConfirmacao[0]?.id;
+
+    if (!tripId) {
+      setSegundosRestantesConfirmacao(20);
+      return;
+    }
+
+    setSegundosRestantesConfirmacao((prev) => (prev > 0 && prev <= 20 ? prev : 20));
+
+    const interval = setInterval(() => {
+      setSegundosRestantesConfirmacao((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [pedidosAguardaConfirmacao[0]?.id]);
 
   useEffect(() => {
     if (pedidosAguardaConfirmacao.length > 0) {
@@ -516,10 +702,6 @@ export default function MapaPedidosPage() {
     lon: FCT_LISBOA.lon,
     lat: FCT_LISBOA.lat,
   };
-
-  console.log("turnoAtivo:", turnoAtivo);
-  console.log("pedidoSelecionadoMapa:", pedidoSelecionadoMapa);
-  console.log("matriculaMapa:", matriculaMapa);
 
   const taxiBaseMarker = {
     id: "taxi-driver",
@@ -679,7 +861,7 @@ export default function MapaPedidosPage() {
     ...(!viagemMapaAtual && turnoAtivo ? [taxiBaseMarker] : []),
 
     ...(viagemMapaAtual?.status_trip === "awaiting_payment" && pedidoCoords?.destino
-      ? [ 
+      ? [
           {
             id: "cliente-destino",
             lon: pedidoCoords.destino.lon,
@@ -734,7 +916,7 @@ export default function MapaPedidosPage() {
           },
         ]
       : []),
-    
+
     ...(viagemMapaAtual?.status_trip === "finished" && pedidoCoords
       ? [
           {
@@ -887,10 +1069,14 @@ export default function MapaPedidosPage() {
                     <div className={styles.emptyState}>
                       Tens de iniciar um turno para veres pedidos pendentes
                     </div>
-                  ) : pedidosPendentes.length === 0 ? (
+                  ) : pedidosPendentes.length > 0 && pedidosPendentesComDistancia.length === 0 ? (
+                    <div className={styles.emptyState}>
+                      Não há pedidos que caibam no tempo restante do turno
+                    </div>
+                  ) : pedidosPendentesComDistancia.length === 0 ? (
                     <div className={styles.emptyState}>Não há pedidos pendentes</div>
                   ) : (
-                    pedidosPendentes.map((p) => (
+                    pedidosPendentesComDistancia.map((p) => (
                       <div
                         key={p.id}
                         className={`${styles.pedidoItem} ${
@@ -908,8 +1094,13 @@ export default function MapaPedidosPage() {
                           <span className={styles.rotaArrow}>→</span>
                           <span>{p.end_location}</span>
                         </div>
+
                         <div className={styles.pedidoMeta}>
                           {p.n_people} pessoa{p.n_people > 1 ? "s" : ""} · {p.nivel_conforto}
+                        </div>
+
+                        <div className={styles.pedidoMeta}>
+                          Distância: {formatarDistancia(p.distancia_motorista_km)}
                         </div>
 
                         {pedidoSelecionadoMapa?.id === p.id && (
@@ -1001,31 +1192,69 @@ export default function MapaPedidosPage() {
                 <div className={styles.historicList}>
                   {pedidosAguardaConfirmacao.map((v) => (
                     <div
-                      key={v.id}
-                      className={`${styles.historicoItem} ${
-                        pedidoSelecionadoMapa?.id === v.id ? styles.historicoItemAtivo : ""
-                      }`}
-                      onClick={() => setPedidoSelecionadoMapa(v)}
-                    >
-                      <div className={styles.historicoHeader}>
-                        <span className={styles.historicoCliente}>Pedido aceite</span>
-                        <span className={styles.historicoGanho}>
-                          {v.price ? `${Number(v.price).toFixed(2)} €` : "-"}
-                        </span>
-                      </div>
-                      <div className={styles.historicoRota}>
-                        <span>{v.start_location}</span>
-                        <span className={styles.rotaArrow}>→</span>
-                        <span>{v.end_location}</span>
-                      </div>
-                      <div className={styles.historicoMeta}>
-                        <span>{v.n_people} pessoa{v.n_people > 1 ? "s" : ""}</span>
-                        <span className={styles.metaDot}>•</span>
-                        <span>{v.nivel_conforto}</span>
-                        <span className={styles.metaDot}>•</span>
-                        <span>A aguardar cliente</span>
-                      </div>
+                    key={v.id}
+                    className={`${styles.historicoItem} ${
+                      pedidoSelecionadoMapa?.id === v.id ? styles.historicoItemAtivo : ""
+                    }`}
+                    onClick={() => setPedidoSelecionadoMapa(v)}
+                  >
+                    <div className={styles.historicoHeader}>
+                      <span className={styles.historicoCliente}>Pedido aceite</span>
+                      <span className={styles.historicoGanho}>
+                        {v.price ? `${Number(v.price).toFixed(2)} €` : "-"}
+                      </span>
                     </div>
+
+                    <div className={styles.historicoRota}>
+                      <span>{v.start_location}</span>
+                      <span className={styles.rotaArrow}>→</span>
+                      <span>{v.end_location}</span>
+                    </div>
+
+                    <div className={styles.historicoMeta}>
+                      <span>{v.n_people} pessoa{v.n_people > 1 ? "s" : ""}</span>
+                      <span className={styles.metaDot}>•</span>
+                      <span>{v.nivel_conforto}</span>
+                      {segundosRestantesConfirmacao > 0 && (
+                        <>
+                          <span className={styles.metaDot}>•</span>
+                          <span>A aguardar cliente</span>
+                        </> 
+                      )}
+                    </div>
+
+                    {segundosRestantesConfirmacao > 0 ? (
+                      <div className={styles.awaitingInfo}>
+                        <span>Tempo restante para resposta:</span>{" "}
+                        <strong>{formatarCountdown(segundosRestantesConfirmacao)}</strong>
+                      </div>
+                    ) : (
+                      <>
+                        <div className={styles.awaitingExpiredBox}>
+                          <div className={styles.awaitingExpiredTitle}>
+                            O cliente não respondeu dentro do tempo.
+                          </div>
+                          <div className={styles.awaitingExpiredText}>
+                            Podes continuar à espera ou cancelar este pedido.
+                          </div>
+                        </div>
+
+                        <div className={styles.turnoCardActions}>
+                          <button
+                            type="button"
+                            className={styles.btnCancelarTurno}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCancelarEspera(v.id, false);
+                            }}
+                            disabled={carregandoId === v.id}
+                          >
+                            {carregandoId === v.id ? "A processar..." : "Cancelar espera"}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                   ))}
                 </div>
               </>
@@ -1136,7 +1365,7 @@ export default function MapaPedidosPage() {
                       <span>{viagemAguardarPagamento.end_location}</span>
                     </div>
 
-                    <div className={styles.awaitingPaymentMsg}>
+                    <div className={styles.awaitingInfo}>
                       A aguardar pagamento do cliente
                     </div>
                   </div>

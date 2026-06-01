@@ -58,6 +58,13 @@ function formatarDistancia(km) {
   return `${valor.toFixed(1)} km`;
 }
 
+function formatarCountdown(segundos) {
+  const total = Math.max(0, Number(segundos) || 0);
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  return `${mins}:${String(secs).padStart(2, "0")}`;
+}
+
 export default function PedirTaxiPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -87,8 +94,10 @@ export default function PedirTaxiPage() {
   const [tripDetalhes, setTripDetalhes] = useState(null);
   const [taxiSelecionado, setTaxiSelecionado] = useState(null);
   const [etaMotoristaMin, setEtaMotoristaMin] = useState(null);
+  const [distanciaMotoristaKm, setDistanciaMotoristaKm] = useState(null);
+  const [segundosRestantesCliente, setSegundosRestantesCliente] = useState(60);
+  const [avisoTimeoutMotorista, setAvisoTimeoutMotorista] = useState("");
   const [searchParams] = useSearchParams();
-  const [distanciaMotoristaKm, setDistanciaMotoristaKm] = useState(null);;
 
   const origemTimer = useRef(null);
   const destinoTimer = useRef(null);
@@ -126,6 +135,7 @@ export default function PedirTaxiPage() {
         setTripDetalhes(trip);
 
         if (trip.status_trip === "driver_accepted") {
+          setAvisoTimeoutMotorista("");
           setStep("aceite");
           return;
         }
@@ -145,6 +155,19 @@ export default function PedirTaxiPage() {
           return;
         }
 
+        if (trip.status_trip === "pending") {
+          if (step === "aceite" || step === "motorista_a_caminho") {
+            setAvisoTimeoutMotorista(
+              "O tempo para confirmar este motorista esgotou-se. Estamos à procura de outro."
+            );
+          }
+
+          setStep("aguardar");
+          setTripDetalhes(trip);
+          setEstadoViagem(trip.status_trip);
+          return;
+        }
+
         if (trip.status_trip === "cancelled") {
           setErro("O pedido foi cancelado.");
           setStep("form");
@@ -152,6 +175,7 @@ export default function PedirTaxiPage() {
           setTripDetalhes(null);
           setTaxiSelecionado(null);
           setEstadoViagem(null);
+          setAvisoTimeoutMotorista("");
           return;
         }
 
@@ -165,6 +189,27 @@ export default function PedirTaxiPage() {
 
     return () => clearInterval(interval);
   }, [step, tripId]);
+
+  useEffect(() => {
+    if (step !== "aceite" || estadoViagem !== "driver_accepted") {
+      setSegundosRestantesCliente(20);
+      return;
+    }
+
+    setSegundosRestantesCliente((prev) => (prev > 0 && prev <= 20 ? prev : 20));
+
+    const interval = setInterval(() => {
+      setSegundosRestantesCliente((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [step, estadoViagem, tripId]);
 
   useEffect(() => {
     if (
@@ -292,6 +337,7 @@ export default function PedirTaxiPage() {
   useEffect(() => {
     async function sincronizarCoordsDaTrip() {
       if (!tripDetalhes) return;
+
       try {
         if (tripDetalhes.start_location && !origemCoords) {
           const origemRes = await geocodificar(tripDetalhes.start_location);
@@ -374,6 +420,7 @@ export default function PedirTaxiPage() {
 
   async function carregarTaxis() {
     setCarregandoTaxis(true);
+
     try {
       const response = await taxiService.list();
       const todosTaxis = response.data || [];
@@ -400,10 +447,10 @@ export default function PedirTaxiPage() {
 
   async function calcularPrecos(lat1, lon1, lat2, lon2) {
     const distancia = calcularDistanciaKm(lat1, lon1, lat2, lon2);
-    const duracao = Math.round((distancia / 40) * 60);
+    const duracaoCalc = Math.round((distancia / 40) * 60);
 
     setDistanciaKm(distancia);
-    setDuracao(duracao);
+    setDuracao(duracaoCalc);
     setCarregandoPrecos(true);
 
     try {
@@ -412,7 +459,7 @@ export default function PedirTaxiPage() {
       for (const nivel of CONFORTO_OPTS) {
         const data = await api.post("/taxi/calcular-preco-com-conforto", {
           distancia_km: distancia,
-          duracao_minutos: duracao,
+          duracao_minutos: duracaoCalc,
           nivel_conforto: nivel,
         });
 
@@ -467,8 +514,8 @@ export default function PedirTaxiPage() {
   const markers = [
     ...(taxiMarker ? [taxiMarker] : []),
     ...(origemCoords &&
-      estadoViagem !== "awaiting_payment" &&
-      estadoViagem !== "in_progress"
+    estadoViagem !== "awaiting_payment" &&
+    estadoViagem !== "in_progress"
       ? [
           {
             id: "origem",
@@ -666,6 +713,7 @@ export default function PedirTaxiPage() {
 
     setLoading(true);
     setErro("");
+    setAvisoTimeoutMotorista("");
 
     const precoSelecionado = precos[selectedRide];
     const preco = precoSelecionado ? Number(precoSelecionado.price) : 0;
@@ -709,6 +757,7 @@ export default function PedirTaxiPage() {
       setTripDetalhes(trip);
       setEstadoViagem(trip?.status_trip || "client_confirmed");
       setStep("motorista_a_caminho");
+      setAvisoTimeoutMotorista("");
     } catch (error) {
       setErro(error.message || "Erro ao confirmar motorista.");
     } finally {
@@ -758,6 +807,8 @@ export default function PedirTaxiPage() {
     setTripDetalhes(null);
     setTaxiSelecionado(null);
     setEstadoViagem(null);
+    setSegundosRestantesCliente(60);
+    setAvisoTimeoutMotorista("");
     setErro("");
   }
 
@@ -969,6 +1020,12 @@ export default function PedirTaxiPage() {
               O teu pedido foi enviado. Um motorista irá responder em breve.
             </p>
 
+            {avisoTimeoutMotorista && (
+              <div className={styles.timeoutWarning}>
+                {avisoTimeoutMotorista}
+              </div>
+            )}
+
             <div className={styles.resumoPedido}>
               <div className={styles.resumoSecao}>
                 <div className={styles.resumoLinha}>
@@ -1037,6 +1094,16 @@ export default function PedirTaxiPage() {
             <p className={styles.subtitle}>
               Um motorista aceitou o teu pedido. Confirma se queres seguir com esta viagem.
             </p>
+
+            <div className={styles.estadoBadge}>
+              Tempo restante para confirmar: <strong>{formatarCountdown(segundosRestantesCliente)}</strong>
+            </div>
+
+            {segundosRestantesCliente === 0 && (
+              <div className={styles.timeoutWarning}>
+                O motorista já não é obrigado a continuar à espera. Pode cancelar este pedido a qualquer momento.
+              </div>
+            )}
 
             <div className={styles.resumoPedido}>
               <div className={styles.resumoSecao}>

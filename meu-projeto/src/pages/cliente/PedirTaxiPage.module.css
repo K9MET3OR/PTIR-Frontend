@@ -657,3 +657,17 @@
   font-weight: 600;
   text-align: center;
 }
+
+.timeoutWarning {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 71, 125, 0.12);
+  border: 1px solid rgba(255, 71, 125, 0.22);
+  color: #ffd7e2;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.4;
+}
