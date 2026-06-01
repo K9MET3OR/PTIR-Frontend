@@ -33,9 +33,18 @@ const toUtcIsoString = (localDateTime) => {
   return date.toISOString();
 };
 
+const ordenarRefuelsPorDataDesc = (lista = []) => {
+  return [...lista].sort((a, b) => new Date(b.data_inicio) - new Date(a.data_inicio));
+};
+
+const ordenarRefuelsPorDataAsc = (lista = []) => {
+  return [...lista].sort((a, b) => new Date(a.data_inicio) - new Date(b.data_inicio));
+};
+
 export default function ReabastecimentoPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+
   const [shift, setShift] = useState(null);
   const [taxi, setTaxi] = useState(null);
   const [refuels, setRefuels] = useState([]);
@@ -44,6 +53,7 @@ export default function ReabastecimentoPage() {
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [tempoRestante, setTempoRestante] = useState(0);
+
   const [form, setForm] = useState({
     data_inicio: "",
     data_fim: "",
@@ -54,8 +64,10 @@ export default function ReabastecimentoPage() {
   });
 
   const shiftId = useMemo(() => localStorage.getItem("turno_id"), []);
+
   const motorEletrico = useMemo(
-    () => String(taxi?.tipo_motor || "").toLowerCase().includes("elétr") ||
+    () =>
+      String(taxi?.tipo_motor || "").toLowerCase().includes("elétr") ||
       String(taxi?.tipo_motor || "").toLowerCase().includes("eletrico"),
     [taxi]
   );
@@ -69,6 +81,7 @@ export default function ReabastecimentoPage() {
         try {
           const shiftResponse = await obterShift(storedShiftId);
           const candidate = shiftResponse.shift || shiftResponse;
+
           if (candidate && candidate.id) {
             shiftData = candidate;
           } else {
@@ -85,6 +98,7 @@ export default function ReabastecimentoPage() {
       if (!shiftData && user?.id) {
         try {
           const turnoAtivo = await verificarTurnoAtivo(user.id);
+
           if (turnoAtivo?.id) {
             shiftData = turnoAtivo;
             localStorage.setItem("turno_id", turnoAtivo.id);
@@ -115,7 +129,7 @@ export default function ReabastecimentoPage() {
         }));
 
         const refuelResponse = await refuelService.listByTaxi(shiftData.taxi_id);
-        setRefuels(refuelResponse.refuels || []);
+        setRefuels(ordenarRefuelsPorDataDesc(refuelResponse.refuels || []));
       } catch (err) {
         console.error("Erro ao carregar reabastecimento:", err);
         setErro(err.message || "Erro ao carregar dados do turno e do táxi.");
@@ -141,6 +155,7 @@ export default function ReabastecimentoPage() {
 
     atualizar();
     const timer = setInterval(atualizar, 1000);
+
     return () => clearInterval(timer);
   }, [shift]);
 
@@ -158,6 +173,7 @@ export default function ReabastecimentoPage() {
 
     const dataInicio = new Date(form.data_inicio);
     const dataFim = new Date(form.data_fim);
+
     const inicioValido = !Number.isNaN(dataInicio.getTime());
     const fimValido = !Number.isNaN(dataFim.getTime());
 
@@ -171,13 +187,21 @@ export default function ReabastecimentoPage() {
       return false;
     }
 
-    if (!form.euros_pagos || Number.isNaN(Number(form.euros_pagos)) || Number(form.euros_pagos) <= 0) {
+    if (
+      !form.euros_pagos ||
+      Number.isNaN(Number(form.euros_pagos)) ||
+      Number(form.euros_pagos) <= 0
+    ) {
       setErro("Insere o valor em euros pagos e superior a 0.");
       return false;
     }
 
-    if (form.kms_taxi === "" || Number.isNaN(Number(form.kms_taxi)) || Number(form.kms_taxi) < 0) {
-      setErro("Insere os quilómetros do táxi e não podem ser negativos.");
+    if (
+      form.kms_taxi === "" ||
+      Number.isNaN(Number(form.kms_taxi)) ||
+      Number(form.kms_taxi) <= 0
+    ) {
+      setErro("Insere os quilómetros do táxi e devem ser superiores a 0.");
       return false;
     }
 
@@ -210,11 +234,37 @@ export default function ReabastecimentoPage() {
       }
     }
 
+    const kmsAtual = Number(form.kms_taxi);
+    const refuelsOrdenados = ordenarRefuelsPorDataAsc(refuels || []);
+
+    const refuelAnterior = [...refuelsOrdenados]
+      .reverse()
+      .find((item) => new Date(item.data_inicio) <= dataInicio);
+
+    if (refuelAnterior && kmsAtual <= Number(refuelAnterior.kms_taxi)) {
+      setErro(
+        `Os quilómetros devem ser superiores ao reabastecimento anterior (${refuelAnterior.kms_taxi} km).`
+      );
+      return false;
+    }
+
+    const refuelSeguinte = refuelsOrdenados.find(
+      (item) => new Date(item.data_inicio) > dataInicio
+    );
+
+    if (refuelSeguinte && kmsAtual >= Number(refuelSeguinte.kms_taxi)) {
+      setErro(
+        `Os quilómetros devem ser inferiores ao reabastecimento seguinte (${refuelSeguinte.kms_taxi} km).`
+      );
+      return false;
+    }
+
     return true;
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     if (!validarFormulario()) return;
     if (!shift) return;
 
@@ -223,30 +273,36 @@ export default function ReabastecimentoPage() {
     setSucesso("");
 
     try {
-
       const payload = {
         shift: shift.id,
         data_inicio: toUtcIsoString(form.data_inicio),
         data_fim: toUtcIsoString(form.data_fim),
         euros_pagos: Number(form.euros_pagos),
         kms_taxi: Number(form.kms_taxi),
-        kms_previos: refuels.length > 0 ? refuels[0].kms_taxi : 0,
-        tipo: motorEletrico ? "eletrico" : "gasolina"
+        tipo: motorEletrico ? "eletrico" : "gasolina",
       };
-      
+
       if (motorEletrico) {
         payload.kwh = Number(form.kwh);
       } else {
         payload.litros = Number(form.litros);
       }
 
-      const response = await refuelService.register(payload);
+      await refuelService.register(payload);
+
       setSucesso("Reabastecimento registado com sucesso.");
       setErro("");
-      setForm((current) => ({ ...current, litros: "", kwh: "", euros_pagos: "", kms_taxi: current.kms_taxi }));
 
-      const novoRefuels = [response.refuel, ...(refuels || [])];
-      setRefuels(novoRefuels);
+      setForm((current) => ({
+        ...current,
+        litros: "",
+        kwh: "",
+        euros_pagos: "",
+        kms_taxi: current.kms_taxi,
+      }));
+
+      const refuelResponse = await refuelService.listByTaxi(shift.taxi_id);
+      setRefuels(ordenarRefuelsPorDataDesc(refuelResponse.refuels || []));
     } catch (err) {
       console.error("Erro ao registar o reabastecimento:", err);
       setErro(err.message || "Erro ao registar o reabastecimento.");
@@ -262,7 +318,13 @@ export default function ReabastecimentoPage() {
           <h1>Reabastecimento</h1>
           <p>Regista o abastecimento do táxi ligado ao teu turno.</p>
         </div>
-        <button className={styles.backButton} onClick={() => navigate("/motorista/mapa")}>↩ Voltar</button>
+
+        <button
+          className={styles.backButton}
+          onClick={() => navigate("/motorista/mapa")}
+        >
+          ↩ Voltar
+        </button>
       </div>
 
       {loading ? (
@@ -272,15 +334,20 @@ export default function ReabastecimentoPage() {
           {!shift ? (
             <div className={styles.emptyState}>
               <p>Não foi possível encontrar um turno ativo.</p>
-              <button onClick={() => navigate("/motorista/turno")}>Iniciar Turno</button>
+              <button onClick={() => navigate("/motorista/turno")}>
+                Iniciar Turno
+              </button>
             </div>
           ) : (
             <>
               <div className={styles.statusBar}>
                 <div>
                   <span className={styles.statusLabel}>Turno ativo</span>
-                  <p>{taxi?.matricula ?? "—"} · {taxi?.tipo_motor ?? "—"}</p>
+                  <p>
+                    {taxi?.matricula ?? "—"} · {taxi?.tipo_motor ?? "—"}
+                  </p>
                 </div>
+
                 <div className={styles.timerBox}>
                   <span>Termina em</span>
                   <strong>{formatRemaining(tempoRestante)}</strong>
@@ -290,10 +357,30 @@ export default function ReabastecimentoPage() {
               <div className={styles.grid}>
                 <div className={styles.card}>
                   <h2>Dados do turno</h2>
-                  <p><strong>Início:</strong> {new Date(shift.start_date).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}</p>
-                  <p><strong>Fim:</strong> {new Date(shift.end_date).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}</p>
-                  <p><strong>Táxi:</strong> {taxi?.marca} {taxi?.modelo}</p>
-                  <p><strong>Motor:</strong> {taxi?.tipo_motor}</p>
+
+                  <p>
+                    <strong>Início:</strong>{" "}
+                    {new Date(shift.start_date).toLocaleString("pt-PT", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </p>
+
+                  <p>
+                    <strong>Fim:</strong>{" "}
+                    {new Date(shift.end_date).toLocaleString("pt-PT", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </p>
+
+                  <p>
+                    <strong>Táxi:</strong> {taxi?.marca} {taxi?.modelo}
+                  </p>
+
+                  <p>
+                    <strong>Motor:</strong> {taxi?.tipo_motor}
+                  </p>
                 </div>
 
                 <form className={styles.card} onSubmit={handleSubmit}>
@@ -330,7 +417,7 @@ export default function ReabastecimentoPage() {
                         Energia (kWh)
                         <input
                           type="number"
-                          min="0"
+                          min="0.1"
                           step="0.1"
                           value={form.kwh}
                           onChange={(e) => handleChange("kwh", e.target.value)}
@@ -342,7 +429,7 @@ export default function ReabastecimentoPage() {
                         Litros
                         <input
                           type="number"
-                          min="0"
+                          min="0.1"
                           step="0.1"
                           value={form.litros}
                           onChange={(e) => handleChange("litros", e.target.value)}
@@ -357,7 +444,7 @@ export default function ReabastecimentoPage() {
                       Euros pagos
                       <input
                         type="number"
-                        min="0"
+                        min="0.01"
                         step="0.01"
                         value={form.euros_pagos}
                         onChange={(e) => handleChange("euros_pagos", e.target.value)}
@@ -369,7 +456,7 @@ export default function ReabastecimentoPage() {
                       Quilómetros do táxi
                       <input
                         type="number"
-                        min="0"
+                        min="0.1"
                         step="0.1"
                         value={form.kms_taxi}
                         onChange={(e) => handleChange("kms_taxi", e.target.value)}
@@ -381,7 +468,11 @@ export default function ReabastecimentoPage() {
                   {erro && <div className={styles.erro}>{erro}</div>}
                   {sucesso && <div className={styles.sucesso}>{sucesso}</div>}
 
-                  <button type="submit" className={styles.submitButton} disabled={saving}>
+                  <button
+                    type="submit"
+                    className={styles.submitButton}
+                    disabled={saving}
+                  >
                     {saving ? "Guardando..." : "Registar Reabastecimento"}
                   </button>
                 </form>
@@ -389,24 +480,37 @@ export default function ReabastecimentoPage() {
 
               <div className={styles.card}>
                 <h2>Últimos reabastecimentos</h2>
+
                 {refuels.length === 0 ? (
                   <p>Sem reabastecimentos registados para este táxi.</p>
                 ) : (
                   <div className={styles.refuelList}>
                     {refuels.map((item) => {
-                      // Determinar se é elétrico verificando o tipo de motor
-                      const isEletrico = item.tipo && (item.tipo.toLowerCase().includes("eletrico") || item.tipo.toLowerCase().includes("elétrico"));
-                      // Mostrar a quantidade apropriada baseado no tipo
-                      const quantidade = isEletrico 
-                        ? (item.kwh ? `${item.kwh} kWh` : "—") 
-                        : (item.litros ? `${item.litros} L` : "—");
-                      
+                      const isEletrico =
+                        item.tipo &&
+                        (item.tipo.toLowerCase().includes("eletrico") ||
+                          item.tipo.toLowerCase().includes("elétrico"));
+
+                      const quantidade = isEletrico
+                        ? item.kwh
+                          ? `${item.kwh} kWh`
+                          : "—"
+                        : item.litros
+                          ? `${item.litros} L`
+                          : "—";
+
                       return (
                         <div key={item.id} className={styles.refuelItem}>
                           <div>
-                            <strong>{new Date(item.data_inicio).toLocaleString("pt-PT", { dateStyle: "short", timeStyle: "short" })}</strong>
+                            <strong>
+                              {new Date(item.data_inicio).toLocaleString("pt-PT", {
+                                dateStyle: "short",
+                                timeStyle: "short",
+                              })}
+                            </strong>
                             <p>{quantidade}</p>
                           </div>
+
                           <div className={styles.refuelMeta}>
                             <span>{item.kms_taxi} km</span>
                             <span>€{item.euros_pagos}</span>
