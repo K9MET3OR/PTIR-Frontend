@@ -136,7 +136,6 @@ export async function obterRelatorioClientesFaturacao(startDate = null, endDate 
   try {
     const params = new URLSearchParams();
 
-    // O backend usa "start" e "end"
     if (startDate) params.append('start', startDate);
     if (endDate) params.append('end', endDate);
 
@@ -161,6 +160,45 @@ export async function obterRelatorioClientesFaturacao(startDate = null, endDate 
         error.response?.data?.message ||
         error.message ||
         'Erro ao obter relatório de clientes e faturação'
+    };
+  }
+}
+
+export async function obterDetalhesFaturacaoCliente(clientId, startDate = null, endDate = null) {
+  try {
+    const params = new URLSearchParams();
+
+    params.append('client_id', clientId);
+
+    if (startDate) params.append('start', startDate);
+    if (endDate) params.append('end', endDate);
+
+    const response = await api.get(`/report/billing/client-details?${params.toString()}`);
+
+    return response.data || response;
+  } catch (error) {
+    throw {
+      message:
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao obter detalhes da faturação do cliente'
+    };
+  }
+}
+
+export async function obterDetalheCliente(clientId) {
+  try {
+    const response = await api.get(`/report/clients/detail/${clientId}`);
+
+    return response.data || response;
+  } catch (error) {
+    throw {
+      message:
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        'Erro ao obter detalhes do cliente'
     };
   }
 }
