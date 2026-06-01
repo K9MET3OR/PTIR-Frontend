@@ -9,20 +9,21 @@ export default function RelatorioReabastecimento() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [viewLevel, setViewLevel] = useState('total');
-  const [expandedTipo, setExpandedTipo] = useState(null);
-  const [expandedTaxi, setExpandedTaxi] = useState(null);
 
   const carregarRelatorio = async () => {
     setLoading(true);
     setError(null);
+
     try {
       const resultado = await obterRelatorioReabastecimentos(startDate, endDate);
-      setData(resultado);
+
+      console.log('Resultado relatório reabastecimentos:', resultado);
+
+      setData(resultado.data);
       setViewLevel('total');
-      setExpandedTipo(null);
-      setExpandedTaxi(null);
     } catch (err) {
-      setError(err.message);
+      console.error('Erro ao carregar relatório:', err);
+      setError(err.message || 'Erro ao carregar relatório de reabastecimentos');
     } finally {
       setLoading(false);
     }
@@ -32,33 +33,72 @@ export default function RelatorioReabastecimento() {
     carregarRelatorio();
   }, []);
 
-  const formatarHoras = (minutos) => {
-    if (!minutos) return '0h 0m';
-    const horas = Math.floor(minutos / 60);
-    const mins = minutos % 60;
-    return `${horas}h ${mins}m`;
+  const formatarHoras = (horas) => {
+    if (!horas) return '0.00h';
+    return `${Number(horas).toFixed(2)}h`;
+  };
+
+  const formatarEuros = (valor) => {
+    return `€${Number(valor || 0).toFixed(2)}`;
+  };
+
+  const nomeTipoMotor = (tipoMotor) => {
+    if (!tipoMotor) return 'Tipo de motor desconhecido';
+
+    const tipo = String(tipoMotor).toLowerCase();
+
+    if (
+      tipo === 'eletrico' ||
+      tipo === 'elétrico' ||
+      tipo === 'electric' ||
+      tipo === 'ev'
+    ) {
+      return '⚡ Motor Elétrico';
+    }
+
+    if (
+      tipo === 'combustao' ||
+      tipo === 'combustão' ||
+      tipo === 'combustion' ||
+      tipo === 'gasolina' ||
+      tipo === 'diesel'
+    ) {
+      return '🔥 Motor a Combustão';
+    }
+
+    return `🚕 ${tipoMotor}`;
   };
 
   const renderTotal = () => {
-    if (!data?.total) return null;
+    if (!data?.summary) {
+      return (
+        <div className={styles.section}>
+          <p>Não existem dados de resumo para este período.</p>
+        </div>
+      );
+    }
+
     return (
       <div className={styles.section}>
         <h2>Resumo Total de Reabastecimentos</h2>
+
         <div className={styles.totalCard}>
           <div className={styles.metric}>
             <span className={styles.label}>Total de Euros Pagos:</span>
-            <span className={styles.value}>€{data.total.euros_total?.toFixed(2) || '0.00'}</span>
+            <span className={styles.value}>
+              {formatarEuros(data.summary.total_euros)}
+            </span>
           </div>
+
           <div className={styles.metric}>
             <span className={styles.label}>Total de Horas Gastas:</span>
-            <span className={styles.value}>{formatarHoras(data.total.minutos_total)}</span>
-          </div>
-          <div className={styles.metric}>
-            <span className={styles.label}>Número de Reabastecimentos:</span>
-            <span className={styles.value}>{data.total.reabastecimentos || 0}</span>
+            <span className={styles.value}>
+              {formatarHoras(data.summary.total_hours)}
+            </span>
           </div>
         </div>
-        <button 
+
+        <button
           className={styles.expandBtn}
           onClick={() => setViewLevel('subtotais')}
         >
@@ -69,179 +109,52 @@ export default function RelatorioReabastecimento() {
   };
 
   const renderSubtotais = () => {
-    if (!data?.subtotais) return null;
+    if (!data?.motorTypes || data.motorTypes.length === 0) {
+      return (
+        <div className={styles.section}>
+          <div className={styles.header}>
+            <button
+              className={styles.backBtn}
+              onClick={() => setViewLevel('total')}
+            >
+              ← Voltar
+            </button>
+
+            <h2>Subtotais por Tipo de Motor</h2>
+          </div>
+
+          <p>Não existem reabastecimentos por tipo de motor neste período.</p>
+        </div>
+      );
+    }
 
     return (
       <div className={styles.section}>
         <div className={styles.header}>
-          <button 
+          <button
             className={styles.backBtn}
-            onClick={() => {
-              setViewLevel('total');
-              setExpandedTipo(null);
-            }}
+            onClick={() => setViewLevel('total')}
           >
             ← Voltar
           </button>
+
           <h2>Subtotais por Tipo de Motor</h2>
         </div>
 
         <div className={styles.subtotaisGrid}>
-          {data.subtotais.combustao && (
-            <div className={styles.subtotalCard}>
+          {data.motorTypes.map((motor) => (
+            <div key={motor.tipo_motor} className={styles.subtotalCard}>
               <div className={styles.subtotalHeader}>
-                <span>🔥 Motor a Combustão</span>
-                <span className={styles.value}>€{data.subtotais.combustao.euros?.toFixed(2) || '0.00'}</span>
+                <span>{nomeTipoMotor(motor.tipo_motor)}</span>
+
+                <span className={styles.value}>
+                  {formatarEuros(motor.total_euros)}
+                </span>
               </div>
+
               <div className={styles.subtotalDetails}>
-                <span>Reabastecimentos: {data.subtotais.combustao.reabastecimentos}</span>
-                <span>Horas Gastas: {formatarHoras(data.subtotais.combustao.minutos)}</span>
-                <span>Litros: {data.subtotais.combustao.litros?.toFixed(2)}</span>
-              </div>
-              <button
-                className={styles.detalhesBtn}
-                onClick={() => {
-                  if (expandedTipo === 'combustao') {
-                    setExpandedTipo(null);
-                  } else {
-                    setExpandedTipo('combustao');
-                    setViewLevel('detalhes');
-                  }
-                }}
-              >
-                {expandedTipo === 'combustao' ? '▼ Ver Detalhes' : '▶ Ver Detalhes'}
-              </button>
-            </div>
-          )}
-
-          {data.subtotais.eletrico && (
-            <div className={styles.subtotalCard}>
-              <div className={styles.subtotalHeader}>
-                <span>⚡ Motor Elétrico</span>
-                <span className={styles.value}>€{data.subtotais.eletrico.euros?.toFixed(2) || '0.00'}</span>
-              </div>
-              <div className={styles.subtotalDetails}>
-                <span>Reabastecimentos: {data.subtotais.eletrico.reabastecimentos}</span>
-                <span>Horas Gastas: {formatarHoras(data.subtotais.eletrico.minutos)}</span>
-                <span>kWh: {data.subtotais.eletrico.kwh?.toFixed(2)}</span>
-              </div>
-              <button
-                className={styles.detalhesBtn}
-                onClick={() => {
-                  if (expandedTipo === 'eletrico') {
-                    setExpandedTipo(null);
-                  } else {
-                    setExpandedTipo('eletrico');
-                    setViewLevel('detalhes');
-                  }
-                }}
-              >
-                {expandedTipo === 'eletrico' ? '▼ Ver Detalhes' : '▶ Ver Detalhes'}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderDetalhes = () => {
-    if (!data?.detalhes) return null;
-
-    const tipoData = expandedTipo === 'combustao' 
-      ? data.detalhes.combustao 
-      : data.detalhes.eletrico;
-
-    if (!tipoData) return null;
-
-    // Ordenar táxis por euros pagos (decrescente)
-    const taxisOrdenados = Object.entries(tipoData)
-      .sort(([, a], [, b]) => (b.euros || 0) - (a.euros || 0));
-
-    return (
-      <div className={styles.section}>
-        <div className={styles.header}>
-          <button 
-            className={styles.backBtn}
-            onClick={() => {
-              setViewLevel('subtotais');
-              setExpandedTipo(null);
-              setExpandedTaxi(null);
-            }}
-          >
-            ← Voltar
-          </button>
-          <h2>
-            Detalhes - Táxis com Motor {expandedTipo === 'combustao' ? 'a Combustão' : 'Elétrico'}
-          </h2>
-        </div>
-
-        <div className={styles.subtotaisGrid}>
-          {taxisOrdenados.map(([taxiId, stats]) => (
-            <div key={taxiId} className={styles.subtotalCard}>
-              <div className={styles.subtotalHeader}>
-                <span>Táxi {taxiId}</span>
-                <span className={styles.value}>€{stats.euros?.toFixed(2) || '0.00'}</span>
-              </div>
-              <div className={styles.subtotalDetails}>
-                <span>Reabastecimentos: {stats.reabastecimentos}</span>
-                <span>Horas: {formatarHoras(stats.minutos)}</span>
-                {expandedTipo === 'combustao' && <span>Litros: {stats.litros?.toFixed(2)}</span>}
-                {expandedTipo === 'eletrico' && <span>kWh: {stats.kwh?.toFixed(2)}</span>}
-              </div>
-              <button
-                className={styles.detalhesBtn}
-                onClick={() => {
-                  if (expandedTaxi === taxiId) {
-                    setExpandedTaxi(null);
-                    setViewLevel('detalhes');
-                  } else {
-                    setExpandedTaxi(taxiId);
-                    setViewLevel('detalhesTaxi');
-                  }
-                }}
-              >
-                {expandedTaxi === taxiId ? '▼ Ver Reabastecimentos' : '▶ Ver Reabastecimentos'}
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  };
-
-  const renderDetalhesTaxi = () => {
-    if (!data?.detalhesTaxi) return null;
-
-    const reabastecimentos = data.detalhesTaxi[expandedTaxi] || [];
-
-    return (
-      <div className={styles.section}>
-        <div className={styles.header}>
-          <button 
-            className={styles.backBtn}
-            onClick={() => {
-              setViewLevel('detalhes');
-              setExpandedTaxi(null);
-            }}
-          >
-            ← Voltar
-          </button>
-          <h2>Reabastecimentos do Táxi {expandedTaxi}</h2>
-        </div>
-
-        <div className={styles.detalhesList}>
-          {reabastecimentos.map((reab, idx) => (
-            <div key={idx} className={styles.detalheCard}>
-              <div className={styles.detalhHeader}>
-                <strong>{new Date(reab.start_date).toLocaleDateString('pt-PT')} - {new Date(reab.start_date).toLocaleTimeString('pt-PT')}</strong>
-              </div>
-              <div className={styles.detalhContent}>
-                <span>⏱️ {formatarHoras(reab.duracao_minutos)}</span>
-                <span>💶 €{reab.euros?.toFixed(2)}</span>
-                {reab.litros !== undefined && <span>⛽ {reab.litros?.toFixed(2)} L</span>}
-                {reab.kwh !== undefined && <span>🔋 {reab.kwh?.toFixed(2)} kWh</span>}
-                <span>🚗 {reab.km_taxi} km no táxi</span>
+                <span>Tipo de motor: {motor.tipo_motor}</span>
+                <span>Reabastecimentos: {motor.total_refuels || 0}</span>
               </div>
             </div>
           ))}
@@ -254,24 +167,27 @@ export default function RelatorioReabastecimento() {
     <div className={styles.container}>
       <div className={styles.header_section}>
         <h1>Relatórios - Reabastecimentos</h1>
+
         <div className={styles.filterSection}>
           <div className={styles.filterGroup}>
             <label>Data de Início:</label>
-            <input 
-              type="date" 
+            <input
+              type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
+
           <div className={styles.filterGroup}>
             <label>Data de Fim:</label>
-            <input 
-              type="date" 
+            <input
+              type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
-          <button 
+
+          <button
             className={styles.loadBtn}
             onClick={carregarRelatorio}
             disabled={loading}
@@ -282,12 +198,12 @@ export default function RelatorioReabastecimento() {
       </div>
 
       {error && <div className={styles.error}>{error}</div>}
+
       {loading && <div className={styles.loading}>Carregando dados...</div>}
 
       {data && !loading && viewLevel === 'total' && renderTotal()}
+
       {data && !loading && viewLevel === 'subtotais' && renderSubtotais()}
-      {data && !loading && viewLevel === 'detalhes' && renderDetalhes()}
-      {data && !loading && viewLevel === 'detalhesTaxi' && renderDetalhesTaxi()}
     </div>
   );
 }
