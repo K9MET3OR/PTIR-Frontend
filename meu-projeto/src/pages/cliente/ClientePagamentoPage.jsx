@@ -1,12 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
 import PaymentForm from "../../components/PaymentForm";
 import { obterDetalheViagem } from "../../services/tripService";
 import styles from "./ClientePagamentoPage.module.css";
 
 export default function ClientePagamentoPage() {
-  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -17,7 +15,7 @@ export default function ClientePagamentoPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
   const [pagamentoSucesso, setPagamentoSucesso] = useState(false);
-  const [finalAmount, setFinalAmount] = useState(0); // Preço final da viagem em EUR
+  const [finalAmount, setFinalAmount] = useState(0);
 
   useEffect(() => {
     const carregarDetalhesViagem = async () => {
@@ -29,7 +27,7 @@ export default function ClientePagamentoPage() {
 
       try {
         const response = await obterDetalheViagem(tripId);
-        const viagem = response.trip || response.data;
+        const viagem = response?.trip || response?.data || response;
 
         if (!viagem) {
           setErro("Não foi possível carregar os detalhes da viagem.");
@@ -37,12 +35,9 @@ export default function ClientePagamentoPage() {
           return;
         }
 
-        // Calcular distância (Haversine) se coordenadas disponíveis
-        // Converter para número se for string
-        let distanciaKm = parseFloat(viagem.n_kms) || 0;
-        
-        // Usar o preço do backend (que é a fonte verdadeira)
+        const distanciaKm = parseFloat(viagem.n_kms) || 0;
         const precoViagem = parseFloat(viagem.price) || amountFromUrl || 0;
+
         setFinalAmount(precoViagem);
 
         setTripDetails({
@@ -51,11 +46,29 @@ export default function ClientePagamentoPage() {
           destination: viagem.end_location || "Não especificada",
           distance: `${distanciaKm.toFixed(1)} km`,
           nPeople: viagem.n_people || 1,
-          nivelConforto: viagem.nivel_conforto || "Standard",
+          nivelConforto: viagem.nivel_conforto || "Básico",
           driverName: viagem.driver_name || "Motorista",
           taxiMatricula: viagem.taxi_matricula || "N/A",
           status: viagem.status_trip || "pending",
         });
+
+        if (viagem.status_trip === "finished") {
+          setPagamentoSucesso(true);
+
+          setTimeout(() => {
+            navigate(`/cliente/pedir?tripId=${viagem.id}&resume=payment`, {
+              replace: true,
+            });
+          }, 1500);
+
+          return;
+        }
+
+        if (viagem.status_trip !== "awaiting_payment") {
+          setErro(
+            "Esta viagem ainda não está pronta para pagamento ou já não pode ser paga."
+          );
+        }
       } catch (error) {
         console.error("Erro ao carregar viagem:", error);
         setErro("Erro ao carregar detalhes da viagem. Tenta novamente.");
@@ -65,21 +78,38 @@ export default function ClientePagamentoPage() {
     };
 
     carregarDetalhesViagem();
-  }, [tripId]);
+  }, [tripId, amountFromUrl, navigate]);
 
   const handlePaymentSuccess = (data) => {
     console.log("Pagamento realizado com sucesso:", data);
-    setPagamentoSucesso(true);
 
-    // Redirecionar para página de confirmação ou listar viagens após 2 segundos
+    const tripConfirmada = data?.trip || data?.data?.trip || null;
+    const idFinal = tripConfirmada?.id || tripId;
+
+    localStorage.removeItem("cliente_trip_id");
+
+    setPagamentoSucesso(true);
+    setErro(null);
+
     setTimeout(() => {
-      navigate("/cliente/pedir");
-    }, 2000);
+      navigate(`/cliente/pedir?tripId=${idFinal}&resume=payment`, {
+        replace: true,
+      });
+    }, 1500);
   };
 
   const handlePaymentError = (error) => {
     console.error("Erro no pagamento:", error);
-    setErro(error);
+    setErro(error?.message || error || "Erro ao processar pagamento.");
+  };
+
+  const handleVoltar = () => {
+    if (tripId) {
+      navigate(`/cliente/pedir?tripId=${tripId}&resume=payment`);
+      return;
+    }
+
+    navigate("/cliente/pedir");
   };
 
   if (loading) {
@@ -95,9 +125,7 @@ export default function ClientePagamentoPage() {
       <div className={styles.container}>
         <div className={styles.error}>
           <p>Erro: Viagem não encontrada.</p>
-          <button onClick={() => navigate("/cliente/pedir")}>
-            Voltar
-          </button>
+          <button onClick={() => navigate("/cliente/pedir")}>Voltar</button>
         </div>
       </div>
     );
@@ -108,13 +136,15 @@ export default function ClientePagamentoPage() {
       <div className={styles.container}>
         <div className={styles.sucesso}>
           <div className={styles.sucessoIcon}>✓</div>
-          <h2>Viagem Paga!</h2>
-          <p>O seu pagamento foi processado com sucesso.</p>
-          <p>A redirecionar em breve...</p>
+          <h2>Viagem paga!</h2>
+          <p>O pagamento foi confirmado com sucesso.</p>
+          <p>A voltar ao resumo da viagem...</p>
         </div>
       </div>
     );
   }
+
+  const podePagar = tripDetails?.status === "awaiting_payment" && finalAmount > 0;
 
   return (
     <div className={styles.container}>
@@ -124,35 +154,43 @@ export default function ClientePagamentoPage() {
         {tripDetails && (
           <div className={styles.tripSummary}>
             <h3>Resumo da Viagem</h3>
+
             <div className={styles.tripDetail}>
               <span className={styles.label}>Origem:</span>
               <span>{tripDetails.origin}</span>
             </div>
+
             <div className={styles.tripDetail}>
               <span className={styles.label}>Destino:</span>
               <span>{tripDetails.destination}</span>
             </div>
+
             <div className={styles.tripDetail}>
               <span className={styles.label}>Distância:</span>
               <span>{tripDetails.distance}</span>
             </div>
+
             <div className={styles.tripDetail}>
               <span className={styles.label}>Pessoas:</span>
               <span>{tripDetails.nPeople}</span>
             </div>
+
             <div className={styles.tripDetail}>
               <span className={styles.label}>Nível de Conforto:</span>
               <span>{tripDetails.nivelConforto}</span>
             </div>
+
             <div className={styles.tripDetail}>
               <span className={styles.label}>Motorista:</span>
               <span>{tripDetails.driverName}</span>
             </div>
+
             <div className={styles.tripDetail}>
               <span className={styles.label}>Matrícula:</span>
               <span>{tripDetails.taxiMatricula}</span>
             </div>
-            <div className={styles.tripDetail + " " + styles.priceHighlight}>
+
+            <div className={`${styles.tripDetail} ${styles.priceHighlight}`}>
               <span className={styles.label}>Valor Total:</span>
               <span>{finalAmount.toFixed(2)} €</span>
             </div>
@@ -165,20 +203,25 @@ export default function ClientePagamentoPage() {
           </div>
         )}
 
-        <div className={styles.paymentFormWrapper}>
-          <h3>Dados de Pagamento</h3>
-          <PaymentForm
-            tripId={tripId}
-            amount={finalAmount}
-            onSuccess={handlePaymentSuccess}
-            onError={handlePaymentError}
-          />
-        </div>
+        {podePagar && (
+          <div className={styles.paymentFormWrapper}>
+            <h3>Dados de Pagamento</h3>
+            <PaymentForm
+              tripId={tripId}
+              amount={finalAmount}
+              onSuccess={handlePaymentSuccess}
+              onError={handlePaymentError}
+            />
+          </div>
+        )}
 
-        <button
-          className={styles.backButton}
-          onClick={() => navigate(`/cliente/pedir?tripId=${tripId}&resume=payment`)}
-        >
+        {!podePagar && !erro && (
+          <div className={styles.errorMessage}>
+            <p>Esta viagem não está disponível para pagamento.</p>
+          </div>
+        )}
+
+        <button className={styles.backButton} onClick={handleVoltar}>
           Cancelar
         </button>
       </div>

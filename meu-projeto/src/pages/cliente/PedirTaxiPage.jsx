@@ -42,12 +42,14 @@ function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
+
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLon / 2) *
       Math.sin(dLon / 2);
+
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -90,6 +92,7 @@ function formatarCountdown(segundos) {
 export default function PedirTaxiPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [origemInput, setOrigemInput] = useState("");
   const [destinoInput, setDestinoInput] = useState("");
@@ -119,7 +122,6 @@ export default function PedirTaxiPage() {
   const [distanciaMotoristaKm, setDistanciaMotoristaKm] = useState(null);
   const [segundosRestantesCliente, setSegundosRestantesCliente] = useState(60);
   const [avisoTimeoutMotorista, setAvisoTimeoutMotorista] = useState("");
-  const [searchParams] = useSearchParams();
 
   const origemTimer = useRef(null);
   const destinoTimer = useRef(null);
@@ -132,6 +134,41 @@ export default function PedirTaxiPage() {
   useEffect(() => {
     carregarTaxis();
   }, []);
+
+  function limparEstadoParaNovoPedido() {
+    localStorage.removeItem("cliente_trip_id");
+
+    setStep("form");
+    setOrigemInput("");
+    setDestinoInput("");
+    setOrigemCoords(null);
+    setDestinoCoords(null);
+    setSugestoesOrigem([]);
+    setSugestoesDestino([]);
+    setNPessoas(1);
+    setConforto("Básico");
+    setSelectedRide("Básico");
+    setTripId(null);
+    setTripDetalhes(null);
+    setTaxiSelecionado(null);
+    setEstadoViagem(null);
+    setEtaMotoristaMin(null);
+    setDistanciaMotoristaKm(null);
+    setSegundosRestantesCliente(60);
+    setAvisoTimeoutMotorista("");
+    setErro("");
+    setRoutePoints([]);
+    setDistanciaKm(0);
+    setDuracao(0);
+    setPrecos({});
+
+    setMapView({
+      center: [FCT_LISBOA.lon, FCT_LISBOA.lat],
+      zoom: 13,
+    });
+
+    navigate("/cliente/pedir", { replace: true });
+  }
 
   async function aplicarTripRecuperada(trip) {
     if (!trip) return;
@@ -151,6 +188,14 @@ export default function PedirTaxiPage() {
 
     if (trip.n_kms !== null && trip.n_kms !== undefined) {
       setDistanciaKm(Number(trip.n_kms) || 0);
+    }
+
+    if (trip.price !== null && trip.price !== undefined) {
+      setPrecos({
+        [trip.nivel_conforto || "Básico"]: {
+          price: Number(trip.price),
+        },
+      });
     }
 
     try {
@@ -203,14 +248,40 @@ export default function PedirTaxiPage() {
     }
 
     if (trip.status_trip === "finished") {
+      localStorage.removeItem("cliente_trip_id");
       setStep("finalizada");
-      return;
     }
   }
 
   useEffect(() => {
+    async function recuperarTripPorUrl() {
+      const tripIdFromUrl = searchParams.get("tripId");
+      const resume = searchParams.get("resume");
+
+      if (!tripIdFromUrl || resume !== "payment") return;
+
+      try {
+        const response = await obterDetalheViagem(tripIdFromUrl);
+        const trip = response?.trip || response?.data || response;
+        if (!trip) return;
+
+        await aplicarTripRecuperada(trip);
+      } catch (error) {
+        console.error("Erro ao recuperar viagem por URL:", error);
+      }
+    }
+
+    recuperarTripPorUrl();
+  }, [searchParams]);
+
+  useEffect(() => {
     async function recuperarViagemAtivaDoCliente() {
       if (!user?.id) return;
+
+      const tripIdFromUrl = searchParams.get("tripId");
+      const resume = searchParams.get("resume");
+
+      if (tripIdFromUrl && resume === "payment") return;
 
       try {
         const response = await listarViagensCliente(user.id);
@@ -227,8 +298,12 @@ export default function PedirTaxiPage() {
         const viagensAtivas = viagens
           .filter((trip) => estadosAtivos.includes(trip.status_trip))
           .sort((a, b) => {
-            const dataA = new Date(a.updated_at || a.created_at || a.start_date || 0).getTime();
-            const dataB = new Date(b.updated_at || b.created_at || b.start_date || 0).getTime();
+            const dataA = new Date(
+              a.updated_at || a.created_at || a.start_date || 0
+            ).getTime();
+            const dataB = new Date(
+              b.updated_at || b.created_at || b.start_date || 0
+            ).getTime();
 
             return dataB - dataA;
           });
@@ -250,7 +325,7 @@ export default function PedirTaxiPage() {
     }
 
     recuperarViagemAtivaDoCliente();
-  }, [user?.id]);
+  }, [user?.id, searchParams]);
 
   useEffect(() => {
     if (
@@ -269,7 +344,7 @@ export default function PedirTaxiPage() {
     const interval = setInterval(async () => {
       try {
         const response = await obterDetalheViagem(tripId);
-        const trip = response?.trip;
+        const trip = response?.trip || response?.data || response;
         if (!trip) return;
 
         setEstadoViagem(trip.status_trip);
@@ -311,6 +386,7 @@ export default function PedirTaxiPage() {
 
         if (trip.status_trip === "cancelled") {
           setErro("O pedido foi cancelado.");
+          localStorage.removeItem("cliente_trip_id");
           setStep("form");
           setTripId(null);
           setTripDetalhes(null);
@@ -321,6 +397,7 @@ export default function PedirTaxiPage() {
         }
 
         if (trip.status_trip === "finished") {
+          localStorage.removeItem("cliente_trip_id");
           setStep("finalizada");
         }
       } catch (error) {
@@ -354,7 +431,8 @@ export default function PedirTaxiPage() {
 
   useEffect(() => {
     if (
-      (estadoViagem === "driver_accepted" || estadoViagem === "client_confirmed") &&
+      (estadoViagem === "driver_accepted" ||
+        estadoViagem === "client_confirmed") &&
       taxiSelecionado &&
       origemCoords
     ) {
@@ -377,6 +455,14 @@ export default function PedirTaxiPage() {
     }
 
     if (estadoViagem === "awaiting_payment" && destinoCoords) {
+      setMapView({
+        center: [destinoCoords.lon, destinoCoords.lat],
+        zoom: 14,
+      });
+      return;
+    }
+
+    if (step === "finalizada" && destinoCoords) {
       setMapView({
         center: [destinoCoords.lon, destinoCoords.lat],
         zoom: 14,
@@ -429,7 +515,6 @@ export default function PedirTaxiPage() {
           zoom: 11,
         });
       }
-      return;
     }
   }, [estadoViagem, step, taxiSelecionado, origemCoords, destinoCoords]);
 
@@ -440,12 +525,19 @@ export default function PedirTaxiPage() {
     }
 
     const taxiMatch =
-      taxis.find((t) => tripDetalhes.taxi_id && String(t.id) === String(tripDetalhes.taxi_id)) ||
-      taxis.find((t) => tripDetalhes.taxi_id && String(t.id_taxi) === String(tripDetalhes.taxi_id)) ||
+      taxis.find(
+        (t) => tripDetalhes.taxi_id && String(t.id) === String(tripDetalhes.taxi_id)
+      ) ||
+      taxis.find(
+        (t) =>
+          tripDetalhes.taxi_id &&
+          String(t.id_taxi) === String(tripDetalhes.taxi_id)
+      ) ||
       taxis.find(
         (t) =>
           tripDetalhes.taxi_matricula &&
-          String(t.matricula).toLowerCase() === String(tripDetalhes.taxi_matricula).toLowerCase()
+          String(t.matricula).toLowerCase() ===
+            String(tripDetalhes.taxi_matricula).toLowerCase()
       ) ||
       null;
 
@@ -507,27 +599,6 @@ export default function PedirTaxiPage() {
 
     sincronizarCoordsDaTrip();
   }, [tripDetalhes, origemCoords, destinoCoords]);
-
-  useEffect(() => {
-    async function recuperarTripPendentePorUrl() {
-      const tripIdFromUrl = searchParams.get("tripId");
-      const resume = searchParams.get("resume");
-
-      if (!tripIdFromUrl || resume !== "payment") return;
-
-      try {
-        const response = await obterDetalheViagem(tripIdFromUrl);
-        const trip = response?.trip;
-        if (!trip) return;
-
-        await aplicarTripRecuperada(trip);
-      } catch (error) {
-        console.error("Erro ao recuperar viagem pendente:", error);
-      }
-    }
-
-    recuperarTripPendentePorUrl();
-  }, [searchParams]);
 
   async function carregarTaxis() {
     setCarregandoTaxis(true);
@@ -612,7 +683,8 @@ export default function PedirTaxiPage() {
   }, [origemCoords, destinoCoords]);
 
   const mostrarSoTaxiDaViagem =
-    ["driver_accepted", "client_confirmed", "in_progress"].includes(estadoViagem) && taxiSelecionado;
+    ["driver_accepted", "client_confirmed", "in_progress"].includes(estadoViagem) &&
+    taxiSelecionado;
 
   const taxiMarker =
     estadoViagem === "in_progress" && origemCoords
@@ -635,7 +707,8 @@ export default function PedirTaxiPage() {
     ...(taxiMarker ? [taxiMarker] : []),
     ...(origemCoords &&
     estadoViagem !== "awaiting_payment" &&
-    estadoViagem !== "in_progress"
+    estadoViagem !== "in_progress" &&
+    step !== "finalizada"
       ? [
           {
             id: "origem",
@@ -646,7 +719,9 @@ export default function PedirTaxiPage() {
           },
         ]
       : []),
-    ...(destinoCoords && estadoViagem !== "awaiting_payment"
+    ...(destinoCoords &&
+    estadoViagem !== "awaiting_payment" &&
+    step !== "finalizada"
       ? [
           {
             id: "destino",
@@ -668,6 +743,17 @@ export default function PedirTaxiPage() {
           },
         ]
       : []),
+    ...(step === "finalizada" && destinoCoords
+      ? [
+          {
+            id: "destino-final",
+            lon: destinoCoords.lon,
+            lat: destinoCoords.lat,
+            label: "Destino",
+            color: "#22c55e",
+          },
+        ]
+      : []),
   ];
 
   const rotaSelecionada = origemCoords && destinoCoords;
@@ -678,7 +764,8 @@ export default function PedirTaxiPage() {
     async function buscarRota() {
       try {
         if (
-          (estadoViagem === "driver_accepted" || estadoViagem === "client_confirmed") &&
+          (estadoViagem === "driver_accepted" ||
+            estadoViagem === "client_confirmed") &&
           taxiSelecionado &&
           origemCoords
         ) {
@@ -703,7 +790,8 @@ export default function PedirTaxiPage() {
         if (
           (estadoViagem === "in_progress" || rotaSelecionada) &&
           origemCoords &&
-          destinoCoords
+          destinoCoords &&
+          step !== "finalizada"
         ) {
           const rota = await calcularRota(origemCoords, destinoCoords);
 
@@ -720,16 +808,12 @@ export default function PedirTaxiPage() {
           return;
         }
 
-        if (estadoViagem === "awaiting_payment") {
-          setRoutePoints([]);
-          return;
-        }
-
         setRoutePoints([]);
       } catch {
         if (!cancel) {
           if (
-            (estadoViagem === "driver_accepted" || estadoViagem === "client_confirmed") &&
+            (estadoViagem === "driver_accepted" ||
+              estadoViagem === "client_confirmed") &&
             taxiSelecionado &&
             origemCoords
           ) {
@@ -740,7 +824,8 @@ export default function PedirTaxiPage() {
           } else if (
             (estadoViagem === "in_progress" || rotaSelecionada) &&
             origemCoords &&
-            destinoCoords
+            destinoCoords &&
+            step !== "finalizada"
           ) {
             setRoutePoints([
               [origemCoords.lon, origemCoords.lat],
@@ -758,7 +843,7 @@ export default function PedirTaxiPage() {
     return () => {
       cancel = true;
     };
-  }, [origemCoords, destinoCoords, rotaSelecionada, estadoViagem, taxiSelecionado]);
+  }, [origemCoords, destinoCoords, rotaSelecionada, estadoViagem, taxiSelecionado, step]);
 
   async function pesquisar(valor, tipo) {
     if (valor.length < 3) {
@@ -794,13 +879,13 @@ export default function PedirTaxiPage() {
 
   function selecionarOrigem(s) {
     setOrigemInput(s.label.split(",")[0]);
-    setOrigemCoords({ lon: s.lon, lat: s.lat });
+    setOrigemCoords({ lon: parseFloat(s.lon), lat: parseFloat(s.lat) });
     setSugestoesOrigem([]);
   }
 
   function selecionarDestino(s) {
     setDestinoInput(s.label.split(",")[0]);
-    setDestinoCoords({ lon: s.lon, lat: s.lat });
+    setDestinoCoords({ lon: parseFloat(s.lon), lat: parseFloat(s.lat) });
     setSugestoesDestino([]);
   }
 
@@ -812,10 +897,12 @@ export default function PedirTaxiPage() {
       setErro("Seleciona um local de origem válido.");
       return;
     }
+
     if (!destinoCoords) {
       setErro("Seleciona um local de destino válido.");
       return;
     }
+
     if (nPessoas < 1 || nPessoas > 4) {
       setErro("Número de pessoas entre 1 e 4.");
       return;
@@ -857,8 +944,7 @@ export default function PedirTaxiPage() {
           setEstadoViagem(response.trip.status_trip || "pending");
           setLoading(false);
           setStep("aguardar");
-        }
-        else {
+        } else {
           setErro("Resposta do servidor inválida.");
           setLoading(false);
         }
@@ -877,6 +963,7 @@ export default function PedirTaxiPage() {
 
       const response = await confirmarMotoristaCliente(tripId);
       const trip = response.trip || null;
+
       setTripDetalhes(trip);
       setEstadoViagem(trip?.status_trip || "client_confirmed");
       setStep("motorista_a_caminho");
@@ -894,6 +981,7 @@ export default function PedirTaxiPage() {
       setErro("");
 
       const response = await rejeitarMotoristaCliente(tripId);
+
       setTripDetalhes(response.trip || null);
       setEstadoViagem(response.trip?.status_trip || "pending");
       setStep("aguardar");
@@ -906,8 +994,26 @@ export default function PedirTaxiPage() {
   }
 
   function retomarPagamento() {
-    if (!tripId || !tripDetalhes?.price) return;
-    navigate(`/cliente/pagamento?tripId=${tripId}&amount=${tripDetalhes.price}`);
+    if (!tripId) {
+      setErro("Não foi possível encontrar a viagem para pagamento.");
+      return;
+    }
+
+    const preco =
+      tripDetalhes?.price ??
+      tripDetalhes?.preco ??
+      precos?.[selectedRide]?.price ??
+      precos?.[tripDetalhes?.nivel_conforto]?.price ??
+      0;
+
+    const valorPagamento = Number(preco);
+
+    if (!valorPagamento || Number.isNaN(valorPagamento) || valorPagamento <= 0) {
+      setErro("Não foi possível encontrar o valor da viagem para pagamento.");
+      return;
+    }
+
+    navigate(`/cliente/pagamento?tripId=${tripId}&amount=${valorPagamento}`);
   }
 
   async function cancelar() {
@@ -918,7 +1024,7 @@ export default function PedirTaxiPage() {
     } catch (error) {
       console.error("Erro ao cancelar viagem:", error);
     }
-    
+
     localStorage.removeItem("cliente_trip_id");
 
     setStep("form");
@@ -1082,10 +1188,12 @@ export default function PedirTaxiPage() {
             <div className={styles.rideList}>
               {CONFORTO_OPTS.map((nivel) => {
                 const preco = precos[nivel];
+
                 const descricao = {
                   Básico: "Viagens diárias económicas",
                   Luxuoso: "Viagens com serviço premium e melhor espaço",
                 };
+
                 const titulo = {
                   Básico: "Hermez Básico",
                   Luxuoso: "Hermez Luxuoso",
@@ -1110,7 +1218,7 @@ export default function PedirTaxiPage() {
                     </div>
                     <div className={styles.rideMeta}>
                       <span className={styles.ridePrice}>
-                        {preco ? `${preco.price.toFixed(2)} €` : "-"}
+                        {preco ? `${Number(preco.price).toFixed(2)} €` : "-"}
                       </span>
                       <span className={styles.rideDuration}>
                         {duracao > 0 ? formatarTempoEstimado(duracao) : "-"}
@@ -1146,9 +1254,7 @@ export default function PedirTaxiPage() {
             </p>
 
             {avisoTimeoutMotorista && (
-              <div className={styles.timeoutWarning}>
-                {avisoTimeoutMotorista}
-              </div>
+              <div className={styles.timeoutWarning}>{avisoTimeoutMotorista}</div>
             )}
 
             <div className={styles.resumoPedido}>
@@ -1221,7 +1327,8 @@ export default function PedirTaxiPage() {
             </p>
 
             <div className={styles.estadoBadge}>
-              Tempo restante para confirmar: <strong>{formatarCountdown(segundosRestantesCliente)}</strong>
+              Tempo restante para confirmar:{" "}
+              <strong>{formatarCountdown(segundosRestantesCliente)}</strong>
             </div>
 
             {segundosRestantesCliente === 0 && (
@@ -1476,6 +1583,8 @@ export default function PedirTaxiPage() {
               </div>
             </div>
 
+            {erro && <p className={styles.erro}>{erro}</p>}
+
             <div className={styles.confirmacaoActions}>
               <button className={styles.submitBtn} onClick={retomarPagamento}>
                 Retomar pagamento
@@ -1488,7 +1597,42 @@ export default function PedirTaxiPage() {
           <div className={styles.aguardar}>
             <div className={styles.aguardarIcon}>✅</div>
             <h2 className={styles.title}>Viagem concluída</h2>
-            <p className={styles.subtitle}>A tua viagem foi finalizada com sucesso.</p>
+            <p className={styles.subtitle}>
+              A tua viagem foi paga e finalizada com sucesso.
+            </p>
+
+            {tripDetalhes && (
+              <div className={styles.resumoPedido}>
+                <div className={styles.resumoSecao}>
+                  <div className={styles.resumoLinha}>
+                    <span className={styles.resumoLabel}>De:</span>
+                    <span className={styles.resumoValor}>
+                      {tripDetalhes.start_location || origemInput}
+                    </span>
+                  </div>
+
+                  <div className={styles.resumoLinha}>
+                    <span className={styles.resumoLabel}>Para:</span>
+                    <span className={styles.resumoValor}>
+                      {tripDetalhes.end_location || destinoInput}
+                    </span>
+                  </div>
+
+                  <div className={styles.resumoLinha}>
+                    <span className={styles.resumoLabel}>Valor pago:</span>
+                    <span className={styles.resumoValorPreco}>
+                      €{tripDetalhes.price ? Number(tripDetalhes.price).toFixed(2) : "0.00"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className={styles.confirmacaoActions}>
+              <button className={styles.submitBtn} onClick={limparEstadoParaNovoPedido}>
+                Pedir nova viagem
+              </button>
+            </div>
           </div>
         )}
       </aside>

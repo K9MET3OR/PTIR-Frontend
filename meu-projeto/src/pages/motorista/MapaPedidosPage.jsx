@@ -1263,7 +1263,7 @@ export default function MapaPedidosPage() {
 
               {proximoTurno && (
                 <div className={styles.remainingTimeBannerSmall}>
-                  <span>Próximo turno começa em</span>
+                  <span>Turno começa em:</span>
                   <strong>{formatarTempo(tempoAteProximoTurno)}</strong>
                 </div>
               )}

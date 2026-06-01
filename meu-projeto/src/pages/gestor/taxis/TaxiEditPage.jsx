@@ -7,6 +7,12 @@ import styles from "../../../styles/Form.module.css";
 const MOTOR_TYPES = ["Combustão", "Elétrico"];
 const COMFORT_TYPES = ["Básico", "Luxuoso"];
 
+const ESTADOS_VIAGEM_COM_CLIENTES = [
+  "in_progress",
+  "awaiting_payment",
+  "finished",
+];
+
 const TAXI_BRANDS = [
   { brand: "Toyota", models: ["Prius", "Corolla", "Camry", "Yaris"] },
   { brand: "Hyundai", models: ["Ioniq", "i30", "i20", "Elantra"] },
@@ -22,7 +28,6 @@ const TAXI_BRANDS = [
   { brand: "Chevrolet", models: ["Cruze", "Spark", "Cobalt", "Onix"] },
 ];
 
-// Valida matrícula portuguesa: XX-00-XX, 00-XX-00, etc.
 function validateMatricula(v) {
   return /^[A-Z]{2}-\d{2}-[A-Z]{2}$|^\d{2}-[A-Z]{2}-\d{2}$|^\d{2}-\d{2}-[A-Z]{2}$/.test(
     v.toUpperCase()
@@ -35,6 +40,24 @@ function formatMatricula(value) {
   if (clean.length <= 2) return clean;
   if (clean.length <= 4) return `${clean.slice(0, 2)}-${clean.slice(2)}`;
   return `${clean.slice(0, 2)}-${clean.slice(2, 4)}-${clean.slice(4)}`;
+}
+
+function mesmoTaxiDaViagem(trip, taxi) {
+  if (!trip || !taxi) return false;
+
+  const tripTaxiId =
+    trip.taxi_id ||
+    trip.taxi?.id ||
+    trip.taxi?.id_taxi ||
+    trip.taxi;
+
+  const taxiId = taxi.id || taxi.id_taxi;
+
+  return tripTaxiId && taxiId && String(tripTaxiId) === String(taxiId);
+}
+
+function viagemContaComoViagemComCliente(trip) {
+  return ESTADOS_VIAGEM_COM_CLIENTES.includes(trip.status_trip);
 }
 
 export default function TaxiEditPage() {
@@ -59,7 +82,6 @@ export default function TaxiEditPage() {
   const [apiError, setApiError] = useState("");
   const [confortoBloqueado, setConfortoBloqueado] = useState(false);
 
-
   useEffect(() => {
     async function carregarTaxi() {
       try {
@@ -83,9 +105,13 @@ export default function TaxiEditPage() {
         const viagensResponse = await listarViagens();
         const trips = viagensResponse?.trips || [];
 
-        const temViagens = trips.some((trip) => trip.taxi_id === taxi.id);
-        setConfortoBloqueado(temViagens);
-      } catch {
+        const temViagensComClientes = trips.some((trip) => {
+          return mesmoTaxiDaViagem(trip, taxi) && viagemContaComoViagemComCliente(trip);
+        });
+
+        setConfortoBloqueado(temViagensComClientes);
+      } catch (error) {
+        console.error("Erro ao carregar dados do táxi:", error);
         setApiError("Não foi possível carregar os dados do táxi.");
       } finally {
         setLoading(false);
@@ -118,24 +144,26 @@ export default function TaxiEditPage() {
     if (field === "marca" && errors.modelo) {
       setErrors((e) => ({ ...e, modelo: "" }));
     }
+
+    if (apiError) {
+      setApiError("");
+    }
   }
 
   function validate() {
     const e = {};
 
-    if (form.matricula !== originalForm?.matricula) {
-      if (!form.matricula) {
-        e.matricula = "Matrícula obrigatória.";
-      } else if (!validateMatricula(form.matricula)) {
-        e.matricula = "Formato inválido. Ex: AA-00-BB";
-      }
+    if (!form.matricula) {
+      e.matricula = "Matrícula obrigatória.";
+    } else if (!validateMatricula(form.matricula)) {
+      e.matricula = "Formato inválido. Ex: AA-00-BB";
     }
 
-    if (form.marca !== originalForm?.marca && !form.marca) {
+    if (!form.marca) {
       e.marca = "Marca obrigatória.";
     }
 
-    if (form.modelo !== originalForm?.modelo && !form.modelo) {
+    if (!form.modelo) {
       e.modelo = "Modelo obrigatório.";
     }
 
@@ -144,22 +172,26 @@ export default function TaxiEditPage() {
       e.modelo = "Modelo inválido para a marca selecionada.";
     }
 
-    if (form.ano_compra !== originalForm?.ano_compra) {
-      const ano = parseInt(form.ano_compra, 10);
-      if (!form.ano_compra) {
-        e.ano_compra = "Ano obrigatório.";
-      } else if (ano < 1990 || ano > new Date().getFullYear()) {
-        e.ano_compra = `Ano entre 1990 e ${new Date().getFullYear()}.`;
-      }
+    const ano = parseInt(form.ano_compra, 10);
+    if (!form.ano_compra) {
+      e.ano_compra = "Ano obrigatório.";
+    } else if (ano < 1990 || ano > new Date().getFullYear()) {
+      e.ano_compra = `Ano entre 1990 e ${new Date().getFullYear()}.`;
     }
 
-    if (form.consumo_medio !== originalForm?.consumo_medio) {
-      const consumo = parseFloat(form.consumo_medio);
-      if (!form.consumo_medio) {
-        e.consumo_medio = "Consumo médio obrigatório.";
-      } else if (Number.isNaN(consumo) || consumo <= 0) {
-        e.consumo_medio = "Consumo médio deve ser maior que 0.";
-      }
+    const consumo = parseFloat(form.consumo_medio);
+    if (!form.consumo_medio) {
+      e.consumo_medio = "Consumo médio obrigatório.";
+    } else if (Number.isNaN(consumo) || consumo <= 0) {
+      e.consumo_medio = "Consumo médio deve ser maior que 0.";
+    }
+
+    if (
+      confortoBloqueado &&
+      form.nivel_conforto !== originalForm?.nivel_conforto
+    ) {
+      e.nivel_conforto =
+        "O nível de conforto não pode ser alterado porque este táxi já fez viagens com clientes.";
     }
 
     return e;
@@ -167,6 +199,7 @@ export default function TaxiEditPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
     const e2 = validate();
     if (Object.keys(e2).length) {
       setErrors(e2);
@@ -181,32 +214,47 @@ export default function TaxiEditPage() {
     if (form.matricula !== originalForm?.matricula) {
       changes.matricula = form.matricula.toUpperCase();
     }
+
     if (form.marca !== originalForm?.marca) {
       changes.marca = form.marca;
     }
+
     if (form.modelo !== originalForm?.modelo) {
       changes.modelo = form.modelo;
     }
-    if (form.ano_compra !== originalForm?.ano_compra) {
+
+    if (String(form.ano_compra) !== String(originalForm?.ano_compra)) {
       changes.ano_compra = parseInt(form.ano_compra, 10);
     }
-    if (form.consumo_medio !== originalForm?.consumo_medio) {
+
+    if (String(form.consumo_medio) !== String(originalForm?.consumo_medio)) {
       changes.consumo_medio = parseFloat(form.consumo_medio);
     }
+
     if (form.tipo_motor !== originalForm?.tipo_motor) {
       changes.tipo_motor = form.tipo_motor;
     }
-    if (form.nivel_conforto !== originalForm?.nivel_conforto) {
+
+    if (
+      !confortoBloqueado &&
+      form.nivel_conforto !== originalForm?.nivel_conforto
+    ) {
       changes.nivel_conforto = form.nivel_conforto;
     }
+
     if (form.observacoes !== originalForm?.observacoes) {
       changes.observacoes = form.observacoes;
     }
 
-    alert("Táxi atualizado com sucesso!");
+    if (Object.keys(changes).length === 0) {
+      setApiError("Não existem alterações para guardar.");
+      setSubmitting(false);
+      return;
+    }
 
     try {
       await taxiService.update(id, changes);
+      alert("Táxi atualizado com sucesso!");
       navigate("/gestor/taxis");
     } catch (err) {
       setApiError(err.message ?? "Erro ao atualizar táxi.");
@@ -351,6 +399,9 @@ export default function TaxiEditPage() {
               <span className={styles.fieldError}>
                 O nível de conforto não pode ser alterado porque este táxi já fez viagens com clientes.
               </span>
+            )}
+            {errors.nivel_conforto && (
+              <span className={styles.fieldError}>{errors.nivel_conforto}</span>
             )}
           </div>
 
