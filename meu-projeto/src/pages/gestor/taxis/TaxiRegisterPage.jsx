@@ -24,9 +24,10 @@ const TAXI_BRANDS = [
 
 // Valida matrícula portuguesa: XX-00-XX, 00-XX-00, etc.
 function validateMatricula(v) {
-  return /^[A-Z]{2}-\d{2}-[A-Z]{2}$|^\d{2}-[A-Z]{2}-\d{2}$|^\d{2}-\d{2}-[A-Z]{2}$/.test(v.toUpperCase());
+  return /^([A-Z]{2}-\d{2}-[A-Z]{2}|[A-Z]{2}-\d{2}-\d{2}|\d{2}-[A-Z]{2}-\d{2}|\d{2}-\d{2}-[A-Z]{2})$/.test(
+    v.toUpperCase()
+  );
 }
-
 function formatMatricula(value) {
   const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
 
@@ -77,7 +78,7 @@ export default function TaxiRegisterPage() {
     if (!form.matricula)
       e.matricula = "Matrícula obrigatória.";
     else if (!validateMatricula(form.matricula))
-      e.matricula = "Formato inválido. Ex: AA-00-BB";
+      e.matricula = "Formato inválido. Ex: AA-00-BB ou AA-00-00";
 
     if (!form.marca) e.marca = "Marca obrigatória.";
     if (!form.modelo) e.modelo = "Modelo obrigatório.";
@@ -100,17 +101,19 @@ export default function TaxiRegisterPage() {
     const e2 = validate();
     if (Object.keys(e2).length) { setErrors(e2); return; }
 
-    alert("Táxi registado com sucesso!");
-
     setLoading(true);
     setApiError("");
+
     try {
       await taxiService.create({
         ...form,
         matricula: form.matricula.toUpperCase(),
         ano_compra: parseInt(form.ano_compra, 10),
         consumo_medio: parseFloat(form.consumo_medio),
+        observacoes: form.observacoes.trim(),
       });
+
+      alert("Táxi registado com sucesso!");
       navigate("/gestor/taxis");
     } catch (err) {
       setApiError(err.message ?? "Erro ao registar táxi.");

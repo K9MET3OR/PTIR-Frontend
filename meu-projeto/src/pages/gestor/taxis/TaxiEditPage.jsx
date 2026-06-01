@@ -29,7 +29,7 @@ const TAXI_BRANDS = [
 ];
 
 function validateMatricula(v) {
-  return /^[A-Z]{2}-\d{2}-[A-Z]{2}$|^\d{2}-[A-Z]{2}-\d{2}$|^\d{2}-\d{2}-[A-Z]{2}$/.test(
+  return /^([A-Z]{2}-\d{2}-[A-Z]{2}|[A-Z]{2}-\d{2}-\d{2}|\d{2}-[A-Z]{2}-\d{2}|\d{2}-\d{2}-[A-Z]{2})$/.test(
     v.toUpperCase()
   );
 }
@@ -156,7 +156,7 @@ export default function TaxiEditPage() {
     if (!form.matricula) {
       e.matricula = "Matrícula obrigatória.";
     } else if (!validateMatricula(form.matricula)) {
-      e.matricula = "Formato inválido. Ex: AA-00-BB";
+      e.matricula = "Formato inválido. Ex: AA-00-BB ou AA-00-00";
     }
 
     if (!form.marca) {
@@ -242,8 +242,8 @@ export default function TaxiEditPage() {
       changes.nivel_conforto = form.nivel_conforto;
     }
 
-    if (form.observacoes !== originalForm?.observacoes) {
-      changes.observacoes = form.observacoes;
+    if ((form.observacoes || "") !== (originalForm?.observacoes || "")) {
+      changes.observacoes = form.observacoes.trim();
     }
 
     if (Object.keys(changes).length === 0) {

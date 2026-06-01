@@ -32,6 +32,9 @@ export default function LoginPage() {
       console.log('[LOGIN] Resultado do login:', result);
       console.log('[LOGIN] User:', result.user);
       // Redireciona para uma rota existente para cada role
+
+      alert("Login realizado com sucesso!");
+      
       let routePath = "/login"; // default fallback
 
       if (selectedRole === "admin") {
@@ -80,7 +83,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
-    alert("Registo realizado com sucesso!");
   }
 
   return (

@@ -1647,6 +1647,15 @@ export default function MapaPedidosPage() {
             <div className={styles.divider} />
             <div className={styles.sectionTitle}>Próximos Turnos</div>
             <div className={styles.lista}>
+              {estaEmServico && (
+                <button
+                  type="button"
+                  className={styles.agendarTurnoBtn}
+                  onClick={handleAtivarTurno}
+                >
+                  Agendar novo turno
+                </button>
+              )}
               {proximosTurnos.length === 0 ? (
                 <div className={styles.emptyState}>Não tens próximos turnos agendados</div>
               ) : (

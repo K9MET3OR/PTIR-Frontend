@@ -104,6 +104,7 @@ export function AuthProvider({ children }) {
           genero: extraFields.genero,
           n_carta: extraFields.n_carta,
           data_nascimento: extraFields.data_nascimento,
+          validade_carta: extraFields.validade_carta,
           codigo_postal: extraFields.codigo_postal,
           telefone: extraFields.telefone,
         });

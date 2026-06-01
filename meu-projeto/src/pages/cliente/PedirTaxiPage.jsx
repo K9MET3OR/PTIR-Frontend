@@ -22,6 +22,8 @@ const FCT_LISBOA = {
   lon: -9.155412,
 };
 
+const DISTANCIA_MINIMA_VIAGEM_KM = 0.05;
+
 function numeroOuNull(valor) {
   const numero = Number.parseFloat(valor);
   return Number.isFinite(numero) ? numero : null;
@@ -638,11 +640,21 @@ export default function PedirTaxiPage() {
 
   async function calcularPrecos(lat1, lon1, lat2, lon2) {
     const distancia = calcularDistanciaKm(lat1, lon1, lat2, lon2);
-    const duracaoCalc = Math.round((distancia / 40) * 60);
+
+    if (distancia <= DISTANCIA_MINIMA_VIAGEM_KM) {
+      setDistanciaKm(0);
+      setDuracao(0);
+      setPrecos({});
+      setErro("A origem e o destino não podem ser iguais ou demasiado próximos.");
+      return;
+    }
+
+    const duracaoCalc = Math.max(1, Math.round((distancia / 40) * 60));
 
     setDistanciaKm(distancia);
     setDuracao(duracaoCalc);
     setCarregandoPrecos(true);
+    setErro("");
 
     try {
       const precosCalculados = {};
@@ -665,6 +677,7 @@ export default function PedirTaxiPage() {
       setPrecos(precosCalculados);
     } catch (err) {
       console.error("Erro ao calcular preços:", err);
+      setPrecos({});
       setErro("Erro ao calcular preços. Tenta novamente.");
     } finally {
       setCarregandoPrecos(false);
@@ -672,14 +685,31 @@ export default function PedirTaxiPage() {
   }
 
   useEffect(() => {
-    if (origemCoords && destinoCoords) {
-      calcularPrecos(
-        origemCoords.lat,
-        origemCoords.lon,
-        destinoCoords.lat,
-        destinoCoords.lon
-      );
+    if (!origemCoords || !destinoCoords) return;
+
+    const distanciaEntrePontos = calcularDistanciaKm(
+      origemCoords.lat,
+      origemCoords.lon,
+      destinoCoords.lat,
+      destinoCoords.lon
+    );
+
+    if (distanciaEntrePontos <= DISTANCIA_MINIMA_VIAGEM_KM) {
+      setPrecos({});
+      setDistanciaKm(0);
+      setDuracao(0);
+      setErro("A origem e o destino não podem ser iguais ou demasiado próximos.");
+      return;
     }
+
+    setErro("");
+
+    calcularPrecos(
+      origemCoords.lat,
+      origemCoords.lon,
+      destinoCoords.lat,
+      destinoCoords.lon
+    );
   }, [origemCoords, destinoCoords]);
 
   const mostrarSoTaxiDaViagem =
@@ -903,6 +933,21 @@ export default function PedirTaxiPage() {
       return;
     }
 
+    const distanciaEntrePontos = calcularDistanciaKm(
+      origemCoords.lat,
+      origemCoords.lon,
+      destinoCoords.lat,
+      destinoCoords.lon
+    );
+
+    if (distanciaEntrePontos <= DISTANCIA_MINIMA_VIAGEM_KM) {
+      setPrecos({});
+      setDistanciaKm(0);
+      setDuracao(0);
+      setErro("A origem e o destino não podem ser iguais ou demasiado próximos.");
+      return;
+    }
+
     if (nPessoas < 1 || nPessoas > 4) {
       setErro("Número de pessoas entre 1 e 4.");
       return;
@@ -918,12 +963,17 @@ export default function PedirTaxiPage() {
       return;
     }
 
+    const precoSelecionado = precos[selectedRide];
+    const preco = precoSelecionado ? Number(precoSelecionado.price) : 0;
+
+    if (!preco || Number.isNaN(preco) || preco <= 0) {
+      setErro("Não foi possível calcular o preço desta viagem.");
+      return;
+    }
+
     setLoading(true);
     setErro("");
     setAvisoTimeoutMotorista("");
-
-    const precoSelecionado = precos[selectedRide];
-    const preco = precoSelecionado ? Number(precoSelecionado.price) : 0;
 
     criarSolicitacaoViagem({
       clientId: user.id,
@@ -1234,7 +1284,12 @@ export default function PedirTaxiPage() {
             <button
               className={styles.submitBtn}
               onClick={confirmarPedido}
-              disabled={loading || carregandoPrecos}
+              disabled={
+                loading ||
+                carregandoPrecos ||
+                !precos[selectedRide] ||
+                !precos[selectedRide]?.price
+              }
             >
               {loading ? "A enviar…" : `Pedir Hermez ${selectedRide}`}
             </button>

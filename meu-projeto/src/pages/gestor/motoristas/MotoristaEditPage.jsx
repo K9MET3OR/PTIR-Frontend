@@ -14,6 +14,34 @@ function validateNIF(v) {
   return /^[123456789]\d{8}$/.test(v);
 }
 
+function validarValidadeCarta(dataValidade) {
+  if (!dataValidade) {
+    return "Validade da carta obrigatória.";
+  }
+
+  const validade = new Date(dataValidade);
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const limiteMaximo = new Date();
+  limiteMaximo.setFullYear(limiteMaximo.getFullYear() + 15);
+  limiteMaximo.setHours(0, 0, 0, 0);
+
+  if (Number.isNaN(validade.getTime())) {
+    return "Data de validade inválida.";
+  }
+
+  if (validade < hoje) {
+    return "A carta de condução está expirada.";
+  }
+
+  if (validade > limiteMaximo) {
+    return "A validade da carta não pode ser superior a 15 anos no futuro.";
+  }
+
+  return null;
+}
+
 function formatCodigoPostal(value) {
   const clean = value.replace(/\D/g, "").slice(0, 7);
 
@@ -154,8 +182,9 @@ export default function MotoristaEditPage() {
     }
 
     if (form.validade_carta !== originalForm?.validade_carta) {
-      if (!form.validade_carta) {
-        e.validade_carta = "Validade da carta obrigatória.";
+      const erroValidadeCarta = validarValidadeCarta(form.validade_carta);
+      if (erroValidadeCarta) {
+        e.validade_carta = erroValidadeCarta;
       }
     }
 
@@ -194,10 +223,9 @@ export default function MotoristaEditPage() {
     if (form.codigo_postal !== originalForm?.codigo_postal) changes.codigo_postal = form.codigo_postal;
     if (form.estado !== originalForm?.estado) changes.estado = form.estado;
 
-    alert("Motorista atualizado com sucesso!");
-
     try {
       await motoristaService.update(id, changes);
+      alert("Motorista atualizado com sucesso!");
       navigate("/gestor/motoristas");
     } catch (err) {
       setApiError(err.message ?? "Erro ao atualizar motorista.");
@@ -322,6 +350,10 @@ export default function MotoristaEditPage() {
               className={styles.input}
               type="date"
               value={form.validade_carta}
+              min={new Date().toISOString().slice(0, 10)}
+              max={new Date(new Date().setFullYear(new Date().getFullYear() + 15))
+                .toISOString()
+                .slice(0, 10)}
               onChange={(e) => set("validade_carta", e.target.value)}
             />
             {errors.validade_carta && <span className={styles.fieldError}>{errors.validade_carta}</span>}

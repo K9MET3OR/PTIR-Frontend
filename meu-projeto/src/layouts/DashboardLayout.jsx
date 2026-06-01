@@ -7,6 +7,7 @@ const NAV_ITEMS_GESTOR = [
   { to: "/gestor",             label: "Visão geral", icon: "⊞", end: true },
   { to: "/gestor/taxis",       label: "Táxis",       icon: "🚕" },
   { to: "/gestor/motoristas",  label: "Motoristas",  icon: "👤" },
+  { to: "/gestor/precos",      label: "Preços",      icon: "💶" },
   { to: "/gestor/relatorios",  label: "Relatórios",  icon: "📊" },
 ];
 

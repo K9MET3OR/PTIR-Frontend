@@ -79,6 +79,34 @@ export default function MotoristaRegisterPage() {
     }
   }
 
+  function validarValidadeCarta(dataValidade) {
+    if (!dataValidade) {
+      return "Validade da carta obrigatória.";
+    }
+
+    const validade = new Date(dataValidade);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    const limiteMaximo = new Date();
+    limiteMaximo.setFullYear(limiteMaximo.getFullYear() + 15);
+    limiteMaximo.setHours(0, 0, 0, 0);
+
+    if (Number.isNaN(validade.getTime())) {
+      return "Data de validade inválida.";
+    }
+
+    if (validade < hoje) {
+      return "A carta de condução está expirada.";
+    }
+
+    if (validade > limiteMaximo) {
+      return "A validade da carta não pode ser superior a 15 anos no futuro.";
+    }
+
+    return null;
+  }
+
   function validate() {
     const e = {};
 
@@ -104,10 +132,9 @@ export default function MotoristaRegisterPage() {
     if (!/^\d{9}$/.test(form.telefone)) e.telefone = "Telefone inválido (9 dígitos).";
     if (!validateCarta(form.n_carta)) e.n_carta = "Número de carta de condução obrigatório.";
 
-    if (!form.validade_carta) {
-      e.validade_carta = "Validade da carta obrigatória.";
-    } else if (new Date(form.validade_carta) < new Date()) {
-      e.validade_carta = "A carta de condução está expirada.";
+    const erroValidadeCarta = validarValidadeCarta(form.validade_carta);
+    if (erroValidadeCarta) {
+      e.validade_carta = erroValidadeCarta;
     }
 
     if (form.codigo_postal && !/^\d{4}-\d{3}$/.test(form.codigo_postal)) {
@@ -247,6 +274,10 @@ export default function MotoristaRegisterPage() {
               className={styles.input}
               type="date"
               value={form.validade_carta}
+              min={new Date().toISOString().slice(0, 10)}
+              max={new Date(new Date().setFullYear(new Date().getFullYear() + 15))
+                .toISOString()
+                .slice(0, 10)}
               onChange={(e) => set("validade_carta", e.target.value)}
             />
             {errors.validade_carta && <span className={styles.fieldError}>{errors.validade_carta}</span>}
