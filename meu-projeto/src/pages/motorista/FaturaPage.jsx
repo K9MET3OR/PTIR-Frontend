@@ -1,16 +1,55 @@
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
-import { obterShift, verificarTurnoAtivo } from "../../services/shiftService";
 import { invoiceService } from "../../services/invoiceService";
 import { listarViagensFinalizadasMotorista } from "../../services/tripService";
 import styles from "./FaturaPage.module.css";
+
+function formatarData(data) {
+  if (!data) return "—";
+
+  const d = new Date(data);
+
+  if (Number.isNaN(d.getTime())) {
+    return "—";
+  }
+
+  return d.toLocaleString("pt-PT", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+function formatarValor(valor) {
+  const n = Number(valor);
+
+  if (Number.isNaN(n)) {
+    return "—";
+  }
+
+  return `${n.toFixed(2)} €`;
+}
+
+function obterOrigem(trip) {
+  return trip.start_location || trip.morada_inicio || "—";
+}
+
+function obterDestino(trip) {
+  return trip.end_location || trip.morada_fim || "—";
+}
+
+function pluralViagens(total) {
+  return total === 1 ? "viagem" : "viagens";
+}
+
+function pluralFaturas(total) {
+  return total === 1 ? "fatura emitida" : "faturas emitidas";
+}
 
 export default function FaturaPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [shift, setShift] = useState(null);
   const [trips, setTrips] = useState([]);
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,102 +58,77 @@ export default function FaturaPage() {
   const [sucesso, setSucesso] = useState("");
   const [tripSelecionada, setTripSelecionada] = useState("");
 
-  const shiftId = useMemo(() => localStorage.getItem("turno_id"), []);
-
-  useEffect(() => {
-    async function carregarDados() {
-      let shiftData = null;
-      const storedShiftId = localStorage.getItem("turno_id");
-
-      // Tentar carregar pelo ID armazenado (apenas se for um UUID válido)
-      if (storedShiftId && storedShiftId.includes('-')) {
-        try {
-          const shiftResponse = await obterShift(storedShiftId);
-          const candidate = shiftResponse.shift || shiftResponse;
-          if (candidate && candidate.id) {
-            shiftData = candidate;
-          } else {
-            localStorage.removeItem("turno_id");
-            localStorage.removeItem("turno_ativo");
-          }
-        } catch (error) {
-          console.warn("Erro ao carregar turno pelo ID armazenado:", error);
-          localStorage.removeItem("turno_id");
-          localStorage.removeItem("turno_ativo");
-        }
-      } else if (storedShiftId) {
-        // Se o ID armazenado não é um UUID, remove
-        localStorage.removeItem("turno_id");
-        localStorage.removeItem("turno_ativo");
-      }
-
-      // Se não encontrou pelo ID, tenta verificar turno ativo do motorista
-      if (!shiftData && user?.id) {
-        try {
-          const turnoAtivo = await verificarTurnoAtivo(user.id);
-          if (turnoAtivo?.id) {
-            shiftData = turnoAtivo;
-            localStorage.setItem("turno_id", turnoAtivo.id);
-            localStorage.setItem("turno_ativo", "true");
-          }
-        } catch (error) {
-          console.warn("Erro ao verificar turno ativo do motorista:", error);
-        }
-      }
-
-      if (!shiftData) {
-        setErro("Não há um turno ativo. Inicia um turno para emitir faturas.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        setShift(shiftData);
-
-        // Carregar viagens finalizadas do motorista
-        let todasViagens = [];
-        try {
-          const tripsResponse = await listarViagensFinalizadasMotorista(user.id);
-          todasViagens = tripsResponse.trips || [];
-        } catch (tripError) {
-          console.warn("Erro ao carregar viagens do motorista:", tripError);
-          // Continua mesmo sem viagens
-        }
-
-        // Carregar faturas já emitidas pelo motorista
-        let invoicesList = [];
-        try {
-          const invoicesResponse = await invoiceService.listByDriver(user.id);
-          invoicesList = invoicesResponse.invoices || [];
-        } catch (invoiceError) {
-          console.warn("Erro ao carregar faturas do motorista:", invoiceError);
-          // Continua mesmo sem faturas
-        }
-
-        setInvoices(invoicesList);
-
-        const invoiceTripIds = new Set(invoicesList.map((inv) => inv.trip_id));
-        const semFatura = todasViagens.filter(
-          (t) => t.status_trip === "finished" && !invoiceTripIds.has(t.id)
-        );
-        setTrips(semFatura);
-      } catch (err) {
-        console.error("Erro ao carregar dados:", err);
-        setErro(err.message || "Erro ao carregar dados.");
-      } finally {
-        setLoading(false);
-      }
+  async function carregarDados() {
+    if (!user?.id) {
+      setErro("Não foi possível identificar o motorista.");
+      setLoading(false);
+      return;
     }
 
+    try {
+      setLoading(true);
+      setErro("");
+      setSucesso("");
+
+      const [tripsResponse, invoicesResponse] = await Promise.all([
+        listarViagensFinalizadasMotorista(user.id),
+        invoiceService.listByDriver(user.id),
+      ]);
+
+      const todasViagens = tripsResponse?.trips || [];
+      const invoicesList = invoicesResponse?.invoices || [];
+
+      const invoicesOrdenadas = [...invoicesList].sort((a, b) => {
+        return new Date(b.data || 0).getTime() - new Date(a.data || 0).getTime();
+      });
+
+      setInvoices(invoicesOrdenadas);
+
+      const invoiceTripIds = new Set(
+        invoicesOrdenadas.map((inv) => String(inv.trip_id))
+      );
+
+      const viagensSemFatura = todasViagens
+        .filter((trip) => {
+          const finished = trip.status_trip === "finished";
+          const semFatura = !invoiceTripIds.has(String(trip.id));
+          const precoValido = Number(trip.price) > 0;
+
+          return finished && semFatura && precoValido;
+        })
+        .sort((a, b) => {
+          const dataA = new Date(a.end_date || a.start_date || 0).getTime();
+          const dataB = new Date(b.end_date || b.start_date || 0).getTime();
+
+          return dataB - dataA;
+        });
+
+      setTrips(viagensSemFatura);
+    } catch (err) {
+      console.error("Erro ao carregar faturas:", err);
+      setErro(err.message || "Erro ao carregar dados das faturas.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
     carregarDados();
-  }, [shiftId, user]);
+  }, [user?.id]);
 
   const tripSelecionadaObj = useMemo(
-    () => trips.find((t) => t.id === tripSelecionada) || null,
+    () => trips.find((t) => String(t.id) === String(tripSelecionada)) || null,
     [trips, tripSelecionada]
   );
 
-  const handleEmitir = async () => {
+  const totalFaturado = useMemo(() => {
+    return invoices.reduce((total, inv) => {
+      const valor = Number(inv.valor);
+      return Number.isNaN(valor) ? total : total + valor;
+    }, 0);
+  }, [invoices]);
+
+  async function handleEmitir() {
     setErro("");
     setSucesso("");
 
@@ -132,190 +146,232 @@ export default function FaturaPage() {
       setSucesso(`Fatura ${novaFatura.numero_formatado} emitida com sucesso.`);
       setTripSelecionada("");
 
-      // Remove a viagem da lista e adiciona a fatura no topo
-      setTrips((current) => current.filter((t) => t.id !== tripSelecionada));
-      setInvoices((current) => [novaFatura, ...current]);
+      setTrips((current) =>
+        current.filter((trip) => String(trip.id) !== String(tripSelecionada))
+      );
+
+      setInvoices((current) => {
+        const atualizadas = [novaFatura, ...current];
+
+        return atualizadas.sort((a, b) => {
+          return new Date(b.data || 0).getTime() - new Date(a.data || 0).getTime();
+        });
+      });
     } catch (err) {
       console.error("Erro ao emitir fatura:", err);
       setErro(err.message || "Erro ao emitir fatura.");
     } finally {
       setSaving(false);
     }
-  };
+  }
 
   return (
     <div className={styles.root}>
-      <div className={styles.header}>
-        <div>
-          <h1>Faturas</h1>
-          <p>Emite faturas para as viagens finalizadas do teu turno.</p>
-        </div>
-        <button className={styles.backButton} onClick={() => navigate("/motorista/mapa")}>
-          ↩ Voltar
-        </button>
-      </div>
+      <div className={styles.pageShell}>
+        <div className={styles.header}>
+          <div>
+            <h1>Faturas</h1>
+            <p>Emite faturas para viagens pagas e finalizadas, sem preencher dados manualmente.</p>
+          </div>
 
-      {loading ? (
-        <div className={styles.loading}>A carregar dados do turno...</div>
-      ) : (
-        <>
-          {!shift ? (
-            <div className={styles.emptyState}>
-              <p>Não foi possível encontrar um turno ativo.</p>
-              <button onClick={() => navigate("/motorista/turno")}>Iniciar Turno</button>
-            </div>
-          ) : (
-            <>
-              <div className={styles.statusBar}>
-                <div>
-                  <span className={styles.statusLabel}>Turno ativo</span>
-                  <p>
-                    {new Date(shift.start_date).toLocaleString("pt-PT", {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                    })}{" "}
-                    →{" "}
-                    {new Date(shift.end_date).toLocaleString("pt-PT", {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                    })}
-                  </p>
-                </div>
-                <div className={styles.statsBox}>
-                  <span>{invoices.length} fatura{invoices.length !== 1 ? "s" : ""} emitida{invoices.length !== 1 ? "s" : ""}</span>
-                  <span>{trips.length} viagem{trips.length !== 1 ? "s" : ""} por faturar</span>
-                </div>
+          <button className={styles.backButton} onClick={() => navigate("/motorista/mapa")}>
+            ← Voltar ao mapa
+          </button>
+        </div>
+
+        {loading ? (
+          <div className={styles.loadingCard}>
+            <div className={styles.loaderDot} />
+            <span>A carregar faturas...</span>
+          </div>
+        ) : (
+          <>
+            <div className={styles.summaryGrid}>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryLabel}>Faturas emitidas</span>
+                <strong>{invoices.length}</strong>
+                <p>{pluralFaturas(invoices.length)}</p>
               </div>
 
-              <div className={styles.grid}>
-                {/* Painel de emissão */}
-                <div className={styles.card}>
-                  <h2>Emitir nova fatura</h2>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryLabel}>Por faturar</span>
+                <strong>{trips.length}</strong>
+                <p>{pluralViagens(trips.length)} finalizada{trips.length === 1 ? "" : "s"}</p>
+              </div>
 
-                  {trips.length === 0 ? (
-                    <p className={styles.semViagens}>
-                      Não há viagens finalizadas pendentes de faturação.
-                    </p>
-                  ) : (
-                    <>
-                      <label className={styles.fieldLabel}>
-                        Seleciona a viagem
-                        <select
-                          className={styles.select}
-                          value={tripSelecionada}
-                          onChange={(e) => {
-                            setTripSelecionada(e.target.value);
-                            setErro("");
-                            setSucesso("");
-                          }}
-                        >
-                          <option value="">— Escolhe uma viagem —</option>
-                          {trips.map((t) => (
-                            <option key={t.id} value={t.id}>
-                              {new Date(t.start_date).toLocaleString("pt-PT", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              })}{" "}
-                              · {t.morada_inicio ?? "—"} → {t.morada_fim ?? "—"} · €
-                              {Number(t.price).toFixed(2)}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
+              <div className={styles.summaryCard}>
+                <span className={styles.summaryLabel}>Total faturado</span>
+                <strong>{formatarValor(totalFaturado)}</strong>
+                <p>Valor total emitido</p>
+              </div>
+            </div>
 
-                      {tripSelecionadaObj && (
-                        <div className={styles.tripPreview}>
-                          <div className={styles.tripRow}>
+            <div className={styles.infoBanner}>
+              <div className={styles.infoIcon}>i</div>
+              <div>
+                <strong>Regra de emissão</strong>
+                <p>
+                  Só aparecem viagens finalizadas, pagas e sem fatura associada. Após emissão,
+                  a fatura entra no topo da lista.
+                </p>
+              </div>
+            </div>
+
+            <div className={styles.grid}>
+              <section className={styles.issueCard}>
+                <div className={styles.cardHeader}>
+                  <div>
+                    <span className={styles.cardKicker}>Nova fatura</span>
+                    <h2>Emitir fatura</h2>
+                  </div>
+                  <div className={styles.cardIcon}>🧾</div>
+                </div>
+
+                {trips.length === 0 ? (
+                  <div className={styles.emptyBox}>
+                    <div className={styles.emptyIcon}>✓</div>
+                    <strong>Sem viagens pendentes</strong>
+                    <p>Não há viagens finalizadas pendentes de faturação.</p>
+                  </div>
+                ) : (
+                  <>
+                    <label className={styles.fieldLabel}>
+                      Viagem a faturar
+                      <select
+                        className={styles.select}
+                        value={tripSelecionada}
+                        onChange={(e) => {
+                          setTripSelecionada(e.target.value);
+                          setErro("");
+                          setSucesso("");
+                        }}
+                      >
+                        <option value="">Escolhe uma viagem finalizada</option>
+
+                        {trips.map((trip) => (
+                          <option key={trip.id} value={trip.id}>
+                            {formatarData(trip.end_date || trip.start_date)} ·{" "}
+                            {obterOrigem(trip)} → {obterDestino(trip)} ·{" "}
+                            {formatarValor(trip.price)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    {tripSelecionadaObj && (
+                      <div className={styles.tripPreview}>
+                        <div className={styles.routePreview}>
+                          <div>
+                            <span>Origem</span>
+                            <strong>{obterOrigem(tripSelecionadaObj)}</strong>
+                          </div>
+
+                          <div className={styles.routeDivider}>→</div>
+
+                          <div>
+                            <span>Destino</span>
+                            <strong>{obterDestino(tripSelecionadaObj)}</strong>
+                          </div>
+                        </div>
+
+                        <div className={styles.tripDetailsGrid}>
+                          <div>
                             <span>Início</span>
-                            <strong>
-                              {tripSelecionadaObj.start_date
-                                ? new Date(tripSelecionadaObj.start_date).toLocaleString("pt-PT", {
-                                    dateStyle: "short",
-                                    timeStyle: "short",
-                                  })
-                                : "—"}
-                            </strong>
+                            <strong>{formatarData(tripSelecionadaObj.start_date)}</strong>
                           </div>
-                          <div className={styles.tripRow}>
+
+                          <div>
                             <span>Fim</span>
-                            <strong>
-                              {tripSelecionadaObj.end_date
-                                ? new Date(tripSelecionadaObj.end_date).toLocaleString("pt-PT", {
-                                    dateStyle: "short",
-                                    timeStyle: "short",
-                                  })
-                                : "—"}
-                            </strong>
+                            <strong>{formatarData(tripSelecionadaObj.end_date)}</strong>
                           </div>
-                          <div className={styles.tripRow}>
+
+                          <div>
                             <span>Pessoas</span>
                             <strong>{tripSelecionadaObj.n_people ?? "—"}</strong>
                           </div>
-                          <div className={styles.tripRow}>
-                            <span>Quilómetros</span>
-                            <strong>{tripSelecionadaObj.n_kms ?? "—"} km</strong>
-                          </div>
-                          <div className={`${styles.tripRow} ${styles.tripRowValor}`}>
-                            <span>Valor a faturar</span>
-                            <strong>€{Number(tripSelecionadaObj.price).toFixed(2)}</strong>
-                          </div>
-                        </div>
-                      )}
 
-                      {erro && <div className={styles.erro}>{erro}</div>}
-                      {sucesso && <div className={styles.sucesso}>{sucesso}</div>}
-
-                      <button
-                        className={styles.submitButton}
-                        onClick={handleEmitir}
-                        disabled={saving || !tripSelecionada}
-                      >
-                        {saving ? "A emitir..." : "Emitir Fatura"}
-                      </button>
-                    </>
-                  )}
-
-                  {trips.length === 0 && erro && (
-                    <div className={styles.erro}>{erro}</div>
-                  )}
-                  {trips.length === 0 && sucesso && (
-                    <div className={styles.sucesso}>{sucesso}</div>
-                  )}
-                </div>
-
-                {/* Lista de faturas emitidas */}
-                <div className={styles.card}>
-                  <h2>Faturas emitidas</h2>
-                  {invoices.length === 0 ? (
-                    <p className={styles.semViagens}>Ainda não emitiste nenhuma fatura.</p>
-                  ) : (
-                    <div className={styles.invoiceList}>
-                      {invoices.map((inv) => (
-                        <div key={inv.id} className={styles.invoiceItem}>
                           <div>
-                            <strong className={styles.invoiceNum}>{inv.numero_formatado}</strong>
-                            <p>
-                              {new Date(inv.data).toLocaleString("pt-PT", {
-                                dateStyle: "short",
-                                timeStyle: "short",
-                              })}
-                            </p>
-                          </div>
-                          <div className={styles.invoiceMeta}>
-                            <span className={styles.invoiceValor}>
-                              €{Number(inv.valor).toFixed(2)}
-                            </span>
+                            <span>Quilómetros</span>
+                            <strong>
+                              {tripSelecionadaObj.n_kms
+                                ? `${Number(tripSelecionadaObj.n_kms).toFixed(2)} km`
+                                : "—"}
+                            </strong>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
+
+                        <div className={styles.amountBox}>
+                          <span>Valor a faturar</span>
+                          <strong>{formatarValor(tripSelecionadaObj.price)}</strong>
+                        </div>
+                      </div>
+                    )}
+
+                    <button
+                      className={styles.submitButton}
+                      onClick={handleEmitir}
+                      disabled={saving || !tripSelecionada}
+                    >
+                      {saving ? "A emitir..." : "Emitir fatura"}
+                    </button>
+                  </>
+                )}
+
+                {erro && <div className={styles.erro}>{erro}</div>}
+                {sucesso && <div className={styles.sucesso}>{sucesso}</div>}
+              </section>
+
+              <section className={styles.invoicePanel}>
+                <div className={styles.cardHeader}>
+                  <div>
+                    <span className={styles.cardKicker}>Histórico</span>
+                    <h2>Faturas emitidas</h2>
+                  </div>
+                  <div className={styles.cardIcon}>€</div>
                 </div>
-              </div>
-            </>
-          )}
-        </>
-      )}
+
+                {invoices.length === 0 ? (
+                  <div className={styles.emptyBox}>
+                    <div className={styles.emptyIcon}>🧾</div>
+                    <strong>Ainda sem faturas</strong>
+                    <p>Quando emitires a primeira fatura, ela aparecerá aqui.</p>
+                  </div>
+                ) : (
+                  <div className={styles.invoiceList}>
+                    {invoices.map((inv) => (
+                      <article key={inv.id} className={styles.invoiceItem}>
+                        <div className={styles.invoiceTop}>
+                          <div>
+                            <span className={styles.invoiceLabel}>Fatura</span>
+                            <strong className={styles.invoiceNum}>
+                              {inv.numero_formatado}
+                            </strong>
+                          </div>
+
+                          <span className={styles.invoiceValor}>
+                            {formatarValor(inv.valor)}
+                          </span>
+                        </div>
+
+                        <div className={styles.invoiceRoute}>
+                          <span>{inv.start_location || "—"}</span>
+                          <span className={styles.routeArrow}>→</span>
+                          <span>{inv.end_location || "—"}</span>
+                        </div>
+
+                        <div className={styles.invoiceFooter}>
+                          <span>{formatarData(inv.data)}</span>
+                          {inv.client_nif && <span>NIF {inv.client_nif}</span>}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

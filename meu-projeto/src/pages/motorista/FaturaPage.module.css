@@ -1,286 +1,505 @@
 .root {
   min-height: 100vh;
   padding: 2rem;
-  background: radial-gradient(circle at top left, rgba(124, 58, 237, 0.18), transparent 28%),
-    linear-gradient(180deg, #09040f 0%, #0b0615 100%);
+  background: linear-gradient(180deg, #09040f 0%, #0c0520 100%);
   color: #f8f7ff;
+}
+
+.pageShell {
+  max-width: 1180px;
+  margin: 0 auto;
 }
 
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1.25rem;
   margin-bottom: 1.5rem;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 0.45rem;
+  color: #b7a7ff;
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .header h1 {
   font-size: 2rem;
   margin: 0;
-  color: white;
+  color: #ffffff;
 }
 
 .header p {
-  color: #d8c8ff;
-  margin: 0.35rem 0 0;
+  margin: 0.4rem 0 0;
+  max-width: 620px;
+  color: #b7a7ff;
+  font-size: 0.95rem;
+  line-height: 1.45;
 }
 
 .backButton {
-  padding: 0.9rem 1.1rem;
-  border: none;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-  color: white;
+  flex-shrink: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f8f7ff;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.18s ease, transform 0.18s ease;
 }
 
 .backButton:hover {
+  background: rgba(124, 58, 237, 0.14);
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(124, 58, 237, 0.25);
 }
 
-.loading,
-.emptyState {
-  max-width: 900px;
-  margin: 0 auto;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 18px;
-  padding: 2rem;
-  text-align: center;
-}
-
-.emptyState button {
-  margin-top: 1rem;
-  padding: 0.95rem 1.3rem;
-  border: none;
-  border-radius: 999px;
-  background: #7c3aed;
-  color: white;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.emptyState button:hover {
-  background: #a855f7;
-}
-
-.statusBar {
+.loadingCard {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  padding: 1.2rem 1.3rem;
+  justify-content: center;
+  min-height: 220px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #b7a7ff;
+}
+
+.loaderDot {
+  display: none;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 1rem;
+}
+
+.summaryCard {
+  padding: 1rem 1.1rem;
   border-radius: 18px;
-  background: rgba(124, 58, 237, 0.12);
-  border: 1px solid rgba(124, 58, 237, 0.24);
-  margin-bottom: 1.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.statusLabel {
-  text-transform: uppercase;
-  color: #c4b7ff;
-  font-size: 0.75rem;
-  display: inline-block;
-  margin-bottom: 0.4rem;
+.summaryLabel {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: #b7a7ff;
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
-.statusBar p {
-  margin: 0;
-  font-size: 0.95rem;
+.summaryCard strong {
+  display: block;
+  color: #ffffff;
+  font-size: 1.8rem;
+  line-height: 1;
 }
 
-.statsBox {
+.summaryCard p {
+  margin: 0.45rem 0 0;
+  color: #c4b5fd;
+  font-size: 0.86rem;
+}
+
+.infoBanner {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.3rem;
-  font-size: 0.9rem;
-  color: #d8c8ff;
+  gap: 0.85rem;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  padding: 1rem 1.1rem;
+  border-radius: 18px;
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+}
+
+.infoIcon {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.infoBanner strong {
+  color: #ffffff;
+  font-size: 0.92rem;
+}
+
+.infoBanner p {
+  margin: 0.25rem 0 0;
+  color: #c4b5fd;
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 
 .grid {
   display: grid;
-  grid-template-columns: minmax(300px, 1.2fr) minmax(280px, 1fr);
-  gap: 1.25rem;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.1fr);
+  gap: 1rem;
+  align-items: start;
 }
 
-.card {
-  padding: 1.4rem;
+.issueCard,
+.invoicePanel {
+  padding: 1.25rem;
+  border-radius: 20px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
 
-.card h2 {
-  margin-top: 0;
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 1rem;
+}
+
+.cardKicker {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: #b7a7ff;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.cardHeader h2 {
+  margin: 0;
+  color: #ffffff;
   font-size: 1.2rem;
-  color: #f8f7ff;
+}
+
+.cardIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(168, 85, 247, 0.14);
+  color: #d8b4fe;
+  font-weight: 800;
+}
+
+.emptyBox {
+  text-align: center;
+  padding: 1.4rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+.emptyIcon {
+  width: 38px;
+  height: 38px;
+  margin: 0 auto 0.75rem;
+  border-radius: 14px;
+  background: rgba(168, 85, 247, 0.14);
+  color: #d8b4fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.emptyBox strong {
+  color: #ffffff;
+  font-size: 0.98rem;
+}
+
+.emptyBox p {
+  margin: 0.35rem 0 0;
+  color: #b7a7ff;
+  font-size: 0.88rem;
+  line-height: 1.4;
 }
 
 .fieldLabel {
   display: block;
-  margin-bottom: 1rem;
-  color: #d8c8ff;
-  font-size: 0.95rem;
+  color: #c4b5fd;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .select {
   display: block;
   width: 100%;
   margin-top: 0.65rem;
-  padding: 0.95rem 1rem;
+  padding: 0.9rem 1rem;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #13091f;
   color: #f8f7ff;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   cursor: pointer;
-  appearance: none;
+  outline: none;
+}
+
+.select:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.18);
 }
 
 .select option {
-  background: #1a0f2e;
+  background: #13091f;
   color: #f8f7ff;
 }
 
 .tripPreview {
-  margin: 1rem 0;
-  padding: 1rem 1.1rem;
-  border-radius: 16px;
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 18px;
   background: rgba(124, 58, 237, 0.08);
-  border: 1px solid rgba(124, 58, 237, 0.2);
+  border: 1px solid rgba(124, 58, 237, 0.18);
+}
+
+.routePreview {
   display: grid;
-  gap: 0.6rem;
-}
-
-.tripRow {
-  display: flex;
-  justify-content: space-between;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 0.75rem;
   align-items: center;
-  font-size: 0.92rem;
-  color: #d8c8ff;
+  margin-bottom: 1rem;
 }
 
-.tripRow strong {
-  color: #f8f7ff;
+.routePreview span,
+.tripDetailsGrid span,
+.amountBox span {
+  display: block;
+  color: #b7a7ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 0.28rem;
 }
 
-.tripRowValor {
-  margin-top: 0.4rem;
-  padding-top: 0.8rem;
+.routePreview strong,
+.tripDetailsGrid strong {
+  color: #ffffff;
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.routeDivider {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(168, 85, 247, 0.15);
+  color: #d8b4fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+}
+
+.tripDetailsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding-top: 0.85rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.tripRowValor strong {
-  font-size: 1.1rem;
-  color: #a78bfa;
+.amountBox {
+  margin-top: 1rem;
+  padding: 0.9rem;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.semViagens {
-  color: #c4b7ff;
-  font-size: 0.95rem;
-  margin: 0;
+.amountBox strong {
+  display: block;
+  color: #ffffff;
+  font-size: 1.35rem;
+  line-height: 1;
 }
 
 .submitButton {
   width: 100%;
   margin-top: 1rem;
-  padding: 1rem 1.1rem;
+  padding: 0.95rem 1rem;
   border: none;
-  border-radius: 999px;
+  border-radius: 14px;
   background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
-  color: white;
-  font-weight: 700;
+  color: #ffffff;
+  font-weight: 800;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.18s ease, opacity 0.18s ease;
 }
 
 .submitButton:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(124, 58, 237, 0.24);
 }
 
 .submitButton:disabled {
-  opacity: 0.65;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
 .erro,
 .sucesso {
-  padding: 1rem 1.1rem;
+  padding: 0.85rem 0.95rem;
   border-radius: 14px;
-  margin-top: 0.75rem;
-  font-size: 0.95rem;
+  margin-top: 0.85rem;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .erro {
   background: rgba(220, 38, 38, 0.14);
-  color: #ffc9cb;
+  color: #fecdd3;
+  border: 1px solid rgba(248, 113, 113, 0.18);
 }
 
 .sucesso {
-  background: rgba(34, 197, 94, 0.14);
-  color: #d3f6db;
+  background: rgba(34, 197, 94, 0.12);
+  color: #bbf7d0;
+  border: 1px solid rgba(74, 222, 128, 0.18);
 }
 
 .invoiceList {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.75rem;
 }
 
 .invoiceItem {
+  padding: 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.invoiceTop {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   gap: 1rem;
-  padding: 1rem 1.1rem;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  align-items: flex-start;
+  margin-bottom: 0.85rem;
+}
+
+.invoiceLabel {
+  display: block;
+  color: #b7a7ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
 }
 
 .invoiceNum {
   display: block;
-  font-size: 1rem;
-  margin-bottom: 0.3rem;
-  color: #f8f7ff;
-}
-
-.invoiceItem p {
-  margin: 0;
-  font-size: 0.88rem;
-  color: #d8c8ff;
-}
-
-.invoiceMeta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.3rem;
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 800;
 }
 
 .invoiceValor {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #a78bfa;
+  flex-shrink: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: 14px;
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  color: #f8f7ff;
+  font-size: 0.98rem;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-@media (max-width: 900px) {
+.invoiceRoute {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.75rem;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.035);
+  color: #f8f7ff;
+  font-size: 0.88rem;
+  line-height: 1.3;
+}
+
+.routeArrow {
+  color: #c4b5fd;
+  font-weight: 800;
+}
+
+.invoiceFooter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.invoiceFooter span {
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.045);
+  color: #b7a7ff;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+@media (max-width: 980px) {
+  .root {
+    padding: 1.25rem;
+  }
+
+  .summaryGrid {
+    grid-template-columns: 1fr;
+  }
+
   .grid {
     grid-template-columns: 1fr;
   }
 
-  .statusBar {
+  .header {
+    flex-direction: column;
+  }
+
+  .backButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .header h1 {
+    font-size: 1.85rem;
+  }
+
+  .routePreview {
+    grid-template-columns: 1fr;
+  }
+
+  .routeDivider {
+    transform: rotate(90deg);
+  }
+
+  .tripDetailsGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .invoiceTop {
+    flex-direction: column;
+  }
+
+  .invoiceValor {
+    width: fit-content;
+  }
+
+  .invoiceRoute {
     flex-direction: column;
     align-items: flex-start;
   }
 
-  .statsBox {
-    align-items: flex-start;
+  .routeArrow {
+    transform: rotate(90deg);
   }
 }

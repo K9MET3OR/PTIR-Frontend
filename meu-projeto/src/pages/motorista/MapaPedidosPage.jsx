@@ -20,6 +20,8 @@ import {
 
 import { taxiService } from "../../services/taxiService";
 
+import { invoiceService } from "../../services/invoiceService";
+
 import styles from "./MapaPedidosPage.module.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
@@ -218,6 +220,7 @@ export default function MapaPedidosPage() {
   const [pedidosPendentesComDistancia, setPedidosPendentesComDistancia] = useState([]);
 
   const [segundosRestantesConfirmacao, setSegundosRestantesConfirmacao] = useState(60);
+  const [faturasEmitidasTripIds, setFaturasEmitidasTripIds] = useState([]);
   const [loadingTurno, setLoadingTurno] = useState(true);
   const [turnosMotorista, setTurnosMotorista] = useState([]);
 
@@ -374,6 +377,10 @@ export default function MapaPedidosPage() {
     navigate("/motorista/reabastecimento");
   }
 
+  function handleIrParaFaturas() {
+    navigate("/motorista/faturas");
+  }
+
   async function obterCoordsLocal(local) {
     if (!local) return null;
 
@@ -394,6 +401,31 @@ export default function MapaPedidosPage() {
     return coords;
   }
 
+  async function carregarFaturasEmitidas() {
+    if (!user?.id) {
+      setFaturasEmitidasTripIds([]);
+      return [];
+    }
+
+    try {
+      const response = await invoiceService.listByDriver(user.id);
+      const invoices = response?.invoices || [];
+
+      const tripIds = invoices
+        .map((invoice) => invoice.trip_id)
+        .filter(Boolean)
+        .map((id) => String(id));
+
+      setFaturasEmitidasTripIds(tripIds);
+
+      return tripIds;
+    } catch (error) {
+      console.warn("Erro ao carregar faturas emitidas:", error);
+      setFaturasEmitidasTripIds([]);
+      return [];
+    }
+  }
+
   async function carregarViagens() {
     setLoadingViagens(true);
     setErroViagens("");
@@ -407,6 +439,7 @@ export default function MapaPedidosPage() {
         setViagensMotorista(minhas.trips || []);
 
         const finalizadas = await listarViagensFinalizadasMotorista(user.id);
+        await carregarFaturasEmitidas();
 
         const historicoOrdenado = [...(finalizadas.trips || [])].sort((a, b) => {
           const dataA = a.start_date ? new Date(a.start_date).getTime() : 0;
@@ -419,6 +452,7 @@ export default function MapaPedidosPage() {
       } else {
         setViagensMotorista([]);
         setHistoricoViagens([]);
+        setFaturasEmitidasTripIds([]);
       }
     } catch (error) {
       console.error("Erro ao carregar viagens no mapa:", error);
@@ -523,6 +557,41 @@ export default function MapaPedidosPage() {
     } catch (error) {
       console.error("Erro ao finalizar viagem:", error);
       setErroViagens(error.message || "Erro ao finalizar viagem.");
+    } finally {
+      setCarregandoId(null);
+    }
+  }
+
+  async function handleEmitirFatura(tripId) {
+    if (!tripId) return;
+
+    if (!window.confirm("Pretendes emitir fatura para esta viagem?")) {
+      return;
+    }
+
+    try {
+      setCarregandoId(tripId);
+      setErroViagens("");
+      setMensagemPainel("");
+
+      const response = await invoiceService.register({ trip_id: tripId });
+      const invoice = response?.invoice;
+
+      setFaturasEmitidasTripIds((current) => [
+        String(tripId),
+        ...current.filter((id) => String(id) !== String(tripId)),
+      ]);
+
+      setMensagemPainel(
+        invoice?.numero_formatado
+          ? `Fatura ${invoice.numero_formatado} emitida com sucesso.`
+          : "Fatura emitida com sucesso."
+      );
+
+      await carregarFaturasEmitidas();
+    } catch (error) {
+      console.error("Erro ao emitir fatura:", error);
+      setErroViagens(error.message || "Erro ao emitir fatura.");
     } finally {
       setCarregandoId(null);
     }
@@ -1228,11 +1297,21 @@ export default function MapaPedidosPage() {
     <div className={styles.root}>
       <aside className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
-          <div>
-            <h2 className={styles.title}>Painel do Motorista</h2>
+          <h2 className={styles.title}>Painel do Motorista</h2>
+
+          <div className={styles.driverHeaderRow}>
             <p className={styles.subtitle}>
               {user?.username || user?.name || "Motorista"} · Lisboa
             </p>
+
+            <button
+              type="button"
+              className={styles.headerFaturasBtn}
+              onClick={handleIrParaFaturas}
+              title="Ver faturas"
+            >
+              Faturas
+            </button>
           </div>
         </div>
 
@@ -1445,6 +1524,27 @@ export default function MapaPedidosPage() {
                           <span className={styles.metaDot}>•</span>
                           <span>{formatarIntervaloViagem(v.start_date, v.end_date)}</span>
                         </div>
+                        {!faturasEmitidasTripIds.includes(String(v.id)) && (
+                          <div className={styles.faturaInlineActions}>
+                            <button
+                              type="button"
+                              className={styles.emitirFaturaBtn}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEmitirFatura(v.id);
+                              }}
+                              disabled={carregandoId === v.id}
+                            >
+                              {carregandoId === v.id ? "A emitir..." : "Emitir fatura"}
+                            </button>
+                          </div>
+                        )}
+
+                        {faturasEmitidasTripIds.includes(String(v.id)) && (
+                          <div className={styles.faturaEmitidaBadge}>
+                            Fatura emitida
+                          </div>
+                        )}
                       </div>
                     ))
                   )}
