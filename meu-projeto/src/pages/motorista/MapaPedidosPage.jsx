@@ -18,15 +18,62 @@ import {
   cancelarShift,
 } from "../../services/shiftService";
 
+import { taxiService } from "../../services/taxiService";
+
 import styles from "./MapaPedidosPage.module.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
 
 const FCT_LISBOA = {
-  lat: 38.7623,
-  lon: -9.1585,
+  lat: 38.756734,
+  lon: -9.155412,
 };
+
+function numeroOuNull(valor) {
+  const numero = Number.parseFloat(valor);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+function normalizarConforto(valor) {
+  const texto = String(valor || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  if (texto === "luxuoso" || texto === "luxo") {
+    return "luxuoso";
+  }
+
+  return "basico";
+}
+
+function extrairListaTaxis(response) {
+  const payload = response?.data ?? response;
+
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.taxis)) return payload.taxis;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.results)) return payload.results;
+
+  return [];
+}
+
+function extrairTaxiId(registo) {
+  if (!registo) return null;
+
+  if (registo.taxi_id) return registo.taxi_id;
+  if (registo.id_taxi) return registo.id_taxi;
+  if (registo.taxiId) return registo.taxiId;
+
+  if (typeof registo.taxi === "string") return registo.taxi;
+
+  if (registo.taxi?.id) return registo.taxi.id;
+  if (registo.taxi?.id_taxi) return registo.taxi.id_taxi;
+
+  return null;
+}
 
 function turnoEstaAtivoAgora(turno) {
   if (!turno) return false;
@@ -92,6 +139,40 @@ function formatarCountdown(segundos) {
   return `${mins}:${String(secs).padStart(2, "0")}`;
 }
 
+function formatarHoraViagem(data) {
+  if (!data) return "-";
+
+  const dataObj = new Date(data);
+
+  if (Number.isNaN(dataObj.getTime())) {
+    return "-";
+  }
+
+  return dataObj.toLocaleTimeString("pt-PT", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatarIntervaloViagem(startDate, endDate) {
+  const horaInicio = formatarHoraViagem(startDate);
+  const horaFim = formatarHoraViagem(endDate);
+
+  if (horaInicio === "-" && horaFim === "-") {
+    return "-";
+  }
+
+  if (horaInicio !== "-" && horaFim === "-") {
+    return `${horaInicio} - em curso`;
+  }
+
+  if (horaInicio === "-" && horaFim !== "-") {
+    return `Fim: ${horaFim}`;
+  }
+
+  return `${horaInicio} - ${horaFim}`;
+}
+
 export default function MapaPedidosPage() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState("pedidos");
@@ -129,6 +210,7 @@ export default function MapaPedidosPage() {
     center: [FCT_LISBOA.lon, FCT_LISBOA.lat],
     zoom: 12,
   });
+  const [taxis, setTaxis] = useState([]);
 
   const [turnoAtivo, setTurnoAtivo] = useState(null);
   const [tempoRestanteTurno, setTempoRestanteTurno] = useState(0);
@@ -148,11 +230,46 @@ export default function MapaPedidosPage() {
     carregarTurnosMotorista();
   }, [user]);
 
+  async function carregarTaxis() {
+    try {
+      const response = await taxiService.list();
+      const todosTaxis = extrairListaTaxis(response);
+
+      const taxisFormatados = todosTaxis.map((taxi) => {
+        const lat = numeroOuNull(taxi.latitude ?? taxi.lat);
+        const lon = numeroOuNull(taxi.longitude ?? taxi.lon ?? taxi.lng);
+
+        return {
+          id: taxi.id || taxi.id_taxi,
+          id_taxi: taxi.id_taxi || taxi.id,
+          matricula: taxi.matricula,
+          lon,
+          lat,
+          temLocalizacaoReal: lat !== null && lon !== null,
+          estado: taxi.estado || "disponivel",
+          nivel_conforto: taxi.nivel_conforto || "Básico",
+          marca: taxi.marca || "",
+          modelo: taxi.modelo || "",
+        };
+      });
+
+      setTaxis(taxisFormatados);
+    } catch (error) {
+      console.error("Erro ao carregar táxis:", error);
+      setTaxis([]);
+    }
+  }
+
+  useEffect(() => {
+    carregarTaxis();
+  }, []);
+
   useEffect(() => {
     async function refreshTudo() {
       await carregarViagens();
       await carregarTurnoAtivo();
       await carregarTurnosMotorista();
+      await carregarTaxis();
     }
 
     const interval = setInterval(() => {
@@ -288,7 +405,15 @@ export default function MapaPedidosPage() {
         setViagensMotorista(minhas.trips || []);
 
         const finalizadas = await listarViagensFinalizadasMotorista(user.id);
-        setHistoricoViagens(finalizadas.trips || []);
+
+        const historicoOrdenado = [...(finalizadas.trips || [])].sort((a, b) => {
+          const dataA = a.start_date ? new Date(a.start_date).getTime() : 0;
+          const dataB = b.start_date ? new Date(b.start_date).getTime() : 0;
+
+          return dataB - dataA;
+        });
+
+        setHistoricoViagens(historicoOrdenado);
       } else {
         setViagensMotorista([]);
         setHistoricoViagens([]);
@@ -446,11 +571,63 @@ export default function MapaPedidosPage() {
     }
   }
 
+  function obterTaxiAssociadoAoTurno() {
+    if (!turnoAtivo) return null;
+
+    const taxiIdTurno = extrairTaxiId(turnoAtivo);
+
+    const matriculaTurno =
+      valorMatriculaValido(turnoAtivo?.taxi_matricula) ||
+      valorMatriculaValido(turnoAtivo?.taxi?.matricula) ||
+      valorMatriculaValido(turnoAtivo?.matricula) ||
+      null;
+
+    const taxiEncontrado =
+      taxis.find(
+        (taxi) =>
+          taxiIdTurno &&
+          [taxi.id, taxi.id_taxi].some(
+            (id) => id && String(id) === String(taxiIdTurno)
+          )
+      ) ||
+      taxis.find(
+        (taxi) =>
+          matriculaTurno &&
+          taxi.matricula &&
+          String(taxi.matricula).toLowerCase() ===
+            String(matriculaTurno).toLowerCase()
+      ) ||
+      null;
+
+    return taxiEncontrado;
+  }
+
+  function obterNivelConfortoTaxiTurno() {
+    const taxiTurno = obterTaxiAssociadoAoTurno();
+
+    return normalizarConforto(
+      taxiTurno?.nivel_conforto ||
+        turnoAtivo?.taxi_nivel_conforto ||
+        turnoAtivo?.nivel_conforto ||
+        turnoAtivo?.taxi?.nivel_conforto ||
+        "Básico"
+    );
+  }
+
   const pedidosPendentes = useMemo(() => {
     if (!turnoAtivo) return [];
 
-    return viagensPendentes.filter((p) => !viagensIgnoradas.includes(p.id));
-  }, [turnoAtivo, viagensPendentes, viagensIgnoradas]);
+    const nivelConfortoTaxiTurno = obterNivelConfortoTaxiTurno();
+
+    return viagensPendentes.filter((p) => {
+      const pedidoIgnorado = viagensIgnoradas.includes(p.id);
+      if (pedidoIgnorado) return false;
+
+      const nivelConfortoPedido = normalizarConforto(p.nivel_conforto);
+
+      return nivelConfortoPedido === nivelConfortoTaxiTurno;
+    });
+  }, [turnoAtivo, viagensPendentes, viagensIgnoradas, taxis]);
 
   useEffect(() => {
     let cancelled = false;
@@ -461,8 +638,9 @@ export default function MapaPedidosPage() {
         return;
       }
 
-      const taxiLat = FCT_LISBOA.lat;
-      const taxiLon = FCT_LISBOA.lon;
+      const taxiBaseAtual = obterTaxiBaseAtual();
+      const taxiLat = taxiBaseAtual.lat;
+      const taxiLon = taxiBaseAtual.lon;
       const tempoRestanteMin = Math.floor((tempoRestanteTurno || 0) / 1000 / 60);
 
       const pedidosCalculados = await Promise.all(
@@ -544,7 +722,7 @@ export default function MapaPedidosPage() {
     return () => {
       cancelled = true;
     };
-  }, [turnoAtivo, pedidosPendentes, tempoRestanteTurno]);
+  }, [turnoAtivo, pedidosPendentes, tempoRestanteTurno, taxis]);
 
   const pedidosAguardaConfirmacao = viagensMotorista.filter(
     (trip) => trip.status_trip === "driver_accepted"
@@ -669,14 +847,6 @@ export default function MapaPedidosPage() {
     ? `${turnoAtivo.taxi_matricula} · ${turnoAtivo.taxi_marca} ${turnoAtivo.taxi_modelo}`
     : "Sem táxi associado";
 
-  const matriculaTurno =
-    turnoAtivo?.taxi_matricula ||
-    turnoAtivo?.taxi?.matricula ||
-    turnoAtivo?.matricula ||
-    (turnoAtualTexto && turnoAtualTexto !== "Sem táxi associado"
-      ? turnoAtualTexto.split(" · ")[0]
-      : null);
-
   function valorMatriculaValido(valor) {
     if (!valor) return null;
 
@@ -698,10 +868,68 @@ export default function MapaPedidosPage() {
     valorMatriculaValido(turnoAtivo?.matricula) ||
     "Táxi do turno";
 
-  const taxiBase = {
-    lon: FCT_LISBOA.lon,
-    lat: FCT_LISBOA.lat,
-  };
+  function obterTaxiBaseAtual() {
+    const taxiIdAtual =
+      extrairTaxiId(pedidoSelecionadoMapa) ||
+      extrairTaxiId(viagemAtiva) ||
+      extrairTaxiId(pedidosAguardaConfirmacao[0]) ||
+      extrairTaxiId(turnoAtivo) ||
+      null;
+
+    const matriculaAtual =
+      valorMatriculaValido(pedidoSelecionadoMapa?.taxi_matricula) ||
+      valorMatriculaValido(viagemAtiva?.taxi_matricula) ||
+      valorMatriculaValido(pedidosAguardaConfirmacao[0]?.taxi_matricula) ||
+      valorMatriculaValido(turnoAtivo?.taxi_matricula) ||
+      valorMatriculaValido(turnoAtivo?.taxi?.matricula) ||
+      valorMatriculaValido(turnoAtivo?.matricula) ||
+      null;
+
+    const taxiEncontrado =
+      taxis.find(
+        (taxi) =>
+          taxiIdAtual &&
+          [taxi.id, taxi.id_taxi].some(
+            (id) => id && String(id) === String(taxiIdAtual)
+          )
+      ) ||
+      taxis.find(
+        (taxi) =>
+          matriculaAtual &&
+          taxi.matricula &&
+          String(taxi.matricula).toLowerCase() ===
+            String(matriculaAtual).toLowerCase()
+      ) ||
+      null;
+
+    const lat =
+      numeroOuNull(taxiEncontrado?.lat) ??
+      numeroOuNull(taxiEncontrado?.latitude) ??
+      numeroOuNull(turnoAtivo?.taxi_latitude) ??
+      numeroOuNull(turnoAtivo?.latitude_taxi) ??
+      numeroOuNull(turnoAtivo?.taxi?.latitude) ??
+      numeroOuNull(turnoAtivo?.taxi?.lat);
+
+    const lon =
+      numeroOuNull(taxiEncontrado?.lon) ??
+      numeroOuNull(taxiEncontrado?.longitude) ??
+      numeroOuNull(turnoAtivo?.taxi_longitude) ??
+      numeroOuNull(turnoAtivo?.longitude_taxi) ??
+      numeroOuNull(turnoAtivo?.taxi?.longitude) ??
+      numeroOuNull(turnoAtivo?.taxi?.lon) ??
+      numeroOuNull(turnoAtivo?.taxi?.lng);
+
+    if (lat !== null && lon !== null) {
+      return { lat, lon };
+    }
+
+    return {
+      lat: FCT_LISBOA.lat,
+      lon: FCT_LISBOA.lon,
+    };
+  }
+
+  const taxiBase = obterTaxiBaseAtual();
 
   const taxiBaseMarker = {
     id: "taxi-driver",
@@ -842,7 +1070,7 @@ export default function MapaPedidosPage() {
     return () => {
       cancelled = true;
     };
-  }, [viagemMapaAtual?.id, viagemMapaAtual?.status_trip]);
+  }, [viagemMapaAtual?.id, viagemMapaAtual?.status_trip, taxiBase.lon, taxiBase.lat]);
 
   const estaEmServico = Boolean(turnoAtivo);
   const podeTerminarTurno = estaEmServico && !temPedidoEmCurso;
@@ -1154,7 +1382,7 @@ export default function MapaPedidosPage() {
                         }
                       >
                         <div className={styles.historicoHeader}>
-                          <span className={styles.historicoCliente}>Viagem</span>
+                          <span className={styles.historicoCliente}>Viagem concluída</span>
                           <span className={styles.historicoGanho}>
                             {v.price ? `${Number(v.price).toFixed(2)} €` : "-"}
                           </span>
@@ -1165,18 +1393,9 @@ export default function MapaPedidosPage() {
                           <span>{v.end_location}</span>
                         </div>
                         <div className={styles.historicoMeta}>
-                          <span>{v.n_kms ? `${v.n_kms} km` : "-"}</span>
+                          <span>{v.n_kms ? `${Number(v.n_kms).toFixed(2)} km` : "-"}</span>
                           <span className={styles.metaDot}>•</span>
-                          <span>{v.status_trip}</span>
-                          <span className={styles.metaDot}>•</span>
-                          <span>
-                            {v.start_date
-                              ? new Date(v.start_date).toLocaleTimeString("pt-PT", {
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                })
-                              : "-"}
-                          </span>
+                          <span>{formatarIntervaloViagem(v.start_date, v.end_date)}</span>
                         </div>
                       </div>
                     ))
@@ -1192,69 +1411,69 @@ export default function MapaPedidosPage() {
                 <div className={styles.historicList}>
                   {pedidosAguardaConfirmacao.map((v) => (
                     <div
-                    key={v.id}
-                    className={`${styles.historicoItem} ${
-                      pedidoSelecionadoMapa?.id === v.id ? styles.historicoItemAtivo : ""
-                    }`}
-                    onClick={() => setPedidoSelecionadoMapa(v)}
-                  >
-                    <div className={styles.historicoHeader}>
-                      <span className={styles.historicoCliente}>Pedido aceite</span>
-                      <span className={styles.historicoGanho}>
-                        {v.price ? `${Number(v.price).toFixed(2)} €` : "-"}
-                      </span>
-                    </div>
+                      key={v.id}
+                      className={`${styles.historicoItem} ${
+                        pedidoSelecionadoMapa?.id === v.id ? styles.historicoItemAtivo : ""
+                      }`}
+                      onClick={() => setPedidoSelecionadoMapa(v)}
+                    >
+                      <div className={styles.historicoHeader}>
+                        <span className={styles.historicoCliente}>Pedido aceite</span>
+                        <span className={styles.historicoGanho}>
+                          {v.price ? `${Number(v.price).toFixed(2)} €` : "-"}
+                        </span>
+                      </div>
 
-                    <div className={styles.historicoRota}>
-                      <span>{v.start_location}</span>
-                      <span className={styles.rotaArrow}>→</span>
-                      <span>{v.end_location}</span>
-                    </div>
+                      <div className={styles.historicoRota}>
+                        <span>{v.start_location}</span>
+                        <span className={styles.rotaArrow}>→</span>
+                        <span>{v.end_location}</span>
+                      </div>
 
-                    <div className={styles.historicoMeta}>
-                      <span>{v.n_people} pessoa{v.n_people > 1 ? "s" : ""}</span>
-                      <span className={styles.metaDot}>•</span>
-                      <span>{v.nivel_conforto}</span>
-                      {segundosRestantesConfirmacao > 0 && (
+                      <div className={styles.historicoMeta}>
+                        <span>{v.n_people} pessoa{v.n_people > 1 ? "s" : ""}</span>
+                        <span className={styles.metaDot}>•</span>
+                        <span>{v.nivel_conforto}</span>
+                        {segundosRestantesConfirmacao > 0 && (
+                          <>
+                            <span className={styles.metaDot}>•</span>
+                            <span>A aguardar cliente</span>
+                          </>
+                        )}
+                      </div>
+
+                      {segundosRestantesConfirmacao > 0 ? (
+                        <div className={styles.awaitingInfo}>
+                          <span>Tempo restante para resposta:</span>{" "}
+                          <strong>{formatarCountdown(segundosRestantesConfirmacao)}</strong>
+                        </div>
+                      ) : (
                         <>
-                          <span className={styles.metaDot}>•</span>
-                          <span>A aguardar cliente</span>
-                        </> 
+                          <div className={styles.awaitingExpiredBox}>
+                            <div className={styles.awaitingExpiredTitle}>
+                              O cliente não respondeu dentro do tempo.
+                            </div>
+                            <div className={styles.awaitingExpiredText}>
+                              Podes continuar à espera ou cancelar este pedido.
+                            </div>
+                          </div>
+
+                          <div className={styles.turnoCardActions}>
+                            <button
+                              type="button"
+                              className={styles.btnCancelarTurno}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCancelarEspera(v.id, false);
+                              }}
+                              disabled={carregandoId === v.id}
+                            >
+                              {carregandoId === v.id ? "A processar..." : "Cancelar espera"}
+                            </button>
+                          </div>
+                        </>
                       )}
                     </div>
-
-                    {segundosRestantesConfirmacao > 0 ? (
-                      <div className={styles.awaitingInfo}>
-                        <span>Tempo restante para resposta:</span>{" "}
-                        <strong>{formatarCountdown(segundosRestantesConfirmacao)}</strong>
-                      </div>
-                    ) : (
-                      <>
-                        <div className={styles.awaitingExpiredBox}>
-                          <div className={styles.awaitingExpiredTitle}>
-                            O cliente não respondeu dentro do tempo.
-                          </div>
-                          <div className={styles.awaitingExpiredText}>
-                            Podes continuar à espera ou cancelar este pedido.
-                          </div>
-                        </div>
-
-                        <div className={styles.turnoCardActions}>
-                          <button
-                            type="button"
-                            className={styles.btnCancelarTurno}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCancelarEspera(v.id, false);
-                            }}
-                            disabled={carregandoId === v.id}
-                          >
-                            {carregandoId === v.id ? "A processar..." : "Cancelar espera"}
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
                   ))}
                 </div>
               </>

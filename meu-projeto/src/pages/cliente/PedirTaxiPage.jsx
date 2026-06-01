@@ -16,6 +16,27 @@ import styles from "./PedirTaxiPage.module.css";
 
 const CONFORTO_OPTS = ["Básico", "Luxuoso"];
 
+const FCT_LISBOA = {
+  lat: 38.756734,
+  lon: -9.155412,
+};
+
+function numeroOuNull(valor) {
+  const numero = Number.parseFloat(valor);
+  return Number.isFinite(numero) ? numero : null;
+}
+
+function extrairListaTaxis(response) {
+  const payload = response?.data ?? response;
+
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.taxis)) return payload.taxis;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.results)) return payload.results;
+
+  return [];
+}
+
 function calcularDistanciaKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -103,7 +124,7 @@ export default function PedirTaxiPage() {
   const destinoTimer = useRef(null);
 
   const [mapView, setMapView] = useState({
-    center: [-9.1393, 38.7223],
+    center: [FCT_LISBOA.lon, FCT_LISBOA.lat],
     zoom: 13,
   });
 
@@ -256,7 +277,7 @@ export default function PedirTaxiPage() {
         });
       } else {
         setMapView({
-          center: [-9.1393, 38.7223],
+          center: [FCT_LISBOA.lon, FCT_LISBOA.lat],
           zoom: 13,
         });
       }
@@ -284,7 +305,7 @@ export default function PedirTaxiPage() {
         });
       } else {
         setMapView({
-          center: [-9.1393, 38.7223],
+          center: [FCT_LISBOA.lon, FCT_LISBOA.lat],
           zoom: 11,
         });
       }
@@ -300,6 +321,7 @@ export default function PedirTaxiPage() {
 
     const taxiMatch =
       taxis.find((t) => tripDetalhes.taxi_id && String(t.id) === String(tripDetalhes.taxi_id)) ||
+      taxis.find((t) => tripDetalhes.taxi_id && String(t.id_taxi) === String(tripDetalhes.taxi_id)) ||
       taxis.find(
         (t) =>
           tripDetalhes.taxi_matricula &&
@@ -423,18 +445,27 @@ export default function PedirTaxiPage() {
 
     try {
       const response = await taxiService.list();
-      const todosTaxis = response.data || [];
+      const todosTaxis = extrairListaTaxis(response);
 
-      const taxisFormatados = todosTaxis.map((taxi) => ({
-        id: taxi.id,
-        matricula: taxi.matricula,
-        lon: parseFloat(taxi.longitude) || -9.1393,
-        lat: parseFloat(taxi.latitude) || 38.7223,
-        estado: taxi.estado || "disponivel",
-        nivel_conforto: taxi.nivel_conforto || "Básico",
-        marca: taxi.marca || "",
-        modelo: taxi.modelo || "",
-      }));
+      const taxisFormatados = todosTaxis.map((taxi) => {
+        const latReal = numeroOuNull(taxi.latitude ?? taxi.lat);
+        const lonReal = numeroOuNull(taxi.longitude ?? taxi.lon ?? taxi.lng);
+
+        const temLocalizacaoReal = latReal !== null && lonReal !== null;
+
+        return {
+          id: taxi.id || taxi.id_taxi,
+          id_taxi: taxi.id_taxi || taxi.id,
+          matricula: taxi.matricula,
+          lon: temLocalizacaoReal ? lonReal : FCT_LISBOA.lon,
+          lat: temLocalizacaoReal ? latReal : FCT_LISBOA.lat,
+          temLocalizacaoReal,
+          estado: taxi.estado || "disponivel",
+          nivel_conforto: taxi.nivel_conforto || "Básico",
+          marca: taxi.marca || "",
+          modelo: taxi.modelo || "",
+        };
+      });
 
       setTaxis(taxisFormatados);
     } catch (error) {
