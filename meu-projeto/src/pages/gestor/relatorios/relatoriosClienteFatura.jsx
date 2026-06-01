@@ -145,6 +145,14 @@ export default function RelatoriosClienteFatura() {
     }
   };
 
+  const getNomeCliente = (clientId) => {
+    const client = data?.clients?.find(
+      (c) => String(c.client_id) === String(clientId)
+    );
+
+    return client?.client_username || `Cliente ${clientId}`;
+  };
+
   const renderTotal = () => {
     if (!data?.summary) {
       return (
@@ -251,7 +259,7 @@ export default function RelatoriosClienteFatura() {
                   Valor médio por fatura:{" "}
                   {formatarEuros(
                     Number(client.total_euros || 0) /
-                      Math.max(Number(client.total_invoices || 0), 1)
+                    Math.max(Number(client.total_invoices || 0), 1)
                   )}
                 </span>
               </div>
@@ -281,7 +289,7 @@ export default function RelatoriosClienteFatura() {
             ← Voltar
           </button>
 
-          <h2>Viagens/Faturas do Cliente {selectedClient}</h2>
+          <h2>Viagens/Faturas do Cliente {getNomeCliente(selectedClient)}</h2>
         </div>
 
         {detailsLoading && (

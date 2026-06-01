@@ -114,21 +114,29 @@ export default function RelatoriosTaxiMotorista() {
     return "Viagens";
   };
 
+  const getNomeMotorista = (driverId) => {
+    const driver = data?.drivers?.find(
+      (d) => String(d.driver_id) === String(driverId)
+    );
+
+    return driver?.driver_username || `Motorista ${driverId}`;
+  };
+
+  const getNomeTaxi = (taxiId) => {
+    const taxi = data?.taxis?.find(
+      (t) => String(t.taxi_id) === String(taxiId)
+    );
+
+    return taxi?.taxi_matricula || `Táxi ${taxiId}`;
+  };
+
   const getTituloDetalhes = () => {
     const entidade =
       detalhesTipo === "driver"
-        ? `Motorista ${detalhesId}`
-        : `Táxi ${detalhesId}`;
+        ? getNomeMotorista(detalhesId)
+        : getNomeTaxi(detalhesId);
 
-    if (tipoSubtotais === "hours") {
-      return `Viagens de ${entidade} por horas, da maior duração para a menor`;
-    }
-
-    if (tipoSubtotais === "kms") {
-      return `Viagens de ${entidade} por quilómetros, do maior para o menor`;
-    }
-
-    return `Viagens de ${entidade}, da mais recente para a mais antiga`;
+    return `Viagens de ${entidade}`;
   };
 
   const abrirSubtotais = (metric) => {
@@ -302,7 +310,7 @@ export default function RelatoriosTaxiMotorista() {
                       style={{ cursor: "pointer" }}
                       title="Ver detalhes do motorista"
                     >
-                      Motorista {driver.driver_id}
+                      {driver.driver_username || ` Motorista ${driver.driver_id}`}
                     </span>
 
                     <span className={styles.value}>{getValor(driver)}</span>
@@ -340,7 +348,7 @@ export default function RelatoriosTaxiMotorista() {
                       style={{ cursor: "pointer" }}
                       title="Ver detalhes do táxi"
                     >
-                      Táxi {taxi.taxi_id}
+                      {taxi.taxi_matricula || `Táxi ${taxi.taxi_id}`}
                     </span>
 
                     <span className={styles.value}>{getValor(taxi)}</span>
@@ -450,8 +458,8 @@ export default function RelatoriosTaxiMotorista() {
       selectedDetailType === "trip"
         ? `Detalhes da Viagem #${selectedDetail.id}`
         : selectedDetailType === "driver"
-        ? `Detalhes do Motorista ${selectedDetail.id}`
-        : `Detalhes do Táxi ${selectedDetail.id}`;
+          ? `Detalhes do Motorista ${selectedDetail.id}`
+          : `Detalhes do Táxi ${selectedDetail.id}`;
 
     return (
       <div className={styles.section}>
