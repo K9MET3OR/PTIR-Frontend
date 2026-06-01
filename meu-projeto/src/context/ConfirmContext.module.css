@@ -1,0 +1,144 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(3, 1, 8, 0.72);
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.modal {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
+  border-radius: 22px;
+  background: rgba(15, 8, 25, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.45);
+  color: #f8f7ff;
+  animation: popIn 0.18s ease-out;
+}
+
+.iconWrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.iconDanger {
+  background: rgba(255, 71, 125, 0.14);
+  border: 1px solid rgba(255, 71, 125, 0.32);
+  color: #ffb3c6;
+}
+
+.iconInfo {
+  background: rgba(124, 58, 237, 0.16);
+  border: 1px solid rgba(168, 85, 247, 0.34);
+  color: #d8b4fe;
+}
+
+.content {
+  text-align: center;
+}
+
+.content h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 750;
+  color: #ffffff;
+}
+
+.content p {
+  margin: 0.65rem 0 0;
+  color: #b7a7ff;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.4rem;
+}
+
+.cancelBtn,
+.confirmBtn {
+  flex: 1;
+  border: none;
+  border-radius: 14px;
+  padding: 0.8rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+}
+
+.cancelBtn {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8f7ff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cancelBtn:hover,
+.confirmBtn:hover {
+  transform: translateY(-1px);
+  opacity: 0.96;
+}
+
+.confirmDanger {
+  background: linear-gradient(135deg, #e11d48, #fb7185);
+  color: #ffffff;
+}
+
+.confirmInfo {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #ffffff;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 520px) {
+  .modal {
+    padding: 1.25rem;
+    border-radius: 18px;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+}

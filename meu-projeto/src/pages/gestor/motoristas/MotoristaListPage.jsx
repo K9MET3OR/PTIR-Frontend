@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motoristaService } from "../../../services/motoristaService";
 import { useFeedback } from "../../../context/FeedbackContext";
+import { useConfirm } from "../../../context/ConfirmContext";
 import styles from "./MotoristaListPage.module.css";
 
 const ESTADO_LABEL = {
@@ -12,6 +13,7 @@ const ESTADO_LABEL = {
 export default function MotoristaListPage() {
   const navigate = useNavigate();
   const feedback = useFeedback();
+  const confirm = useConfirm();
 
   const [motoristas, setMotoristas] = useState([]);
   const [search, setSearch] = useState("");
@@ -19,7 +21,8 @@ export default function MotoristaListPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    motoristaService.list()
+    motoristaService
+      .list()
       .then(setMotoristas)
       .catch(() => {
         const message = "Não foi possível carregar a lista de motoristas.";
@@ -36,7 +39,16 @@ export default function MotoristaListPage() {
   );
 
   async function handleDelete(id) {
-    if (!window.confirm("Tens a certeza que queres remover este motorista?")) return;
+    const confirmar = await confirm({
+      title: "Remover motorista",
+      message:
+        "Tens a certeza que queres remover este motorista? Esta ação não deve ser feita se o motorista ainda estiver associado a dados importantes.",
+      confirmText: "Remover",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+
+    if (!confirmar) return;
 
     try {
       await motoristaService.remove(id);
@@ -51,12 +63,15 @@ export default function MotoristaListPage() {
 
   function cartaExpirando(validade) {
     if (!validade) return false;
+
     const diff = new Date(validade) - new Date();
+
     return diff > 0 && diff < 30 * 24 * 60 * 60 * 1000;
   }
 
   function cartaExpirada(validade) {
     if (!validade) return false;
+
     return new Date(validade) < new Date();
   }
 
@@ -67,7 +82,11 @@ export default function MotoristaListPage() {
           <h1 className={styles.pageTitle}>Motoristas</h1>
           <p className={styles.pageSubtitle}>Gerir motoristas registados</p>
         </div>
-        <button className={styles.addBtn} onClick={() => navigate("/gestor/motoristas/novo")}>
+
+        <button
+          className={styles.addBtn}
+          onClick={() => navigate("/gestor/motoristas/novo")}
+        >
           + Registar motorista
         </button>
       </div>
@@ -75,8 +94,13 @@ export default function MotoristaListPage() {
       <div className={styles.card}>
         <div className={styles.tableHeader}>
           <span className={styles.tableCount}>
-            {loading ? "A carregar…" : `${filtered.length} motorista${filtered.length !== 1 ? "s" : ""}`}
+            {loading
+              ? "A carregar…"
+              : `${filtered.length} motorista${
+                  filtered.length !== 1 ? "s" : ""
+                }`}
           </span>
+
           <input
             placeholder="Pesquisar nome, NIF..."
             value={search}
@@ -101,16 +125,23 @@ export default function MotoristaListPage() {
                   <th>Ações</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={7} className={styles.empty}>
-                      {search ? "Nenhum resultado para a pesquisa." : "Nenhum motorista registado ainda."}
+                      {search
+                        ? "Nenhum resultado para a pesquisa."
+                        : "Nenhum motorista registado ainda."}
                     </td>
                   </tr>
                 ) : (
                   filtered.map((m) => {
-                    const estado = ESTADO_LABEL[m.estado] ?? { text: m.estado, cls: "inactive" };
+                    const estado = ESTADO_LABEL[m.estado] ?? {
+                      text: m.estado,
+                      cls: "inactive",
+                    };
+
                     const expirando = cartaExpirando(m.validade_carta);
                     const expirada = cartaExpirada(m.validade_carta);
 
@@ -118,17 +149,37 @@ export default function MotoristaListPage() {
                       <tr key={m.id}>
                         <td className={styles.nome}>{m.nome}</td>
                         <td>{m.nif}</td>
-                        <td style={{ fontFamily: "monospace", fontSize: 12 }}>{m.n_carta}</td>
+                        <td style={{ fontFamily: "monospace", fontSize: 12 }}>
+                          {m.n_carta}
+                        </td>
                         <td>
-                          <span className={expirada ? styles.dateExpired : expirando ? styles.dateWarning : ""}>
+                          <span
+                            className={
+                              expirada
+                                ? styles.dateExpired
+                                : expirando
+                                ? styles.dateWarning
+                                : ""
+                            }
+                          >
                             {m.validade_carta}
                           </span>
-                          {expirada && <span className={styles.alertTag}>Expirada</span>}
-                          {expirando && <span className={styles.warnTag}>Expira em breve</span>}
+
+                          {expirada && (
+                            <span className={styles.alertTag}>Expirada</span>
+                          )}
+
+                          {expirando && (
+                            <span className={styles.warnTag}>
+                              Expira em breve
+                            </span>
+                          )}
                         </td>
                         <td>{m.telefone}</td>
                         <td>
-                          <span className={`${styles.badge} ${styles[estado.cls]}`}>
+                          <span
+                            className={`${styles.badge} ${styles[estado.cls]}`}
+                          >
                             {estado.text}
                           </span>
                         </td>
@@ -136,10 +187,15 @@ export default function MotoristaListPage() {
                           <div className={styles.actionsInner}>
                             <button
                               className={styles.editBtn}
-                              onClick={() => navigate(`/gestor/motoristas/${m.id}/editar`)}
+                              onClick={() =>
+                                navigate(
+                                  `/gestor/motoristas/${m.id}/editar`
+                                )
+                              }
                             >
                               Editar
                             </button>
+
                             <button
                               className={styles.deleteBtn}
                               onClick={() => handleDelete(m.id)}

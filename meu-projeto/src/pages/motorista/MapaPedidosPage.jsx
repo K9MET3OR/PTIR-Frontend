@@ -25,6 +25,7 @@ import styles from "./MapaPedidosPage.module.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useFeedback } from "../../context/FeedbackContext";
+import { useConfirm } from "../../context/ConfirmContext";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
 
 const FCT_LISBOA = {
@@ -209,6 +210,7 @@ export default function MapaPedidosPage() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const feedback = useFeedback();
+  const confirm = useConfirm();
 
   const initials = obterIniciaisUtilizador(user);
 
@@ -583,9 +585,16 @@ export default function MapaPedidosPage() {
   }
 
   async function handleFinalizarViagem(tripId) {
-    if (!window.confirm("Tem a certeza que quer terminar esta viagem?")) {
-      return;
-    }
+    const confirmar = await confirm({
+      title: "Terminar viagem",
+      message:
+        "Tens a certeza que queres terminar esta viagem? Depois disto, a viagem fica a aguardar pagamento do cliente.",
+      confirmText: "Terminar viagem",
+      cancelText: "Continuar viagem",
+      variant: "danger",
+    });
+
+    if (!confirmar) return;
 
     try {
       setCarregandoId(tripId);
@@ -612,9 +621,16 @@ export default function MapaPedidosPage() {
       return;
     }
 
-    if (!window.confirm("Pretendes emitir fatura para esta viagem?")) {
-      return;
-    }
+    const confirmar = await confirm({
+      title: "Emitir fatura",
+      message:
+        "Pretendes emitir uma fatura para esta viagem? Depois de emitida, não será possível emitir outra fatura para a mesma viagem.",
+      confirmText: "Emitir fatura",
+      cancelText: "Cancelar",
+      variant: "info",
+    });
+
+    if (!confirmar) return;
 
     try {
       setCarregandoId(tripId);
@@ -649,9 +665,16 @@ export default function MapaPedidosPage() {
   }
 
   async function handleCancelarTurno(shiftId) {
-    if (!window.confirm("Tem a certeza que quer cancelar este turno?")) {
-      return;
-    }
+    const confirmar = await confirm({
+      title: "Cancelar turno",
+      message:
+        "Tens a certeza que queres cancelar este turno agendado? Esta ação remove o turno da tua lista de próximos turnos.",
+      confirmText: "Cancelar turno",
+      cancelText: "Manter turno",
+      variant: "danger",
+    });
+
+    if (!confirmar) return;
 
     try {
       await cancelarShift(shiftId);
@@ -681,9 +704,16 @@ export default function MapaPedidosPage() {
       return;
     }
 
-    if (!window.confirm("Tem a certeza que quer terminar o turno?")) {
-      return;
-    }
+    const confirmar = await confirm({
+      title: "Terminar turno",
+      message:
+        "Tens a certeza que queres terminar o turno atual? Só deves fazer isto quando já não houver pedidos ou viagens em curso.",
+      confirmText: "Terminar turno",
+      cancelText: "Manter turno",
+      variant: "danger",
+    });
+
+    if (!confirmar) return;
 
     try {
       await terminarShift(shiftId);
@@ -1469,7 +1499,16 @@ export default function MapaPedidosPage() {
             {mensagemPainel && (
               <>
                 <div className={styles.divider} />
-                <div className={styles.errorMsg}>{mensagemPainel}</div>
+                <div
+                  className={
+                    mensagemPainel.toLowerCase().includes("sucesso") ||
+                    mensagemPainel.toLowerCase().includes("emitida")
+                      ? styles.successMsg
+                      : styles.errorMsg
+                  }
+                >
+                  {mensagemPainel}
+                </div>
               </>
             )}
 
@@ -1672,8 +1711,20 @@ export default function MapaPedidosPage() {
                             <button
                               type="button"
                               className={styles.btnCancelarTurno}
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
+
+                                const confirmar = await confirm({
+                                  title: "Cancelar espera",
+                                  message:
+                                    "O cliente não respondeu dentro do tempo. Tens a certeza que queres cancelar este pedido?",
+                                  confirmText: "Cancelar pedido",
+                                  cancelText: "Continuar à espera",
+                                  variant: "danger",
+                                });
+
+                                if (!confirmar) return;
+
                                 handleCancelarEspera(v.id, false);
                               }}
                               disabled={carregandoId === v.id}

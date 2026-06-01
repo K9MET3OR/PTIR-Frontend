@@ -14,6 +14,7 @@ import {
 import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
 import { useFeedback } from "../../context/FeedbackContext";
+import { useConfirm } from "../../context/ConfirmContext";
 import styles from "./PedirTaxiPage.module.css";
 
 const CONFORTO_OPTS = ["Básico", "Luxuoso"];
@@ -122,6 +123,7 @@ function obterIniciaisUtilizador(user) {
 export default function PedirTaxiPage() {
   const { user, logout } = useAuth();
   const feedback = useFeedback();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -1101,6 +1103,24 @@ export default function PedirTaxiPage() {
   }
 
   async function rejeitarMotorista() {
+    if (!tripId) {
+      const message = "Não foi possível identificar o pedido.";
+      setErro(message);
+      feedback.error(message);
+      return;
+    }
+
+    const confirmar = await confirm({
+      title: "Rejeitar motorista",
+      message:
+        "Tens a certeza que queres rejeitar este motorista? O pedido volta a ficar pendente para outro motorista aceitar.",
+      confirmText: "Rejeitar motorista",
+      cancelText: "Manter motorista",
+      variant: "danger",
+    });
+
+    if (!confirmar) return;
+
     try {
       setLoading(true);
       setErro("");
@@ -1111,8 +1131,7 @@ export default function PedirTaxiPage() {
       setEstadoViagem(response.trip?.status_trip || "pending");
       setStep("aguardar");
 
-      const message = "Rejeitaste este motorista. O pedido voltou a ficar pendente.";
-      setErro(message);
+      const message = "Motorista rejeitado. Estamos à procura de outro motorista.";
       feedback.info(message);
     } catch (error) {
       const message = error.message || "Erro ao rejeitar motorista.";
@@ -1151,14 +1170,28 @@ export default function PedirTaxiPage() {
   }
 
   async function cancelar() {
+    if (tripId) {
+      const confirmar = await confirm({
+        title: "Cancelar pedido",
+        message:
+          "Tens a certeza que queres cancelar este pedido de táxi? Depois de cancelares, o pedido deixa de estar disponível para os motoristas.",
+        confirmText: "Cancelar pedido",
+        cancelText: "Manter pedido",
+        variant: "danger",
+      });
+
+      if (!confirmar) return;
+    }
+
     try {
       if (tripId) {
         await atualizarViagem(tripId, { status_trip: "cancelled" });
-        feedback.info("Pedido cancelado.");
+        feedback.info("Pedido cancelado com sucesso.");
       }
     } catch (error) {
       console.error("Erro ao cancelar viagem:", error);
       feedback.error("Erro ao cancelar viagem.");
+      return;
     }
 
     localStorage.removeItem("cliente_trip_id");

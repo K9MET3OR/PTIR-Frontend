@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { FeedbackProvider } from "./context/FeedbackContext";
+import { ConfirmProvider } from "./context/ConfirmContext";
 import PrivateRoute from "./routes/PrivateRoute";
 
 import LoginPage from "./pages/auth/LoginPage";
@@ -30,46 +31,50 @@ export default function App() {
   return (
     <AuthProvider>
       <FeedbackProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* Pública */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
+        <ConfirmProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* Pública */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
 
-            {/* Gestor — requer role admin (mantendo compatibilidade com gestor) */}
-            <Route element={<PrivateRoute allowedRoles={["admin", "gestor"]} />}>
-              <Route element={<DashboardLayout />}>
-                <Route path="/gestor" element={<GestorDashboard />} />
-                <Route path="/gestor/taxis" element={<TaxiListPage />} />
-                <Route path="/gestor/taxis/novo" element={<TaxiRegisterPage />} />
-                <Route path="/gestor/taxis/:id/editar" element={<TaxiEditPage />} />
-                <Route path="/gestor/motoristas" element={<MotoristaListPage />} />
-                <Route path="/gestor/motoristas/novo" element={<MotoristaRegisterPage />} />
-                <Route path="/gestor/motoristas/:id/editar" element={<MotoristaEditPage />} />
-                <Route path="/gestor/relatorios" element={<RelatoriosPage />} />
-                <Route path="/gestor/precos" element={<GestorPrecosPage />} />
+              {/* Gestor */}
+              <Route element={<PrivateRoute allowedRoles={["admin", "gestor"]} />}>
+                <Route element={<DashboardLayout />}>
+                  <Route path="/gestor" element={<GestorDashboard />} />
+                  <Route path="/gestor/taxis" element={<TaxiListPage />} />
+                  <Route path="/gestor/taxis/novo" element={<TaxiRegisterPage />} />
+                  <Route path="/gestor/taxis/:id/editar" element={<TaxiEditPage />} />
+                  <Route path="/gestor/motoristas" element={<MotoristaListPage />} />
+                  <Route path="/gestor/motoristas/novo" element={<MotoristaRegisterPage />} />
+                  <Route path="/gestor/motoristas/:id/editar" element={<MotoristaEditPage />} />
+                  <Route path="/gestor/relatorios" element={<RelatoriosPage />} />
+                  <Route path="/gestor/precos" element={<GestorPrecosPage />} />
+                </Route>
               </Route>
-            </Route>
 
-            <Route element={<PrivateRoute allowedRoles={["motorista"]} />}>
-              <Route path="/motorista" element={<IniciarTurnoPage />} />
-              <Route path="/motorista/turno" element={<IniciarTurnoPage />} />
-              <Route path="/motorista/mapa" element={<MapaPedidosPage />} />
-              <Route path="/motorista/pedidos" element={<PedidosMotoristaPage />} />
-              <Route path="/motorista/viagem" element={<RegistarViagemPage />} />
-              <Route path="/motorista/reabastecimento" element={<ReabastecimentoPage />} />
-              <Route path="/motorista/faturas" element={<FaturaPage />} />
-            </Route>
+              {/* Motorista */}
+              <Route element={<PrivateRoute allowedRoles={["motorista"]} />}>
+                <Route path="/motorista" element={<IniciarTurnoPage />} />
+                <Route path="/motorista/turno" element={<IniciarTurnoPage />} />
+                <Route path="/motorista/mapa" element={<MapaPedidosPage />} />
+                <Route path="/motorista/pedidos" element={<PedidosMotoristaPage />} />
+                <Route path="/motorista/viagem" element={<RegistarViagemPage />} />
+                <Route path="/motorista/reabastecimento" element={<ReabastecimentoPage />} />
+                <Route path="/motorista/faturas" element={<FaturaPage />} />
+              </Route>
 
-            <Route element={<PrivateRoute allowedRoles={["cliente"]} />}>
-              <Route path="/cliente/pedir" element={<PedirTaxiPage />} />
-              <Route path="/cliente/pagamento" element={<ClientePagamentoPage />} />
-            </Route>
+              {/* Cliente */}
+              <Route element={<PrivateRoute allowedRoles={["cliente"]} />}>
+                <Route path="/cliente/pedir" element={<PedirTaxiPage />} />
+                <Route path="/cliente/pagamento" element={<ClientePagamentoPage />} />
+              </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </BrowserRouter>
+              {/* Fallback */}
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </ConfirmProvider>
       </FeedbackProvider>
     </AuthProvider>
   );

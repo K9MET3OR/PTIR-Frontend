@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { taxiService } from "../../../services/taxiService";
 import { useFeedback } from "../../../context/FeedbackContext";
+import { useConfirm } from "../../../context/ConfirmContext";
 import styles from "./TaxiListPage.module.css";
 
 const ESTADO_LABEL = {
@@ -13,6 +14,7 @@ const ESTADO_LABEL = {
 export default function TaxiListPage() {
   const navigate = useNavigate();
   const feedback = useFeedback();
+  const confirm = useConfirm();
 
   const [taxis, setTaxis] = useState([]);
   const [search, setSearch] = useState("");
@@ -20,8 +22,11 @@ export default function TaxiListPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    taxiService.list()
-      .then((response) => setTaxis(Array.isArray(response?.data) ? response.data : []))
+    taxiService
+      .list()
+      .then((response) =>
+        setTaxis(Array.isArray(response?.data) ? response.data : [])
+      )
       .catch(() => {
         const message = "Não foi possível carregar a lista de táxis.";
         setError(message);
@@ -37,7 +42,16 @@ export default function TaxiListPage() {
   );
 
   async function handleDelete(id) {
-    if (!window.confirm("Tens a certeza que queres remover este táxi?")) return;
+    const confirmar = await confirm({
+      title: "Remover táxi",
+      message:
+        "Tens a certeza que queres remover este táxi? Esta ação só deve ser feita se o táxi puder ser removido.",
+      confirmText: "Remover",
+      cancelText: "Cancelar",
+      variant: "danger",
+    });
+
+    if (!confirmar) return;
 
     try {
       await taxiService.remove(id);
@@ -58,7 +72,10 @@ export default function TaxiListPage() {
           <p className={styles.pageSubtitle}>Gerir veículos registados</p>
         </div>
 
-        <button className={styles.addBtn} onClick={() => navigate("/gestor/taxis/novo")}>
+        <button
+          className={styles.addBtn}
+          onClick={() => navigate("/gestor/taxis/novo")}
+        >
           + Registar táxi
         </button>
       </div>
@@ -66,7 +83,9 @@ export default function TaxiListPage() {
       <div className={styles.card}>
         <div className={styles.tableHeader}>
           <span className={styles.tableCount}>
-            {loading ? "A carregar…" : `${filtered.length} táxi${filtered.length !== 1 ? "s" : ""}`}
+            {loading
+              ? "A carregar…"
+              : `${filtered.length} táxi${filtered.length !== 1 ? "s" : ""}`}
           </span>
 
           <input
@@ -100,12 +119,17 @@ export default function TaxiListPage() {
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={9} className={styles.empty}>
-                      {search ? "Nenhum resultado para a pesquisa." : "Nenhum táxi registado ainda."}
+                      {search
+                        ? "Nenhum resultado para a pesquisa."
+                        : "Nenhum táxi registado ainda."}
                     </td>
                   </tr>
                 ) : (
                   filtered.map((taxi) => {
-                    const estadoKey = String(taxi.estado || "").trim().toLowerCase();
+                    const estadoKey = String(taxi.estado || "")
+                      .trim()
+                      .toLowerCase();
+
                     const estado = ESTADO_LABEL[estadoKey] ?? {
                       text: taxi.estado || "Desconhecido",
                       cls: "inactive",
@@ -121,7 +145,9 @@ export default function TaxiListPage() {
                         <td>{taxi.tipo_motor}</td>
                         <td>{taxi.nivel_conforto}</td>
                         <td>
-                          <span className={`${styles.badge} ${styles[estado.cls]}`}>
+                          <span
+                            className={`${styles.badge} ${styles[estado.cls]}`}
+                          >
                             {estado.text}
                           </span>
                         </td>
@@ -129,7 +155,9 @@ export default function TaxiListPage() {
                           <div className={styles.actions}>
                             <button
                               className={styles.editBtn}
-                              onClick={() => navigate(`/gestor/taxis/${taxi.id}/editar`)}
+                              onClick={() =>
+                                navigate(`/gestor/taxis/${taxi.id}/editar`)
+                              }
                             >
                               Editar
                             </button>

@@ -4,6 +4,7 @@ import { AuthContext } from "../../context/AuthContext";
 import { criarShift, cancelarShift } from "../../services/shiftService";
 import { api } from "../../services/api";
 import { useFeedback } from "../../context/FeedbackContext";
+import { useConfirm } from "../../context/ConfirmContext";
 import styles from "./IniciarTurnoPage.module.css";
 
 function combinarDataHora(data, hora) {
@@ -97,6 +98,7 @@ export default function IniciarTurnoPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const feedback = useFeedback();
+  const confirm = useConfirm();
 
   const hoje = formatarDataLocal(new Date());
   const horaAtual = arredondarHoraInicio();
@@ -208,7 +210,11 @@ export default function IniciarTurnoPage() {
       setTaxiSelecionado(null);
 
       if (taxisDisponiveis.length > 0) {
-        feedback.success(`${taxisDisponiveis.length} táxi${taxisDisponiveis.length !== 1 ? "s" : ""} disponível${taxisDisponiveis.length !== 1 ? "eis" : ""} para este período.`);
+        feedback.success(
+          `${taxisDisponiveis.length} táxi${
+            taxisDisponiveis.length !== 1 ? "s" : ""
+          } disponível${taxisDisponiveis.length !== 1 ? "eis" : ""} para este período.`
+        );
       } else {
         feedback.info("Não existem táxis disponíveis para este período.");
       }
@@ -307,9 +313,16 @@ export default function IniciarTurnoPage() {
   }
 
   async function handleCancelarTurno(shiftId) {
-    if (!window.confirm("Tem a certeza que quer cancelar este turno?")) {
-      return;
-    }
+    const confirmar = await confirm({
+      title: "Cancelar turno",
+      message:
+        "Tens a certeza que queres cancelar este turno agendado? Esta ação remove o turno da tua lista de próximos turnos.",
+      confirmText: "Cancelar turno",
+      cancelText: "Manter turno",
+      variant: "danger",
+    });
+
+    if (!confirmar) return;
 
     try {
       await cancelarShift(shiftId);
@@ -454,9 +467,14 @@ export default function IniciarTurnoPage() {
                 <strong>Duração:</strong>{" "}
                 {duracao > 0 ? `${duracao.toFixed(2)} horas` : "Período inválido"}
                 {duracao <= 0 && (
-                  <span className={styles.alertaErro}> (o fim tem de ser posterior ao início)</span>
+                  <span className={styles.alertaErro}>
+                    {" "}
+                    (o fim tem de ser posterior ao início)
+                  </span>
                 )}
-                {duracao > 8 && <span className={styles.alertaErro}> (máximo 8 horas)</span>}
+                {duracao > 8 && (
+                  <span className={styles.alertaErro}> (máximo 8 horas)</span>
+                )}
                 {duracaoValida && <span className={styles.alertaSucesso}> ✓</span>}
               </p>
             </div>
@@ -473,7 +491,9 @@ export default function IniciarTurnoPage() {
           {taxis.length > 0 && (
             <div className={styles.section}>
               <h2 className={styles.sectionTitle}>Selecionar Táxi</h2>
-              <p className={styles.description}>Escolhe um dos táxis disponíveis para este período</p>
+              <p className={styles.description}>
+                Escolhe um dos táxis disponíveis para este período
+              </p>
 
               <div className={styles.gridTaxis}>
                 {taxis.map((taxi) => (
@@ -491,10 +511,14 @@ export default function IniciarTurnoPage() {
                         {taxi.marca} {taxi.modelo}
                       </p>
                       <div className={styles.taxiMeta}>
-                        <span className={styles.taxiConforto}>{taxi.nivel_conforto}</span>
+                        <span className={styles.taxiConforto}>
+                          {taxi.nivel_conforto}
+                        </span>
                       </div>
                     </div>
-                    {taxiSelecionado?.id === taxi.id && <div className={styles.selecionado}>✓</div>}
+                    {taxiSelecionado?.id === taxi.id && (
+                      <div className={styles.selecionado}>✓</div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -507,11 +531,15 @@ export default function IniciarTurnoPage() {
               <div className={styles.resumo}>
                 <div className={styles.resumoItem}>
                   <span className={styles.label}>Início:</span>
-                  <span className={styles.valor}>{dataInicio} {horaInicio}</span>
+                  <span className={styles.valor}>
+                    {dataInicio} {horaInicio}
+                  </span>
                 </div>
                 <div className={styles.resumoItem}>
                   <span className={styles.label}>Fim:</span>
-                  <span className={styles.valor}>{dataFim} {horaFim}</span>
+                  <span className={styles.valor}>
+                    {dataFim} {horaFim}
+                  </span>
                 </div>
                 <div className={styles.resumoItem}>
                   <span className={styles.label}>Táxi:</span>
@@ -519,7 +547,9 @@ export default function IniciarTurnoPage() {
                 </div>
                 <div className={styles.resumoItem}>
                   <span className={styles.label}>Veículo:</span>
-                  <span className={styles.valor}>{taxiSelecionado.marca} {taxiSelecionado.modelo}</span>
+                  <span className={styles.valor}>
+                    {taxiSelecionado.marca} {taxiSelecionado.modelo}
+                  </span>
                 </div>
               </div>
             </div>
