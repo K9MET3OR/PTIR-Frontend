@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { taxiService } from "../../../services/taxiService";
+import { useFeedback } from "../../../context/FeedbackContext";
 import styles from "../../../styles/Form.module.css";
 
 const MOTOR_TYPES = ["Combustão", "Elétrico"];
@@ -28,6 +29,7 @@ function validateMatricula(v) {
     v.toUpperCase()
   );
 }
+
 function formatMatricula(value) {
   const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
 
@@ -38,6 +40,7 @@ function formatMatricula(value) {
 
 export default function TaxiRegisterPage() {
   const navigate = useNavigate();
+  const feedback = useFeedback();
 
   const [form, setForm] = useState({
     matricula: "",
@@ -63,43 +66,78 @@ export default function TaxiRegisterPage() {
   function set(field, value) {
     setForm((f) => {
       const updated = { ...f, [field]: value };
+
       // Se a marca muda, reseta o modelo
       if (field === "marca") {
         updated.modelo = "";
       }
+
       return updated;
     });
+
     // Limpa o erro do campo quando o utilizador começa a escrever
-    if (errors[field]) setErrors((e) => ({ ...e, [field]: "" }));
+    if (errors[field]) {
+      setErrors((e) => ({ ...e, [field]: "" }));
+    }
+
+    if (field === "marca" && errors.modelo) {
+      setErrors((e) => ({ ...e, modelo: "" }));
+    }
+
+    if (apiError) {
+      setApiError("");
+    }
   }
 
   function validate() {
     const e = {};
-    if (!form.matricula)
-      e.matricula = "Matrícula obrigatória.";
-    else if (!validateMatricula(form.matricula))
-      e.matricula = "Formato inválido. Ex: AA-00-BB ou AA-00-00";
 
-    if (!form.marca) e.marca = "Marca obrigatória.";
-    if (!form.modelo) e.modelo = "Modelo obrigatório.";
+    if (!form.matricula) {
+      e.matricula = "Matrícula obrigatória.";
+    } else if (!validateMatricula(form.matricula)) {
+      e.matricula = "Formato inválido. Ex: AA-00-BB ou AA-00-00";
+    }
+
+    if (!form.marca) {
+      e.marca = "Marca obrigatória.";
+    }
+
+    if (!form.modelo) {
+      e.modelo = "Modelo obrigatório.";
+    }
+
+    const brandObj = TAXI_BRANDS.find((b) => b.brand === form.marca);
+    if (form.marca && brandObj && !brandObj.models.includes(form.modelo)) {
+      e.modelo = "Modelo inválido para a marca selecionada.";
+    }
 
     const ano = parseInt(form.ano_compra, 10);
-    if (!form.ano_compra) e.ano_compra = "Ano obrigatório.";
-    else if (ano < 1990 || ano > new Date().getFullYear())
+    if (!form.ano_compra) {
+      e.ano_compra = "Ano obrigatório.";
+    } else if (ano < 1990 || ano > new Date().getFullYear()) {
       e.ano_compra = `Ano entre 1990 e ${new Date().getFullYear()}.`;
+    }
 
     const consumo = parseFloat(form.consumo_medio);
-    if (!form.consumo_medio) e.consumo_medio = "Consumo médio obrigatório.";
-    else if (Number.isNaN(consumo) || consumo <= 0)
+    if (!form.consumo_medio) {
+      e.consumo_medio = "Consumo médio obrigatório.";
+    } else if (Number.isNaN(consumo) || consumo <= 0) {
       e.consumo_medio = "Consumo médio deve ser maior que 0.";
+    }
 
     return e;
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
+
     const e2 = validate();
-    if (Object.keys(e2).length) { setErrors(e2); return; }
+
+    if (Object.keys(e2).length) {
+      setErrors(e2);
+      feedback.warning("Existem campos inválidos. Revê os dados antes de registar.");
+      return;
+    }
 
     setLoading(true);
     setApiError("");
@@ -113,10 +151,12 @@ export default function TaxiRegisterPage() {
         observacoes: form.observacoes.trim(),
       });
 
-      alert("Táxi registado com sucesso!");
+      feedback.success("Táxi registado com sucesso!");
       navigate("/gestor/taxis");
     } catch (err) {
-      setApiError(err.message ?? "Erro ao registar táxi.");
+      const message = err.message ?? "Erro ao registar táxi.";
+      setApiError(message);
+      feedback.error(message);
     } finally {
       setLoading(false);
     }
@@ -258,6 +298,7 @@ export default function TaxiRegisterPage() {
           <button type="submit" className={styles.submitBtn} disabled={loading}>
             {loading ? "A registar…" : "Registar táxi →"}
           </button>
+
           <button
             type="button"
             className={styles.cancelBtn}

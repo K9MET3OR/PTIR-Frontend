@@ -4,23 +4,30 @@ import { AuthContext } from "../../context/AuthContext";
 import { obterShift, verificarTurnoAtivo } from "../../services/shiftService";
 import { taxiService } from "../../services/taxiService";
 import { refuelService } from "../../services/refuelService";
+import { useFeedback } from "../../context/FeedbackContext";
 import styles from "./ReabastecimentoPage.module.css";
 
 const toLocalInputValue = (isoString) => {
   if (!isoString) return "";
+
   const date = new Date(isoString);
+
   if (Number.isNaN(date.getTime())) return "";
+
   const offset = date.getTimezoneOffset() * 60000;
   const local = new Date(date.getTime() - offset);
+
   return local.toISOString().slice(0, 16);
 };
 
 const formatRemaining = (milliseconds) => {
   if (milliseconds <= 0) return "0m";
+
   const totalSeconds = Math.floor(milliseconds / 1000);
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
+
   return `${hours}h ${minutes}m ${seconds}s`;
 };
 
@@ -28,6 +35,7 @@ const toUtcIsoString = (localDateTime) => {
   if (!localDateTime) return "";
 
   const date = new Date(localDateTime);
+
   if (Number.isNaN(date.getTime())) return "";
 
   return date.toISOString();
@@ -44,6 +52,7 @@ const ordenarRefuelsPorDataAsc = (lista = []) => {
 export default function ReabastecimentoPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const feedback = useFeedback();
 
   const [shift, setShift] = useState(null);
   const [taxi, setTaxi] = useState(null);
@@ -90,6 +99,7 @@ export default function ReabastecimentoPage() {
           }
         } catch (error) {
           console.warn("Erro ao carregar turno pelo ID armazenado:", error);
+
           localStorage.removeItem("turno_id");
           localStorage.removeItem("turno_ativo");
         }
@@ -110,8 +120,12 @@ export default function ReabastecimentoPage() {
       }
 
       if (!shiftData) {
-        setErro("Não há um turno ativo. Inicia um turno para registar reabastecimentos.");
+        const message = "Não há um turno ativo. Inicia um turno para registar reabastecimentos.";
+
+        setErro(message);
+        feedback.warning(message);
         setLoading(false);
+
         return;
       }
 
@@ -120,6 +134,7 @@ export default function ReabastecimentoPage() {
 
         const taxiResponse = await taxiService.get(shiftData.taxi_id);
         const taxiData = taxiResponse.taxi || taxiResponse;
+
         setTaxi(taxiData);
 
         setForm((current) => ({
@@ -129,17 +144,22 @@ export default function ReabastecimentoPage() {
         }));
 
         const refuelResponse = await refuelService.listByTaxi(shiftData.taxi_id);
+
         setRefuels(ordenarRefuelsPorDataDesc(refuelResponse.refuels || []));
       } catch (err) {
         console.error("Erro ao carregar reabastecimento:", err);
-        setErro(err.message || "Erro ao carregar dados do turno e do táxi.");
+
+        const message = err.message || "Erro ao carregar dados do turno e do táxi.";
+
+        setErro(message);
+        feedback.error(message);
       } finally {
         setLoading(false);
       }
     }
 
     carregarDados();
-  }, [shiftId, user]);
+  }, [shiftId, user, feedback]);
 
   useEffect(() => {
     if (!shift) {
@@ -150,10 +170,12 @@ export default function ReabastecimentoPage() {
     const atualizar = () => {
       const agora = new Date();
       const fim = new Date(shift.end_date);
+
       setTempoRestante(Math.max(0, fim - agora));
     };
 
     atualizar();
+
     const timer = setInterval(atualizar, 1000);
 
     return () => clearInterval(timer);
@@ -161,14 +183,27 @@ export default function ReabastecimentoPage() {
 
   const handleChange = (field, value) => {
     setForm((current) => ({ ...current, [field]: value }));
+
+    if (erro) {
+      setErro("");
+    }
+
+    if (sucesso) {
+      setSucesso("");
+    }
+  };
+
+  const definirErroValidacao = (message) => {
+    setErro(message);
+    feedback.warning(message);
+    return false;
   };
 
   const validarFormulario = () => {
     setErro("");
 
     if (!form.data_inicio || !form.data_fim) {
-      setErro("Preenche a data e hora de início e fim do reabastecimento.");
-      return false;
+      return definirErroValidacao("Preenche a data e hora de início e fim do reabastecimento.");
     }
 
     const dataInicio = new Date(form.data_inicio);
@@ -178,13 +213,11 @@ export default function ReabastecimentoPage() {
     const fimValido = !Number.isNaN(dataFim.getTime());
 
     if (!inicioValido || !fimValido) {
-      setErro("As datas de início e fim devem ser válidas.");
-      return false;
+      return definirErroValidacao("As datas de início e fim devem ser válidas.");
     }
 
     if (dataInicio >= dataFim) {
-      setErro("A data de início deve ser anterior à data de fim.");
-      return false;
+      return definirErroValidacao("A data de início deve ser anterior à data de fim.");
     }
 
     if (
@@ -192,8 +225,7 @@ export default function ReabastecimentoPage() {
       Number.isNaN(Number(form.euros_pagos)) ||
       Number(form.euros_pagos) <= 0
     ) {
-      setErro("Insere o valor em euros pagos e superior a 0.");
-      return false;
+      return definirErroValidacao("Insere o valor em euros pagos e superior a 0.");
     }
 
     if (
@@ -201,19 +233,16 @@ export default function ReabastecimentoPage() {
       Number.isNaN(Number(form.kms_taxi)) ||
       Number(form.kms_taxi) <= 0
     ) {
-      setErro("Insere os quilómetros do táxi e devem ser superiores a 0.");
-      return false;
+      return definirErroValidacao("Insere os quilómetros do táxi e devem ser superiores a 0.");
     }
 
     if (motorEletrico) {
       if (!form.kwh || Number.isNaN(Number(form.kwh)) || Number(form.kwh) <= 0) {
-        setErro("Insere a energia em kWh e superior a 0.");
-        return false;
+        return definirErroValidacao("Insere a energia em kWh e superior a 0.");
       }
     } else {
       if (!form.litros || Number.isNaN(Number(form.litros)) || Number(form.litros) <= 0) {
-        setErro("Insere a quantidade em litros e superior a 0.");
-        return false;
+        return definirErroValidacao("Insere a quantidade em litros e superior a 0.");
       }
     }
 
@@ -223,14 +252,14 @@ export default function ReabastecimentoPage() {
 
       if (motorEletrico) {
         if (dataInicio < turnoInicio || dataInicio > turnoFim) {
-          setErro("Em táxis elétricos, o início do carregamento deve ocorrer dentro do turno.");
-          return false;
+          return definirErroValidacao(
+            "Em táxis elétricos, o início do carregamento deve ocorrer dentro do turno."
+          );
         }
-      } else {
-        if (dataInicio < turnoInicio || dataFim > turnoFim) {
-          setErro("Em táxis a combustão, o reabastecimento deve ocorrer dentro do turno.");
-          return false;
-        }
+      } else if (dataInicio < turnoInicio || dataFim > turnoFim) {
+        return definirErroValidacao(
+          "Em táxis a combustão, o reabastecimento deve ocorrer dentro do turno."
+        );
       }
     }
 
@@ -242,10 +271,9 @@ export default function ReabastecimentoPage() {
       .find((item) => new Date(item.data_inicio) <= dataInicio);
 
     if (refuelAnterior && kmsAtual <= Number(refuelAnterior.kms_taxi)) {
-      setErro(
+      return definirErroValidacao(
         `Os quilómetros devem ser superiores ao reabastecimento anterior (${refuelAnterior.kms_taxi} km).`
       );
-      return false;
     }
 
     const refuelSeguinte = refuelsOrdenados.find(
@@ -253,10 +281,9 @@ export default function ReabastecimentoPage() {
     );
 
     if (refuelSeguinte && kmsAtual >= Number(refuelSeguinte.kms_taxi)) {
-      setErro(
+      return definirErroValidacao(
         `Os quilómetros devem ser inferiores ao reabastecimento seguinte (${refuelSeguinte.kms_taxi} km).`
       );
-      return false;
     }
 
     return true;
@@ -266,7 +293,15 @@ export default function ReabastecimentoPage() {
     event.preventDefault();
 
     if (!validarFormulario()) return;
-    if (!shift) return;
+
+    if (!shift) {
+      const message = "Não foi possível identificar o turno ativo.";
+
+      setErro(message);
+      feedback.error(message);
+
+      return;
+    }
 
     setSaving(true);
     setErro("");
@@ -290,8 +325,11 @@ export default function ReabastecimentoPage() {
 
       await refuelService.register(payload);
 
-      setSucesso("Reabastecimento registado com sucesso.");
+      const message = "Reabastecimento registado com sucesso.";
+
+      setSucesso(message);
       setErro("");
+      feedback.success(message);
 
       setForm((current) => ({
         ...current,
@@ -302,10 +340,15 @@ export default function ReabastecimentoPage() {
       }));
 
       const refuelResponse = await refuelService.listByTaxi(shift.taxi_id);
+
       setRefuels(ordenarRefuelsPorDataDesc(refuelResponse.refuels || []));
     } catch (err) {
       console.error("Erro ao registar o reabastecimento:", err);
-      setErro(err.message || "Erro ao registar o reabastecimento.");
+
+      const message = err.message || "Erro ao registar o reabastecimento.";
+
+      setErro(message);
+      feedback.error(message);
     } finally {
       setSaving(false);
     }
@@ -334,6 +377,7 @@ export default function ReabastecimentoPage() {
           {!shift ? (
             <div className={styles.emptyState}>
               <p>Não foi possível encontrar um turno ativo.</p>
+
               <button onClick={() => navigate("/motorista/turno")}>
                 Iniciar Turno
               </button>
@@ -508,6 +552,7 @@ export default function ReabastecimentoPage() {
                                 timeStyle: "short",
                               })}
                             </strong>
+
                             <p>{quantidade}</p>
                           </div>
 

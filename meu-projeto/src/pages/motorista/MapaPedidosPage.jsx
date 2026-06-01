@@ -19,12 +19,12 @@ import {
 } from "../../services/shiftService";
 
 import { taxiService } from "../../services/taxiService";
-
 import { invoiceService } from "../../services/invoiceService";
 
 import styles from "./MapaPedidosPage.module.css";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { useFeedback } from "../../context/FeedbackContext";
 import { geocodificar, calcularRota } from "../../services/geocodingService";
 
 const FCT_LISBOA = {
@@ -175,25 +175,42 @@ function formatarIntervaloViagem(startDate, endDate) {
   return `${horaInicio} - ${horaFim}`;
 }
 
+function obterIniciaisUtilizador(user) {
+  const nomeCompleto =
+    user?.name ||
+    user?.nome ||
+    user?.displayName ||
+    "";
+
+  const partesNome = nomeCompleto
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (partesNome.length >= 2) {
+    const primeira = partesNome[0][0] || "";
+    const ultima = partesNome[partesNome.length - 1][0] || "";
+
+    return `${primeira}${ultima}`.toUpperCase();
+  }
+
+  const username =
+    user?.username ||
+    user?.email?.split("@")[0] ||
+    "";
+
+  return username.slice(0, 2).toUpperCase() || "??";
+}
+
 export default function MapaPedidosPage() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [abaAtiva, setAbaAtiva] = useState("pedidos");
 
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const feedback = useFeedback();
 
-  const initials = (() => {
-    const source = user?.name || user?.username || user?.email || "";
-    const normalized = source.trim();
-    if (!normalized) return "??";
-
-    const parts = normalized.split(/\s+/);
-    if (parts.length >= 2) {
-      return `${parts[0][0] || ""}${parts[1][0] || ""}`.toUpperCase();
-    }
-
-    return normalized.slice(0, 2).toUpperCase();
-  })();
+  const initials = obterIniciaisUtilizador(user);
 
   const [pedidoSelecionadoMapa, setPedidoSelecionadoMapa] = useState(null);
 
@@ -484,7 +501,9 @@ export default function MapaPedidosPage() {
     const podeAceitar = turnoEstaAtivoAgora(turnoAtivo);
 
     if (!podeAceitar) {
-      setErroViagens("Só podes aceitar pedidos durante um turno ativo.");
+      const message = "Só podes aceitar pedidos durante um turno ativo.";
+      setErroViagens(message);
+      feedback.warning(message);
       return;
     }
 
@@ -492,11 +511,17 @@ export default function MapaPedidosPage() {
       setCarregandoId(tripId);
       setErroViagens("");
       setMensagemPainel("");
+
       await aceitarViagem(tripId, user.id);
       await carregarViagens();
+
+      feedback.success("Pedido aceite com sucesso. A aguardar confirmação do cliente.");
     } catch (error) {
       console.error("Erro ao aceitar viagem:", error);
-      setErroViagens(error.message || "Erro ao aceitar viagem.");
+
+      const message = error.message || "Erro ao aceitar viagem.";
+      setErroViagens(message);
+      feedback.error(message);
     } finally {
       setCarregandoId(null);
     }
@@ -504,9 +529,12 @@ export default function MapaPedidosPage() {
 
   const handleIgnorarViagem = (tripId) => {
     setViagensIgnoradas((prev) => [...prev, tripId]);
+
     if (pedidoSelecionadoMapa?.id === tripId) {
       setPedidoSelecionadoMapa(null);
     }
+
+    feedback.info("Pedido ignorado.");
   };
 
   async function handleCancelarEspera(tripId, silencioso = false) {
@@ -517,14 +545,18 @@ export default function MapaPedidosPage() {
       await cancelarEsperaMotorista(tripId);
       await carregarViagens();
 
-      if (!silencioso) {
-        setMensagemPainel("A espera pela resposta do cliente foi cancelada.");
-      } else {
-        setMensagemPainel("O cliente não respondeu a tempo. O pedido foi cancelado.");
-      }
+      const message = silencioso
+        ? "O cliente não respondeu a tempo. O pedido foi cancelado."
+        : "A espera pela resposta do cliente foi cancelada.";
+
+      setMensagemPainel(message);
+      feedback.info(message);
     } catch (error) {
       console.error("Erro ao cancelar espera do cliente:", error);
-      setErroViagens(error.message || "Erro ao cancelar espera do cliente.");
+
+      const message = error.message || "Erro ao cancelar espera do cliente.";
+      setErroViagens(message);
+      feedback.error(message);
     } finally {
       setCarregandoId(null);
     }
@@ -534,11 +566,17 @@ export default function MapaPedidosPage() {
     try {
       setCarregandoId(tripId);
       setErroViagens("");
+
       await iniciarViagem(tripId);
       await carregarViagens();
+
+      feedback.success("Viagem iniciada com sucesso.");
     } catch (error) {
       console.error("Erro ao iniciar viagem:", error);
-      setErroViagens(error.message || "Erro ao iniciar viagem.");
+
+      const message = error.message || "Erro ao iniciar viagem.";
+      setErroViagens(message);
+      feedback.error(message);
     } finally {
       setCarregandoId(null);
     }
@@ -552,18 +590,27 @@ export default function MapaPedidosPage() {
     try {
       setCarregandoId(tripId);
       setErroViagens("");
+
       await finalizarViagem(tripId);
       await carregarViagens();
+
+      feedback.success("Viagem terminada com sucesso. A aguardar pagamento do cliente.");
     } catch (error) {
       console.error("Erro ao finalizar viagem:", error);
-      setErroViagens(error.message || "Erro ao finalizar viagem.");
+
+      const message = error.message || "Erro ao finalizar viagem.";
+      setErroViagens(message);
+      feedback.error(message);
     } finally {
       setCarregandoId(null);
     }
   }
 
   async function handleEmitirFatura(tripId) {
-    if (!tripId) return;
+    if (!tripId) {
+      feedback.error("Não foi possível identificar a viagem.");
+      return;
+    }
 
     if (!window.confirm("Pretendes emitir fatura para esta viagem?")) {
       return;
@@ -582,16 +629,20 @@ export default function MapaPedidosPage() {
         ...current.filter((id) => String(id) !== String(tripId)),
       ]);
 
-      setMensagemPainel(
-        invoice?.numero_formatado
-          ? `Fatura ${invoice.numero_formatado} emitida com sucesso.`
-          : "Fatura emitida com sucesso."
-      );
+      const message = invoice?.numero_formatado
+        ? `Fatura ${invoice.numero_formatado} emitida com sucesso.`
+        : "Fatura emitida com sucesso.";
+
+      setMensagemPainel(message);
+      feedback.success(message);
 
       await carregarFaturasEmitidas();
     } catch (error) {
       console.error("Erro ao emitir fatura:", error);
-      setErroViagens(error.message || "Erro ao emitir fatura.");
+
+      const message = error.message || "Erro ao emitir fatura.";
+      setErroViagens(message);
+      feedback.error(message);
     } finally {
       setCarregandoId(null);
     }
@@ -605,9 +656,12 @@ export default function MapaPedidosPage() {
     try {
       await cancelarShift(shiftId);
       await carregarTurnosMotorista();
-      alert("Turno cancelado com sucesso");
+
+      feedback.success("Turno cancelado com sucesso.");
     } catch (error) {
-      alert(`Erro ao cancelar turno: ${error.message}`);
+      const message = error.message || "Erro ao cancelar turno.";
+      setErroViagens(message);
+      feedback.error(message);
     }
   }
 
@@ -619,8 +673,11 @@ export default function MapaPedidosPage() {
 
   async function handleTerminarTurno() {
     const shiftId = turnoAtivo?.id;
+
     if (!shiftId) {
-      alert("Turno não encontrado");
+      const message = "Turno não encontrado.";
+      setErroViagens(message);
+      feedback.error(message);
       return;
     }
 
@@ -630,15 +687,20 @@ export default function MapaPedidosPage() {
 
     try {
       await terminarShift(shiftId);
+
       localStorage.removeItem("turno_ativo");
       localStorage.removeItem("turno_id");
+
       setTurnoAtivo(null);
       setTempoRestanteTurno(0);
       setMensagemPainel("");
-      alert("Turno terminado com sucesso");
+
+      feedback.success("Turno terminado com sucesso.");
       navigate("/motorista/mapa", { replace: true });
     } catch (error) {
-      alert(`Erro ao terminar turno: ${error.message}`);
+      const message = error.message || "Erro ao terminar turno.";
+      setErroViagens(message);
+      feedback.error(message);
     }
   }
 
@@ -1347,7 +1409,7 @@ export default function MapaPedidosPage() {
                 </div>
               )}
             </>
-            )}
+          )}
         </div>
 
         {turnoAtivo && (
@@ -1806,14 +1868,16 @@ export default function MapaPedidosPage() {
 
       <div className={styles.mapaWrap}>
         <div className={styles.profileCardWrapper}>
-          <button className={styles.profileBtn} onClick={handleProfileToggle}>
+          <button
+            className={styles.profileBtn}
+            onClick={handleProfileToggle}
+            title={user?.name || user?.nome || user?.username || user?.email || "Utilizador"}
+          >
             {initials}
           </button>
+
           {profileMenuOpen && (
             <div className={styles.profileMenu}>
-              <button className={styles.profileMenuItem} type="button">
-                Editar perfil
-              </button>
               <button className={styles.profileMenuItem} type="button" onClick={handleLogout}>
                 Logout
               </button>

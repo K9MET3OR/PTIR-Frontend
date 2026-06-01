@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motoristaService } from "../../../services/motoristaService";
+import { useFeedback } from "../../../context/FeedbackContext";
 import styles from "../../../styles/Form.module.css";
 
 const GENERO_TYPES = [
@@ -52,6 +53,7 @@ function formatCodigoPostal(value) {
 export default function MotoristaEditPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const feedback = useFeedback();
 
   const [form, setForm] = useState({
     nome: "",
@@ -98,12 +100,17 @@ export default function MotoristaEditPage() {
         setForm(motoristaData);
         setOriginalForm(motoristaData);
       })
-      .catch(() => setApiError("Não foi possível carregar os dados do motorista."))
+      .catch(() => {
+        const message = "Não foi possível carregar os dados do motorista.";
+        setApiError(message);
+        feedback.error(message);
+      })
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, feedback]);
 
   async function fetchLocalidade(codigoPostal) {
     setLocalidadeLoading(true);
+
     try {
       const response = await fetch(`/api/driver/localidade/${codigoPostal}`);
       const data = await response.json();
@@ -112,18 +119,24 @@ export default function MotoristaEditPage() {
         setForm((f) => ({ ...f, localidade: data.localidade || "" }));
         setErrors((e) => ({ ...e, codigo_postal: "" }));
       } else {
+        const message = data.message || "Código postal não encontrado.";
+
         setForm((f) => ({ ...f, localidade: "" }));
         setErrors((e) => ({
           ...e,
-          codigo_postal: data.message || "Código postal não encontrado.",
+          codigo_postal: message,
         }));
+        feedback.warning(message);
       }
     } catch {
+      const message = "Erro ao consultar código postal.";
+
       setForm((f) => ({ ...f, localidade: "" }));
       setErrors((e) => ({
         ...e,
-        codigo_postal: "Erro ao consultar código postal.",
+        codigo_postal: message,
       }));
+      feedback.error(message);
     } finally {
       setLocalidadeLoading(false);
     }
@@ -134,6 +147,10 @@ export default function MotoristaEditPage() {
 
     if (errors[field]) {
       setErrors((e) => ({ ...e, [field]: "" }));
+    }
+
+    if (apiError) {
+      setApiError("");
     }
 
     if (field === "codigo_postal") {
@@ -199,9 +216,12 @@ export default function MotoristaEditPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
     const e2 = validate();
+
     if (Object.keys(e2).length) {
       setErrors(e2);
+      feedback.warning("Existem campos inválidos. Revê os dados antes de guardar.");
       return;
     }
 
@@ -221,12 +241,22 @@ export default function MotoristaEditPage() {
     if (form.codigo_postal !== originalForm?.codigo_postal) changes.codigo_postal = form.codigo_postal;
     if (form.estado !== originalForm?.estado) changes.estado = form.estado;
 
+    if (Object.keys(changes).length === 0) {
+      const message = "Não existem alterações para guardar.";
+      setApiError(message);
+      feedback.info(message);
+      setSubmitting(false);
+      return;
+    }
+
     try {
       await motoristaService.update(id, changes);
-      alert("Motorista atualizado com sucesso!");
+      feedback.success("Motorista atualizado com sucesso!");
       navigate("/gestor/motoristas");
     } catch (err) {
-      setApiError(err.message ?? "Erro ao atualizar motorista.");
+      const message = err.message ?? "Erro ao atualizar motorista.";
+      setApiError(message);
+      feedback.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -364,7 +394,8 @@ export default function MotoristaEditPage() {
               placeholder="1000-001"
               maxLength={8}
               value={form.codigo_postal}
-              onChange={(e) => set("codigo_postal", formatCodigoPostal(e.target.value))}            />
+              onChange={(e) => set("codigo_postal", formatCodigoPostal(e.target.value))}
+            />
             {localidadeLoading && <small style={{ color: "#b7a7ff" }}>A carregar localidade…</small>}
             {errors.codigo_postal && <span className={styles.fieldError}>{errors.codigo_postal}</span>}
           </div>

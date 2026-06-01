@@ -1,25 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   obterRelatorioTaxisMotoristas,
   obterDetalhesViagensMotorista,
   obterDetalhesViagensTaxi,
   obterDetalheViagem,
   obterDetalheMotorista,
-  obterDetalheTaxi
-} from '../../../services/relatoriosService';
-import styles from './relatoriosTaxiMotorista.module.css';
+  obterDetalheTaxi,
+} from "../../../services/relatoriosService";
+import { useFeedback } from "../../../context/FeedbackContext";
+import styles from "./relatoriosTaxiMotorista.module.css";
 
 export default function RelatoriosTaxiMotorista() {
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const feedback = useFeedback();
+
+  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
   const [data, setData] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [viewLevel, setViewLevel] = useState('total');
-  const [tipoSubtotais, setTipoSubtotais] = useState('trips');
+  const [viewLevel, setViewLevel] = useState("total");
+  const [tipoSubtotais, setTipoSubtotais] = useState("trips");
 
   const [detalhesTipo, setDetalhesTipo] = useState(null);
   const [detalhesId, setDetalhesId] = useState(null);
@@ -28,7 +31,27 @@ export default function RelatoriosTaxiMotorista() {
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [selectedDetailType, setSelectedDetailType] = useState(null);
 
-  const carregarRelatorio = async () => {
+  function validarDatas() {
+    if (!startDate || !endDate) {
+      return "Seleciona a data de início e a data de fim.";
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      return "A data de início não pode ser posterior à data de fim.";
+    }
+
+    return null;
+  }
+
+  const carregarRelatorio = async (mostrarSucesso = false) => {
+    const erroDatas = validarDatas();
+
+    if (erroDatas) {
+      setError(erroDatas);
+      feedback.warning(erroDatas);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -36,26 +59,33 @@ export default function RelatoriosTaxiMotorista() {
       const resultado = await obterRelatorioTaxisMotoristas(startDate, endDate);
 
       setData(resultado.data);
-      setViewLevel('total');
-      setTipoSubtotais('trips');
+      setViewLevel("total");
+      setTipoSubtotais("trips");
       setDetalhesTipo(null);
       setDetalhesId(null);
       setDetalhesViagens([]);
       setSelectedDetail(null);
       setSelectedDetailType(null);
+
+      if (mostrarSucesso) {
+        feedback.success("Relatório carregado com sucesso.");
+      }
     } catch (err) {
-      setError(err.message || 'Erro ao carregar relatório de táxis e motoristas');
+      const message = err.message || "Erro ao carregar relatório de táxis e motoristas";
+      setError(message);
+      feedback.error(message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    carregarRelatorio();
+    carregarRelatorio(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatarHoras = (horas) => {
-    if (!horas) return '0.00h';
+    if (!horas) return "0.00h";
     return `${Number(horas).toFixed(2)}h`;
   };
 
@@ -68,32 +98,33 @@ export default function RelatoriosTaxiMotorista() {
   };
 
   const formatarDataHora = (valor) => {
-    if (!valor) return '-';
-    return new Date(valor).toLocaleString('pt-PT');
+    if (!valor) return "-";
+    return new Date(valor).toLocaleString("pt-PT");
   };
 
   const getValor = (item) => {
-    if (tipoSubtotais === 'hours') return formatarHoras(item.total_hours);
-    if (tipoSubtotais === 'kms') return formatarKm(item.total_kms);
+    if (tipoSubtotais === "hours") return formatarHoras(item.total_hours);
+    if (tipoSubtotais === "kms") return formatarKm(item.total_kms);
     return `${item.total_trips || 0} viagens`;
   };
 
   const getTituloSubtotais = () => {
-    if (tipoSubtotais === 'hours') return 'Horas';
-    if (tipoSubtotais === 'kms') return 'Quilómetros';
-    return 'Viagens';
+    if (tipoSubtotais === "hours") return "Horas";
+    if (tipoSubtotais === "kms") return "Quilómetros";
+    return "Viagens";
   };
 
   const getTituloDetalhes = () => {
-    const entidade = detalhesTipo === 'driver'
-      ? `Motorista ${detalhesId}`
-      : `Táxi ${detalhesId}`;
+    const entidade =
+      detalhesTipo === "driver"
+        ? `Motorista ${detalhesId}`
+        : `Táxi ${detalhesId}`;
 
-    if (tipoSubtotais === 'hours') {
+    if (tipoSubtotais === "hours") {
       return `Viagens de ${entidade} por horas, da maior duração para a menor`;
     }
 
-    if (tipoSubtotais === 'kms') {
+    if (tipoSubtotais === "kms") {
       return `Viagens de ${entidade} por quilómetros, do maior para o menor`;
     }
 
@@ -102,7 +133,7 @@ export default function RelatoriosTaxiMotorista() {
 
   const abrirSubtotais = (metric) => {
     setTipoSubtotais(metric);
-    setViewLevel('subtotais');
+    setViewLevel("subtotais");
   };
 
   const carregarDetalhesMotorista = async (driverId) => {
@@ -117,12 +148,14 @@ export default function RelatoriosTaxiMotorista() {
         endDate
       );
 
-      setDetalhesTipo('driver');
+      setDetalhesTipo("driver");
       setDetalhesId(driverId);
       setDetalhesViagens(resultado.trips || []);
-      setViewLevel('detalhes');
+      setViewLevel("detalhes");
     } catch (err) {
-      setError(err.message || 'Erro ao carregar detalhes do motorista');
+      const message = err.message || "Erro ao carregar detalhes do motorista";
+      setError(message);
+      feedback.error(message);
     } finally {
       setDetailsLoading(false);
     }
@@ -140,12 +173,14 @@ export default function RelatoriosTaxiMotorista() {
         endDate
       );
 
-      setDetalhesTipo('taxi');
+      setDetalhesTipo("taxi");
       setDetalhesId(taxiId);
       setDetalhesViagens(resultado.trips || []);
-      setViewLevel('detalhes');
+      setViewLevel("detalhes");
     } catch (err) {
-      setError(err.message || 'Erro ao carregar detalhes do táxi');
+      const message = err.message || "Erro ao carregar detalhes do táxi";
+      setError(message);
+      feedback.error(message);
     } finally {
       setDetailsLoading(false);
     }
@@ -158,25 +193,27 @@ export default function RelatoriosTaxiMotorista() {
     try {
       let resultado;
 
-      if (type === 'trip') {
+      if (type === "trip") {
         resultado = await obterDetalheViagem(id);
         setSelectedDetail(resultado.trip);
       }
 
-      if (type === 'driver') {
+      if (type === "driver") {
         resultado = await obterDetalheMotorista(id);
         setSelectedDetail(resultado.driver);
       }
 
-      if (type === 'taxi') {
+      if (type === "taxi") {
         resultado = await obterDetalheTaxi(id);
         setSelectedDetail(resultado.taxi);
       }
 
       setSelectedDetailType(type);
-      setViewLevel('detalheObjeto');
+      setViewLevel("detalheObjeto");
     } catch (err) {
-      setError(err.message || 'Erro ao carregar detalhes');
+      const message = err.message || "Erro ao carregar detalhes";
+      setError(message);
+      feedback.error(message);
     } finally {
       setDetailsLoading(false);
     }
@@ -198,8 +235,8 @@ export default function RelatoriosTaxiMotorista() {
         <div className={styles.totalCard}>
           <div
             className={styles.metric}
-            onClick={() => abrirSubtotais('trips')}
-            style={{ cursor: 'pointer' }}
+            onClick={() => abrirSubtotais("trips")}
+            style={{ cursor: "pointer" }}
           >
             <span className={styles.label}>Total de Viagens:</span>
             <span className={styles.value}>{data.summary.total_trips || 0}</span>
@@ -207,8 +244,8 @@ export default function RelatoriosTaxiMotorista() {
 
           <div
             className={styles.metric}
-            onClick={() => abrirSubtotais('hours')}
-            style={{ cursor: 'pointer' }}
+            onClick={() => abrirSubtotais("hours")}
+            style={{ cursor: "pointer" }}
           >
             <span className={styles.label}>Total de Horas:</span>
             <span className={styles.value}>{formatarHoras(data.summary.total_hours)}</span>
@@ -216,8 +253,8 @@ export default function RelatoriosTaxiMotorista() {
 
           <div
             className={styles.metric}
-            onClick={() => abrirSubtotais('kms')}
-            style={{ cursor: 'pointer' }}
+            onClick={() => abrirSubtotais("kms")}
+            style={{ cursor: "pointer" }}
           >
             <span className={styles.label}>Total de Quilómetros:</span>
             <span className={styles.value}>{formatarKm(data.summary.total_kms)}</span>
@@ -226,7 +263,7 @@ export default function RelatoriosTaxiMotorista() {
 
         <button
           className={styles.expandBtn}
-          onClick={() => abrirSubtotais('trips')}
+          onClick={() => abrirSubtotais("trips")}
         >
           Ver Subtotais →
         </button>
@@ -242,7 +279,7 @@ export default function RelatoriosTaxiMotorista() {
         <div className={styles.header}>
           <button
             className={styles.backBtn}
-            onClick={() => setViewLevel('total')}
+            onClick={() => setViewLevel("total")}
           >
             ← Voltar
           </button>
@@ -261,8 +298,8 @@ export default function RelatoriosTaxiMotorista() {
                 <div key={driver.driver_id} className={styles.subtotalCard}>
                   <div className={styles.subtotalHeader}>
                     <span
-                      onClick={() => carregarDetalheObjeto('driver', driver.driver_id)}
-                      style={{ cursor: 'pointer' }}
+                      onClick={() => carregarDetalheObjeto("driver", driver.driver_id)}
+                      style={{ cursor: "pointer" }}
                       title="Ver detalhes do motorista"
                     >
                       Motorista {driver.driver_id}
@@ -299,8 +336,8 @@ export default function RelatoriosTaxiMotorista() {
                 <div key={taxi.taxi_id} className={styles.subtotalCard}>
                   <div className={styles.subtotalHeader}>
                     <span
-                      onClick={() => carregarDetalheObjeto('taxi', taxi.taxi_id)}
-                      style={{ cursor: 'pointer' }}
+                      onClick={() => carregarDetalheObjeto("taxi", taxi.taxi_id)}
+                      style={{ cursor: "pointer" }}
                       title="Ver detalhes do táxi"
                     >
                       Táxi {taxi.taxi_id}
@@ -337,7 +374,7 @@ export default function RelatoriosTaxiMotorista() {
         <div className={styles.header}>
           <button
             className={styles.backBtn}
-            onClick={() => setViewLevel('subtotais')}
+            onClick={() => setViewLevel("subtotais")}
           >
             ← Voltar
           </button>
@@ -357,8 +394,8 @@ export default function RelatoriosTaxiMotorista() {
               <div key={viagem.id} className={styles.detalheCard}>
                 <div className={styles.detalhHeader}>
                   <strong
-                    onClick={() => carregarDetalheObjeto('trip', viagem.id)}
-                    style={{ cursor: 'pointer' }}
+                    onClick={() => carregarDetalheObjeto("trip", viagem.id)}
+                    style={{ cursor: "pointer" }}
                     title="Ver detalhes da viagem"
                   >
                     Viagem #{viagem.id}
@@ -374,8 +411,8 @@ export default function RelatoriosTaxiMotorista() {
 
                   {viagem.driver_id && (
                     <span
-                      onClick={() => carregarDetalheObjeto('driver', viagem.driver_id)}
-                      style={{ cursor: 'pointer' }}
+                      onClick={() => carregarDetalheObjeto("driver", viagem.driver_id)}
+                      style={{ cursor: "pointer" }}
                       title="Ver detalhes do motorista"
                     >
                       Motorista: {viagem.driver_id}
@@ -384,8 +421,8 @@ export default function RelatoriosTaxiMotorista() {
 
                   {viagem.taxi_id && (
                     <span
-                      onClick={() => carregarDetalheObjeto('taxi', viagem.taxi_id)}
-                      style={{ cursor: 'pointer' }}
+                      onClick={() => carregarDetalheObjeto("taxi", viagem.taxi_id)}
+                      style={{ cursor: "pointer" }}
                       title="Ver detalhes do táxi"
                     >
                       Táxi: {viagem.taxi_id}
@@ -410,18 +447,18 @@ export default function RelatoriosTaxiMotorista() {
     }
 
     const titulo =
-      selectedDetailType === 'trip'
+      selectedDetailType === "trip"
         ? `Detalhes da Viagem #${selectedDetail.id}`
-        : selectedDetailType === 'driver'
-          ? `Detalhes do Motorista ${selectedDetail.id}`
-          : `Detalhes do Táxi ${selectedDetail.id}`;
+        : selectedDetailType === "driver"
+        ? `Detalhes do Motorista ${selectedDetail.id}`
+        : `Detalhes do Táxi ${selectedDetail.id}`;
 
     return (
       <div className={styles.section}>
         <div className={styles.header}>
           <button
             className={styles.backBtn}
-            onClick={() => setViewLevel(detalhesViagens.length > 0 ? 'detalhes' : 'subtotais')}
+            onClick={() => setViewLevel(detalhesViagens.length > 0 ? "detalhes" : "subtotais")}
           >
             ← Voltar
           </button>
@@ -434,9 +471,9 @@ export default function RelatoriosTaxiMotorista() {
             <div key={key} className={styles.detalheCard}>
               <div className={styles.detalhContent}>
                 <span>
-                  <strong>{key}:</strong>{' '}
-                  {value === null || value === undefined || value === ''
-                    ? '-'
+                  <strong>{key}:</strong>{" "}
+                  {value === null || value === undefined || value === ""
+                    ? "-"
                     : String(value)}
                 </span>
               </div>
@@ -473,10 +510,10 @@ export default function RelatoriosTaxiMotorista() {
 
           <button
             className={styles.loadBtn}
-            onClick={carregarRelatorio}
+            onClick={() => carregarRelatorio(true)}
             disabled={loading}
           >
-            {loading ? 'Carregando...' : 'Carregar Relatório'}
+            {loading ? "Carregando..." : "Carregar Relatório"}
           </button>
         </div>
       </div>
@@ -485,13 +522,13 @@ export default function RelatoriosTaxiMotorista() {
 
       {loading && <div className={styles.loading}>Carregando dados...</div>}
 
-      {!loading && data && viewLevel === 'total' && renderTotal()}
+      {!loading && data && viewLevel === "total" && renderTotal()}
 
-      {!loading && data && viewLevel === 'subtotais' && renderSubtotais()}
+      {!loading && data && viewLevel === "subtotais" && renderSubtotais()}
 
-      {!loading && data && viewLevel === 'detalhes' && renderDetalhes()}
+      {!loading && data && viewLevel === "detalhes" && renderDetalhes()}
 
-      {!loading && data && viewLevel === 'detalheObjeto' && renderDetalheObjeto()}
+      {!loading && data && viewLevel === "detalheObjeto" && renderDetalheObjeto()}
     </div>
   );
 }

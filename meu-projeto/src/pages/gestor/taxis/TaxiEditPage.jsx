@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { taxiService } from "../../../services/taxiService";
 import { listarViagens } from "../../../services/tripService";
+import { useFeedback } from "../../../context/FeedbackContext";
 import styles from "../../../styles/Form.module.css";
 
 const MOTOR_TYPES = ["Combustão", "Elétrico"];
@@ -63,6 +64,7 @@ function viagemContaComoViagemComCliente(trip) {
 export default function TaxiEditPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const feedback = useFeedback();
 
   const [form, setForm] = useState({
     matricula: "",
@@ -112,14 +114,17 @@ export default function TaxiEditPage() {
         setConfortoBloqueado(temViagensComClientes);
       } catch (error) {
         console.error("Erro ao carregar dados do táxi:", error);
-        setApiError("Não foi possível carregar os dados do táxi.");
+
+        const message = "Não foi possível carregar os dados do táxi.";
+        setApiError(message);
+        feedback.error(message);
       } finally {
         setLoading(false);
       }
     }
 
     carregarTaxi();
-  }, [id]);
+  }, [id, feedback]);
 
   function getAvailableModels() {
     const brandObj = TAXI_BRANDS.find((b) => b.brand === form.marca);
@@ -201,8 +206,10 @@ export default function TaxiEditPage() {
     e.preventDefault();
 
     const e2 = validate();
+
     if (Object.keys(e2).length) {
       setErrors(e2);
+      feedback.warning("Existem campos inválidos. Revê os dados antes de guardar.");
       return;
     }
 
@@ -247,17 +254,21 @@ export default function TaxiEditPage() {
     }
 
     if (Object.keys(changes).length === 0) {
-      setApiError("Não existem alterações para guardar.");
+      const message = "Não existem alterações para guardar.";
+      setApiError(message);
+      feedback.info(message);
       setSubmitting(false);
       return;
     }
 
     try {
       await taxiService.update(id, changes);
-      alert("Táxi atualizado com sucesso!");
+      feedback.success("Táxi atualizado com sucesso!");
       navigate("/gestor/taxis");
     } catch (err) {
-      setApiError(err.message ?? "Erro ao atualizar táxi.");
+      const message = err.message ?? "Erro ao atualizar táxi.";
+      setApiError(message);
+      feedback.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -289,7 +300,7 @@ export default function TaxiEditPage() {
 
       <form className={styles.formCard} onSubmit={handleSubmit} noValidate>
         <div className={styles.grid}>
-                    <div className={styles.field}>
+          <div className={styles.field}>
             <label>Matrícula *</label>
             <input
               className={styles.input}

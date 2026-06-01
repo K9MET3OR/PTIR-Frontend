@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   obterRelatorioReabastecimentos,
   obterRelatorioReabastecimentosPorTaxi,
-  obterDetalheTaxi
-} from '../../../services/relatoriosService';
-import styles from './relatorioReabastecimento.module.css';
+  obterDetalheTaxi,
+} from "../../../services/relatoriosService";
+import { useFeedback } from "../../../context/FeedbackContext";
+import styles from "./relatorioReabastecimento.module.css";
 
 export default function RelatorioReabastecimento() {
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const feedback = useFeedback();
+
+  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
 
   const [data, setData] = useState(null);
   const [taxisDetalhe, setTaxisDetalhe] = useState([]);
@@ -18,11 +21,31 @@ export default function RelatorioReabastecimento() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [viewLevel, setViewLevel] = useState('total');
+  const [viewLevel, setViewLevel] = useState("total");
   const [selectedMotor, setSelectedMotor] = useState(null);
-  const [selectedMetric, setSelectedMetric] = useState('euros');
+  const [selectedMetric, setSelectedMetric] = useState("euros");
 
-  const carregarRelatorio = async () => {
+  const validarDatas = () => {
+    if (!startDate || !endDate) {
+      return "Seleciona a data de início e a data de fim.";
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      return "A data de início não pode ser posterior à data de fim.";
+    }
+
+    return null;
+  };
+
+  const carregarRelatorio = async (mostrarSucesso = false) => {
+    const erroDatas = validarDatas();
+
+    if (erroDatas) {
+      setError(erroDatas);
+      feedback.warning(erroDatas);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -30,24 +53,31 @@ export default function RelatorioReabastecimento() {
       const resultado = await obterRelatorioReabastecimentos(startDate, endDate);
 
       setData(resultado.data);
-      setViewLevel('total');
+      setViewLevel("total");
       setSelectedMotor(null);
-      setSelectedMetric('euros');
+      setSelectedMetric("euros");
       setTaxisDetalhe([]);
       setSelectedTaxi(null);
+
+      if (mostrarSucesso) {
+        feedback.success("Relatório carregado com sucesso.");
+      }
     } catch (err) {
-      setError(err.message || 'Erro ao carregar relatório de reabastecimentos');
+      const message = err.message || "Erro ao carregar relatório de reabastecimentos";
+      setError(message);
+      feedback.error(message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    carregarRelatorio();
+    carregarRelatorio(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatarHoras = (horas) => {
-    if (!horas) return '0.00h';
+    if (!horas) return "0.00h";
     return `${Number(horas).toFixed(2)}h`;
   };
 
@@ -56,33 +86,33 @@ export default function RelatorioReabastecimento() {
   };
 
   const nomeTipoMotor = (tipoMotor) => {
-    if (!tipoMotor) return 'Tipo de motor desconhecido';
+    if (!tipoMotor) return "Tipo de motor desconhecido";
 
     const tipo = String(tipoMotor).toLowerCase();
 
     if (
-      tipo === 'eletrico' ||
-      tipo === 'elétrico' ||
-      tipo === 'electric' ||
-      tipo === 'ev'
+      tipo === "eletrico" ||
+      tipo === "elétrico" ||
+      tipo === "electric" ||
+      tipo === "ev"
     ) {
-      return '⚡ Motor Elétrico';
+      return "⚡ Motor Elétrico";
     }
 
     if (
-      tipo === 'combustao' ||
-      tipo === 'combustão' ||
-      tipo === 'combustion' ||
-      tipo === 'gasolina' ||
-      tipo === 'diesel'
+      tipo === "combustao" ||
+      tipo === "combustão" ||
+      tipo === "combustion" ||
+      tipo === "gasolina" ||
+      tipo === "diesel"
     ) {
-      return '🔥 Motor a Combustão';
+      return "🔥 Motor a Combustão";
     }
 
     return `🚕 ${tipoMotor}`;
   };
 
-  const carregarDetalhesPorTaxi = async (tipoMotor, metric = 'euros') => {
+  const carregarDetalhesPorTaxi = async (tipoMotor, metric = "euros") => {
     setDetailsLoading(true);
     setError(null);
 
@@ -97,9 +127,11 @@ export default function RelatorioReabastecimento() {
       setSelectedMotor(tipoMotor);
       setSelectedMetric(metric);
       setTaxisDetalhe(resultado.taxis || []);
-      setViewLevel('detalhes');
+      setViewLevel("detalhes");
     } catch (err) {
-      setError(err.message || 'Erro ao carregar detalhes por táxi');
+      const message = err.message || "Erro ao carregar detalhes por táxi";
+      setError(message);
+      feedback.error(message);
     } finally {
       setDetailsLoading(false);
     }
@@ -113,9 +145,11 @@ export default function RelatorioReabastecimento() {
       const resultado = await obterDetalheTaxi(taxiId);
 
       setSelectedTaxi(resultado.taxi);
-      setViewLevel('detalheTaxi');
+      setViewLevel("detalheTaxi");
     } catch (err) {
-      setError(err.message || 'Erro ao carregar detalhes do táxi');
+      const message = err.message || "Erro ao carregar detalhes do táxi";
+      setError(message);
+      feedback.error(message);
     } finally {
       setDetailsLoading(false);
     }
@@ -137,8 +171,8 @@ export default function RelatorioReabastecimento() {
         <div className={styles.totalCard}>
           <div
             className={styles.metric}
-            onClick={() => setViewLevel('subtotais')}
-            style={{ cursor: 'pointer' }}
+            onClick={() => setViewLevel("subtotais")}
+            style={{ cursor: "pointer" }}
           >
             <span className={styles.label}>Total de Euros Pagos:</span>
             <span className={styles.value}>
@@ -148,8 +182,8 @@ export default function RelatorioReabastecimento() {
 
           <div
             className={styles.metric}
-            onClick={() => setViewLevel('subtotais')}
-            style={{ cursor: 'pointer' }}
+            onClick={() => setViewLevel("subtotais")}
+            style={{ cursor: "pointer" }}
           >
             <span className={styles.label}>Total de Horas Gastas:</span>
             <span className={styles.value}>
@@ -160,7 +194,7 @@ export default function RelatorioReabastecimento() {
 
         <button
           className={styles.expandBtn}
-          onClick={() => setViewLevel('subtotais')}
+          onClick={() => setViewLevel("subtotais")}
         >
           Ver Subtotais por Tipo de Motor →
         </button>
@@ -175,7 +209,7 @@ export default function RelatorioReabastecimento() {
           <div className={styles.header}>
             <button
               className={styles.backBtn}
-              onClick={() => setViewLevel('total')}
+              onClick={() => setViewLevel("total")}
             >
               ← Voltar
             </button>
@@ -193,7 +227,7 @@ export default function RelatorioReabastecimento() {
         <div className={styles.header}>
           <button
             className={styles.backBtn}
-            onClick={() => setViewLevel('total')}
+            onClick={() => setViewLevel("total")}
           >
             ← Voltar
           </button>
@@ -220,7 +254,7 @@ export default function RelatorioReabastecimento() {
 
               <button
                 className={styles.detalhesBtn}
-                onClick={() => carregarDetalhesPorTaxi(motor.tipo_motor, 'euros')}
+                onClick={() => carregarDetalhesPorTaxi(motor.tipo_motor, "euros")}
                 disabled={detailsLoading}
               >
                 Ver euros por táxi →
@@ -228,9 +262,9 @@ export default function RelatorioReabastecimento() {
 
               <button
                 className={styles.detalhesBtn}
-                onClick={() => carregarDetalhesPorTaxi(motor.tipo_motor, 'hours')}
+                onClick={() => carregarDetalhesPorTaxi(motor.tipo_motor, "hours")}
                 disabled={detailsLoading}
-                style={{ marginTop: '8px' }}
+                style={{ marginTop: "8px" }}
               >
                 Ver horas por táxi →
               </button>
@@ -248,7 +282,7 @@ export default function RelatorioReabastecimento() {
           <button
             className={styles.backBtn}
             onClick={() => {
-              setViewLevel('subtotais');
+              setViewLevel("subtotais");
               setTaxisDetalhe([]);
               setSelectedMotor(null);
             }}
@@ -257,10 +291,10 @@ export default function RelatorioReabastecimento() {
           </button>
 
           <h2>
-            Táxis com motor {selectedMotor} —{' '}
-            {selectedMetric === 'hours'
-              ? 'Ordenados por horas'
-              : 'Ordenados por euros pagos'}
+            Táxis com motor {selectedMotor} —{" "}
+            {selectedMetric === "hours"
+              ? "Ordenados por horas"
+              : "Ordenados por euros pagos"}
           </h2>
         </div>
 
@@ -279,23 +313,23 @@ export default function RelatorioReabastecimento() {
                 <div className={styles.subtotalHeader}>
                   <span
                     onClick={() => carregarDetalheTaxi(taxi.taxi_id)}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: "pointer" }}
                     title="Ver detalhes do táxi"
                   >
                     {taxi.matricula || `Táxi ${taxi.taxi_id}`}
                   </span>
 
                   <span className={styles.value}>
-                    {selectedMetric === 'hours'
+                    {selectedMetric === "hours"
                       ? formatarHoras(taxi.total_hours)
                       : formatarEuros(taxi.total_euros)}
                   </span>
                 </div>
 
                 <div className={styles.subtotalDetails}>
-                  <span>Modelo: {taxi.modelo || '-'}</span>
-                  <span>Marca: {taxi.marca || '-'}</span>
-                  <span>Tipo de motor: {taxi.tipo_motor || '-'}</span>
+                  <span>Modelo: {taxi.modelo || "-"}</span>
+                  <span>Marca: {taxi.marca || "-"}</span>
+                  <span>Tipo de motor: {taxi.tipo_motor || "-"}</span>
                   <span>Reabastecimentos: {taxi.total_refuels || 0}</span>
                   <span>Euros pagos: {formatarEuros(taxi.total_euros)}</span>
                   <span>Horas gastas: {formatarHoras(taxi.total_hours)}</span>
@@ -330,7 +364,7 @@ export default function RelatorioReabastecimento() {
         <div className={styles.header}>
           <button
             className={styles.backBtn}
-            onClick={() => setViewLevel('detalhes')}
+            onClick={() => setViewLevel("detalhes")}
           >
             ← Voltar
           </button>
@@ -343,9 +377,9 @@ export default function RelatorioReabastecimento() {
             <div key={key} className={styles.detalheCard}>
               <div className={styles.detalhContent}>
                 <span>
-                  <strong>{key}:</strong>{' '}
-                  {value === null || value === undefined || value === ''
-                    ? '-'
+                  <strong>{key}:</strong>{" "}
+                  {value === null || value === undefined || value === ""
+                    ? "-"
                     : String(value)}
                 </span>
               </div>
@@ -382,10 +416,10 @@ export default function RelatorioReabastecimento() {
 
           <button
             className={styles.loadBtn}
-            onClick={carregarRelatorio}
+            onClick={() => carregarRelatorio(true)}
             disabled={loading}
           >
-            {loading ? 'Carregando...' : 'Carregar Relatório'}
+            {loading ? "Carregando..." : "Carregar Relatório"}
           </button>
         </div>
       </div>
@@ -394,13 +428,13 @@ export default function RelatorioReabastecimento() {
 
       {loading && <div className={styles.loading}>Carregando dados...</div>}
 
-      {!loading && data && viewLevel === 'total' && renderTotal()}
+      {!loading && data && viewLevel === "total" && renderTotal()}
 
-      {!loading && data && viewLevel === 'subtotais' && renderSubtotais()}
+      {!loading && data && viewLevel === "subtotais" && renderSubtotais()}
 
-      {!loading && data && viewLevel === 'detalhes' && renderDetalhes()}
+      {!loading && data && viewLevel === "detalhes" && renderDetalhes()}
 
-      {!loading && data && viewLevel === 'detalheTaxi' && renderDetalheTaxi()}
+      {!loading && data && viewLevel === "detalheTaxi" && renderDetalheTaxi()}
     </div>
   );
 }

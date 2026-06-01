@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../services/api";
+import { useFeedback } from "../../context/FeedbackContext";
 import styles from "./GestorPrecosPage.module.css";
 
 const CONFORTO_OPTS = ["Básico", "Luxuoso"];
@@ -26,6 +27,8 @@ function adicionarMinutosDatetimeLocal(minutos) {
 }
 
 export default function GestorPrecosPage() {
+  const feedback = useFeedback();
+
   const [form, setForm] = useState({
     preco_basico_minuto: "",
     preco_luxuoso_minuto: "",
@@ -47,6 +50,7 @@ export default function GestorPrecosPage() {
 
   useEffect(() => {
     carregarPrecos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function carregarPrecos() {
@@ -70,7 +74,10 @@ export default function GestorPrecosPage() {
       });
     } catch (error) {
       console.error("Erro ao carregar preços:", error);
-      setErro(error.message || "Erro ao carregar preços.");
+
+      const message = error.message || "Erro ao carregar preços.";
+      setErro(message);
+      feedback.error(message);
     } finally {
       setLoading(false);
     }
@@ -123,6 +130,7 @@ export default function GestorPrecosPage() {
 
     if (erroValidacao) {
       setErro(erroValidacao);
+      feedback.warning(erroValidacao);
       return;
     }
 
@@ -151,10 +159,15 @@ export default function GestorPrecosPage() {
         });
       }
 
-      setMensagem("Preços atualizados com sucesso.");
+      const message = "Preços atualizados com sucesso.";
+      setMensagem(message);
+      feedback.success(message);
     } catch (error) {
       console.error("Erro ao guardar preços:", error);
-      setErro(error.message || "Erro ao guardar preços.");
+
+      const message = error.message || "Erro ao guardar preços.";
+      setErro(message);
+      feedback.error(message);
     } finally {
       setSaving(false);
     }
@@ -164,7 +177,9 @@ export default function GestorPrecosPage() {
     e.preventDefault();
 
     if (!simulacao.start_datetime || !simulacao.end_datetime) {
-      setErro("Preenche a data/hora de início e fim da simulação.");
+      const message = "Preenche a data/hora de início e fim da simulação.";
+      setErro(message);
+      feedback.warning(message);
       return;
     }
 
@@ -172,12 +187,16 @@ export default function GestorPrecosPage() {
     const fim = new Date(simulacao.end_datetime);
 
     if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) {
-      setErro("Datas inválidas.");
+      const message = "Datas inválidas.";
+      setErro(message);
+      feedback.warning(message);
       return;
     }
 
     if (fim <= inicio) {
-      setErro("A data/hora de fim deve ser posterior à data/hora de início.");
+      const message = "A data/hora de fim deve ser posterior à data/hora de início.";
+      setErro(message);
+      feedback.warning(message);
       return;
     }
 
@@ -193,9 +212,13 @@ export default function GestorPrecosPage() {
       });
 
       setResultado(data);
+      feedback.success("Simulação calculada com sucesso.");
     } catch (error) {
       console.error("Erro ao simular preço:", error);
-      setErro(error.message || "Erro ao simular preço.");
+
+      const message = error.message || "Erro ao simular preço.";
+      setErro(message);
+      feedback.error(message);
     } finally {
       setCalculating(false);
     }

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { invoiceService } from "../../services/invoiceService";
 import { listarViagensFinalizadasMotorista } from "../../services/tripService";
+import { useFeedback } from "../../context/FeedbackContext";
 import styles from "./FaturaPage.module.css";
 
 function formatarData(data) {
@@ -49,6 +50,7 @@ function pluralFaturas(total) {
 export default function FaturaPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const feedback = useFeedback();
 
   const [trips, setTrips] = useState([]);
   const [invoices, setInvoices] = useState([]);
@@ -60,7 +62,9 @@ export default function FaturaPage() {
 
   async function carregarDados() {
     if (!user?.id) {
-      setErro("Não foi possível identificar o motorista.");
+      const message = "Não foi possível identificar o motorista.";
+      setErro(message);
+      feedback.error(message);
       setLoading(false);
       return;
     }
@@ -106,7 +110,10 @@ export default function FaturaPage() {
       setTrips(viagensSemFatura);
     } catch (err) {
       console.error("Erro ao carregar faturas:", err);
-      setErro(err.message || "Erro ao carregar dados das faturas.");
+
+      const message = err.message || "Erro ao carregar dados das faturas.";
+      setErro(message);
+      feedback.error(message);
     } finally {
       setLoading(false);
     }
@@ -114,6 +121,7 @@ export default function FaturaPage() {
 
   useEffect(() => {
     carregarDados();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const tripSelecionadaObj = useMemo(
@@ -133,7 +141,9 @@ export default function FaturaPage() {
     setSucesso("");
 
     if (!tripSelecionada) {
-      setErro("Seleciona uma viagem para emitir a fatura.");
+      const message = "Seleciona uma viagem para emitir a fatura.";
+      setErro(message);
+      feedback.warning(message);
       return;
     }
 
@@ -143,8 +153,11 @@ export default function FaturaPage() {
       const response = await invoiceService.register({ trip_id: tripSelecionada });
       const novaFatura = response.invoice;
 
-      setSucesso(`Fatura ${novaFatura.numero_formatado} emitida com sucesso.`);
+      const message = `Fatura ${novaFatura.numero_formatado} emitida com sucesso.`;
+
+      setSucesso(message);
       setTripSelecionada("");
+      feedback.success(message);
 
       setTrips((current) =>
         current.filter((trip) => String(trip.id) !== String(tripSelecionada))
@@ -159,7 +172,10 @@ export default function FaturaPage() {
       });
     } catch (err) {
       console.error("Erro ao emitir fatura:", err);
-      setErro(err.message || "Erro ao emitir fatura.");
+
+      const message = err.message || "Erro ao emitir fatura.";
+      setErro(message);
+      feedback.error(message);
     } finally {
       setSaving(false);
     }

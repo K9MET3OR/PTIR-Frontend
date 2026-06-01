@@ -1,9 +1,10 @@
-import { useState, useEffect, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
-import { criarShift, cancelarShift } from '../../services/shiftService';
-import { api } from '../../services/api';
-import styles from './IniciarTurnoPage.module.css';
+import { useState, useEffect, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
+import { criarShift, cancelarShift } from "../../services/shiftService";
+import { api } from "../../services/api";
+import { useFeedback } from "../../context/FeedbackContext";
+import styles from "./IniciarTurnoPage.module.css";
 
 function combinarDataHora(data, hora) {
   if (!data || !hora) return null;
@@ -13,8 +14,8 @@ function combinarDataHora(data, hora) {
 
 function arredondarHoraAtual() {
   const agora = new Date();
-  const horas = String(agora.getHours()).padStart(2, '0');
-  const minutos = String(agora.getMinutes()).padStart(2, '0');
+  const horas = String(agora.getHours()).padStart(2, "0");
+  const minutos = String(agora.getMinutes()).padStart(2, "0");
   return `${horas}:${minutos}`;
 }
 
@@ -23,15 +24,15 @@ function arredondarHoraInicio() {
   agora.setSeconds(0, 0);
   agora.setMinutes(agora.getMinutes() + 1);
 
-  const horas = String(agora.getHours()).padStart(2, '0');
-  const minutos = String(agora.getMinutes()).padStart(2, '0');
+  const horas = String(agora.getHours()).padStart(2, "0");
+  const minutos = String(agora.getMinutes()).padStart(2, "0");
   return `${horas}:${minutos}`;
 }
 
 function formatarDataLocal(date) {
   const ano = date.getFullYear();
-  const mes = String(date.getMonth() + 1).padStart(2, '0');
-  const dia = String(date.getDate()).padStart(2, '0');
+  const mes = String(date.getMonth() + 1).padStart(2, "0");
+  const dia = String(date.getDate()).padStart(2, "0");
   return `${ano}-${mes}-${dia}`;
 }
 
@@ -45,7 +46,9 @@ function calcularFimPorDefeito(data, hora) {
   fim.setHours(fim.getHours() + 1);
 
   const dataFim = formatarDataLocal(fim);
-  const horaFim = `${String(fim.getHours()).padStart(2, '0')}:${String(fim.getMinutes()).padStart(2, '0')}`;
+  const horaFim = `${String(fim.getHours()).padStart(2, "0")}:${String(
+    fim.getMinutes()
+  ).padStart(2, "0")}`;
 
   return { dataFim, horaFim };
 }
@@ -87,12 +90,13 @@ function turnoEstaAtivoAgora(turno) {
     return false;
   }
 
-  return turno.status_shift !== 'inactive' && inicio <= agora && agora < fim;
+  return turno.status_shift !== "inactive" && inicio <= agora && agora < fim;
 }
 
 export default function IniciarTurnoPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+  const feedback = useFeedback();
 
   const hoje = formatarDataLocal(new Date());
   const horaAtual = arredondarHoraInicio();
@@ -106,13 +110,14 @@ export default function IniciarTurnoPage() {
   const [taxis, setTaxis] = useState([]);
   const [taxiSelecionado, setTaxiSelecionado] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [erro, setErro] = useState('');
+  const [erro, setErro] = useState("");
   const [processando, setProcessando] = useState(false);
   const [turnos, setTurnos] = useState([]);
   const [tempoAteProximoTurno, setTempoAteProximoTurno] = useState(0);
 
   useEffect(() => {
     carregarTurnos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function calcularDuracaoHoras() {
@@ -128,13 +133,19 @@ export default function IniciarTurnoPage() {
     const fim = combinarDataHora(dataFim, horaFim);
 
     if (!inicio || !fim) {
-      if (mostrarErro) setErro('Preenche corretamente as datas e horas.');
+      const message = "Preenche corretamente as datas e horas.";
+      if (mostrarErro) {
+        setErro(message);
+        feedback.warning(message);
+      }
       return false;
     }
 
     if (inicio >= fim) {
+      const message = "A data/hora de fim deve ser posterior à data/hora de início.";
       if (mostrarErro) {
-        setErro('A data/hora de fim deve ser posterior à data/hora de início.');
+        setErro(message);
+        feedback.warning(message);
       }
       return false;
     }
@@ -142,12 +153,20 @@ export default function IniciarTurnoPage() {
     const duracao = (fim.getTime() - inicio.getTime()) / (1000 * 60 * 60);
 
     if (duracao > 8) {
-      if (mostrarErro) setErro('Um turno não pode durar mais de 8 horas.');
+      const message = "Um turno não pode durar mais de 8 horas.";
+      if (mostrarErro) {
+        setErro(message);
+        feedback.warning(message);
+      }
       return false;
     }
 
     if (duracao <= 0) {
-      if (mostrarErro) setErro('Seleciona um período válido.');
+      const message = "Seleciona um período válido.";
+      if (mostrarErro) {
+        setErro(message);
+        feedback.warning(message);
+      }
       return false;
     }
 
@@ -155,8 +174,10 @@ export default function IniciarTurnoPage() {
     agora.setSeconds(0, 0);
 
     if (inicio < agora) {
+      const message = "Não é possível iniciar um turno num período já passado.";
       if (mostrarErro) {
-        setErro('Não é possível iniciar um turno num período já passado.');
+        setErro(message);
+        feedback.warning(message);
       }
       return false;
     }
@@ -168,7 +189,7 @@ export default function IniciarTurnoPage() {
     if (!validarPeriodo(true)) return;
 
     setLoading(true);
-    setErro('');
+    setErro("");
     setTaxis([]);
 
     try {
@@ -176,14 +197,27 @@ export default function IniciarTurnoPage() {
       const fim = combinarDataHora(dataFim, horaFim);
 
       const data = await api.get(
-        `/shift/taxis-disponiveis/?start_date=${encodeURIComponent(inicio.toISOString())}&end_date=${encodeURIComponent(fim.toISOString())}`
+        `/shift/taxis-disponiveis/?start_date=${encodeURIComponent(
+          inicio.toISOString()
+        )}&end_date=${encodeURIComponent(fim.toISOString())}`
       );
 
-      setTaxis(data.taxis || []);
+      const taxisDisponiveis = data.taxis || [];
+
+      setTaxis(taxisDisponiveis);
       setTaxiSelecionado(null);
+
+      if (taxisDisponiveis.length > 0) {
+        feedback.success(`${taxisDisponiveis.length} táxi${taxisDisponiveis.length !== 1 ? "s" : ""} disponível${taxisDisponiveis.length !== 1 ? "eis" : ""} para este período.`);
+      } else {
+        feedback.info("Não existem táxis disponíveis para este período.");
+      }
     } catch (error) {
-      console.error('Erro ao carregar táxis:', error);
-      setErro(error.message || 'Erro ao carregar táxis disponíveis.');
+      console.error("Erro ao carregar táxis:", error);
+
+      const message = error.message || "Erro ao carregar táxis disponíveis.";
+      setErro(message);
+      feedback.error(message);
     } finally {
       setLoading(false);
     }
@@ -196,20 +230,23 @@ export default function IniciarTurnoPage() {
       const data = await api.get(`/shift/driver/${user.id}`);
       setTurnos(data.shifts || []);
     } catch (error) {
-      console.error('Erro ao carregar turnos:', error);
+      console.error("Erro ao carregar turnos:", error);
+      feedback.error("Erro ao carregar turnos do motorista.");
     }
   }
 
   async function handleIniciarTurno() {
     if (!taxiSelecionado) {
-      setErro('Por favor, seleciona um táxi para iniciar o turno.');
+      const message = "Por favor, seleciona um táxi para iniciar o turno.";
+      setErro(message);
+      feedback.warning(message);
       return;
     }
 
     if (!validarPeriodo(true)) return;
 
     setProcessando(true);
-    setErro('');
+    setErro("");
 
     try {
       const inicio = combinarDataHora(dataInicio, horaInicio);
@@ -233,14 +270,15 @@ export default function IniciarTurnoPage() {
       };
 
       if (shiftId && turnoEstaAtivoAgora(turnoCriado)) {
-        localStorage.setItem('turno_id', String(shiftId));
-        localStorage.setItem('turno_ativo', 'true');
+        localStorage.setItem("turno_id", String(shiftId));
+        localStorage.setItem("turno_ativo", "true");
       }
 
       await carregarTurnos();
 
       if (turnoComecaAgoraOuEmBreve(turnoCriado)) {
-        navigate('/motorista/mapa', { replace: true });
+        feedback.success("Turno iniciado com sucesso.");
+        navigate("/motorista/mapa", { replace: true });
         return;
       }
 
@@ -254,26 +292,35 @@ export default function IniciarTurnoPage() {
       setDataFim(novoFimPorDefeito.dataFim);
       setHoraFim(novoFimPorDefeito.horaFim);
       setTaxis([]);
-      setErro('');
+      setErro("");
+
+      feedback.success("Turno agendado com sucesso.");
     } catch (error) {
-      console.error('Erro ao iniciar turno:', error);
-      setErro(error.message || 'Erro ao iniciar turno.');
+      console.error("Erro ao iniciar turno:", error);
+
+      const message = error.message || "Erro ao iniciar turno.";
+      setErro(message);
+      feedback.error(message);
     } finally {
       setProcessando(false);
     }
   }
 
   async function handleCancelarTurno(shiftId) {
-    if (!window.confirm('Tem a certeza que quer cancelar este turno?')) {
+    if (!window.confirm("Tem a certeza que quer cancelar este turno?")) {
       return;
     }
 
     try {
       await cancelarShift(shiftId);
       await carregarTurnos();
+      feedback.success("Turno cancelado com sucesso.");
     } catch (error) {
-      console.error('Erro ao cancelar turno:', error);
-      setErro(error.message || 'Erro ao cancelar turno.');
+      console.error("Erro ao cancelar turno:", error);
+
+      const message = error.message || "Erro ao cancelar turno.";
+      setErro(message);
+      feedback.error(message);
     }
   }
 
@@ -287,24 +334,20 @@ export default function IniciarTurnoPage() {
     const inicio = new Date(shift.start_date);
     const fim = new Date(shift.end_date);
 
-    return (
-      shift.status_shift !== 'inactive' &&
-      inicio <= agora &&
-      agora < fim
-    );
+    return shift.status_shift !== "inactive" && inicio <= agora && agora < fim;
   });
 
   useEffect(() => {
     if (!turnoAtual) {
-      localStorage.removeItem('turno_id');
-      localStorage.removeItem('turno_ativo');
+      localStorage.removeItem("turno_id");
+      localStorage.removeItem("turno_ativo");
     }
   }, [turnoAtual]);
 
   const proximosTurnos = turnos
     .filter((shift) => {
       const inicio = new Date(shift.start_date);
-      return shift.status_shift !== 'inactive' && inicio > agora;
+      return shift.status_shift !== "inactive" && inicio > agora;
     })
     .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 
@@ -340,6 +383,7 @@ export default function IniciarTurnoPage() {
     const interval = setInterval(atualizarCountdownProximoTurno, 1000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turnoAtual, proximoTurno?.id, proximoTurno?.start_date]);
 
   return (
@@ -407,8 +451,8 @@ export default function IniciarTurnoPage() {
 
             <div className={styles.infoBox}>
               <p>
-                <strong>Duração:</strong>{' '}
-                {duracao > 0 ? `${duracao.toFixed(2)} horas` : 'Período inválido'}
+                <strong>Duração:</strong>{" "}
+                {duracao > 0 ? `${duracao.toFixed(2)} horas` : "Período inválido"}
                 {duracao <= 0 && (
                   <span className={styles.alertaErro}> (o fim tem de ser posterior ao início)</span>
                 )}
@@ -422,7 +466,7 @@ export default function IniciarTurnoPage() {
               disabled={loading || !periodoValido}
               className={styles.btnPrimario}
             >
-              {loading ? '⏳ A carregar...' : '🔍 Ver Táxis Disponíveis'}
+              {loading ? "⏳ A carregar..." : "🔍 Ver Táxis Disponíveis"}
             </button>
           </div>
 
@@ -435,7 +479,9 @@ export default function IniciarTurnoPage() {
                 {taxis.map((taxi) => (
                   <div
                     key={taxi.id}
-                    className={`${styles.taxiCard} ${taxiSelecionado?.id === taxi.id ? styles.taxiCardSelecionado : ''}`}
+                    className={`${styles.taxiCard} ${
+                      taxiSelecionado?.id === taxi.id ? styles.taxiCardSelecionado : ""
+                    }`}
                     onClick={() => setTaxiSelecionado(taxi)}
                   >
                     <div className={styles.taxiIcon}>🚕</div>
@@ -485,17 +531,17 @@ export default function IniciarTurnoPage() {
             {turnoAtual ? (
               <div className={styles.turnoItem}>
                 <div className={styles.turnoData}>
-                  {new Date(turnoAtual.start_date).toLocaleDateString('pt-PT')}
+                  {new Date(turnoAtual.start_date).toLocaleDateString("pt-PT")}
                 </div>
                 <div className={styles.turnoHora}>
-                  {new Date(turnoAtual.start_date).toLocaleTimeString('pt-PT', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}{' '}
+                  {new Date(turnoAtual.start_date).toLocaleTimeString("pt-PT", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}{" "}
                   -
-                  {new Date(turnoAtual.end_date).toLocaleTimeString('pt-PT', {
-                    hour: '2-digit',
-                    minute: '2-digit',
+                  {new Date(turnoAtual.end_date).toLocaleTimeString("pt-PT", {
+                    hour: "2-digit",
+                    minute: "2-digit",
                   })}
                 </div>
                 <div className={styles.turnoTaxi}>
@@ -511,7 +557,7 @@ export default function IniciarTurnoPage() {
                 {proximoTurno && (
                   <div className={styles.infoBox}>
                     <p>
-                      <strong>Próximo turno começa em:</strong>{' '}
+                      <strong>Próximo turno começa em:</strong>{" "}
                       <span className={styles.alertaSucesso}>
                         {formatarTempo(tempoAteProximoTurno)}
                       </span>
@@ -531,18 +577,18 @@ export default function IniciarTurnoPage() {
                   <div key={turno.id} className={styles.turnoItem}>
                     <div className={styles.turnoConteudo}>
                       <div className={styles.turnoData}>
-                        {new Date(turno.start_date).toLocaleDateString('pt-PT')}
+                        {new Date(turno.start_date).toLocaleDateString("pt-PT")}
                       </div>
 
                       <div className={styles.turnoHora}>
-                        {new Date(turno.start_date).toLocaleTimeString('pt-PT', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}{' '}
+                        {new Date(turno.start_date).toLocaleTimeString("pt-PT", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}{" "}
                         -
-                        {new Date(turno.end_date).toLocaleTimeString('pt-PT', {
-                          hour: '2-digit',
-                          minute: '2-digit',
+                        {new Date(turno.end_date).toLocaleTimeString("pt-PT", {
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })}
                       </div>
 
@@ -577,7 +623,7 @@ export default function IniciarTurnoPage() {
           <button
             type="button"
             className={styles.btnCancelar}
-            onClick={() => navigate('/motorista/mapa')}
+            onClick={() => navigate("/motorista/mapa")}
             disabled={processando}
           >
             ← Voltar
@@ -588,7 +634,7 @@ export default function IniciarTurnoPage() {
             onClick={handleIniciarTurno}
             disabled={!taxiSelecionado || !periodoValido || processando}
           >
-            {processando ? '⏳ A iniciar...' : '🚀 Iniciar Turno Agora'}
+            {processando ? "⏳ A iniciar..." : "🚀 Iniciar Turno Agora"}
           </button>
         </div>
       </div>

@@ -2,24 +2,30 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { taxiService } from "../../services/taxiService";
 import { motoristaService } from "../../services/motoristaService";
+import { useFeedback } from "../../context/FeedbackContext";
 import styles from "./GestorDashboard.module.css";
 
 export default function GestorDashboard() {
   const navigate = useNavigate();
+  const feedback = useFeedback();
 
   const [stats, setStats] = useState({
-    totalTaxis:       0,
-    taxisAtivos:      0,
-    taxisPendentes:   0,
-    totalMotoristas:  0,
+    totalTaxis: 0,
+    taxisAtivos: 0,
+    taxisPendentes: 0,
+    totalMotoristas: 0,
     motoristasAtivos: 0,
     motoristasPendentes: 0,
   });
+
   const [loading, setLoading] = useState(true);
+  const [statsError, setStatsError] = useState("");
 
   useEffect(() => {
     async function loadStats() {
       try {
+        setStatsError("");
+
         const [taxisResponse, motoristasResponse] = await Promise.all([
           taxiService.list(),
           motoristaService.list(),
@@ -38,21 +44,24 @@ export default function GestorDashboard() {
           : [];
 
         setStats({
-          totalTaxis:          taxis.length,
-          taxisAtivos:         taxis.filter((t) => t.estado === "disponivel").length,
-          taxisPendentes:      taxis.filter((t) => t.estado === "indisponivel").length,
-          totalMotoristas:     motoristas.length,
-          motoristasAtivos:    motoristas.filter((m) => m.estado === "disponivel").length,
+          totalTaxis: taxis.length,
+          taxisAtivos: taxis.filter((t) => t.estado === "disponivel").length,
+          taxisPendentes: taxis.filter((t) => t.estado === "indisponivel").length,
+          totalMotoristas: motoristas.length,
+          motoristasAtivos: motoristas.filter((m) => m.estado === "disponivel").length,
           motoristasPendentes: motoristas.filter((m) => m.estado === "indisponivel").length,
         });
       } catch {
-        // Se a API ainda não está pronta, mantém zeros
+        const message = "Não foi possível carregar o resumo da frota e motoristas.";
+        setStatsError(message);
+        feedback.error(message);
       } finally {
         setLoading(false);
       }
     }
+
     loadStats();
-  }, []);
+  }, [feedback]);
 
   return (
     <div className={styles.root}>
@@ -61,18 +70,21 @@ export default function GestorDashboard() {
         <p className={styles.pageSubtitle}>Resumo da frota e motoristas</p>
       </div>
 
-      {/* Stats */}
+      {statsError && <p className={styles.errorMsg}>{statsError}</p>}
+
       <div className={styles.statsGrid}>
         <div className={styles.stat}>
           <div className={styles.statLabel}>Táxis registados</div>
           <div className={styles.statVal}>{loading ? "—" : stats.totalTaxis}</div>
           <div className={styles.statSub}>{stats.taxisAtivos} ativos</div>
         </div>
+
         <div className={styles.stat}>
           <div className={styles.statLabel}>Motoristas</div>
           <div className={styles.statVal}>{loading ? "—" : stats.totalMotoristas}</div>
           <div className={styles.statSub}>{stats.motoristasAtivos} ativos</div>
         </div>
+
         <div className={styles.stat}>
           <div className={styles.statLabel}>Táxis indisponíveis</div>
           <div className={`${styles.statVal} ${stats.taxisPendentes > 0 ? styles.warn : ""}`}>
@@ -80,6 +92,7 @@ export default function GestorDashboard() {
           </div>
           <div className={styles.statSub}>fora de serviço</div>
         </div>
+
         <div className={styles.stat}>
           <div className={styles.statLabel}>Motoristas indisponíveis</div>
           <div className={`${styles.statVal} ${stats.motoristasPendentes > 0 ? styles.warn : ""}`}>
@@ -89,13 +102,13 @@ export default function GestorDashboard() {
         </div>
       </div>
 
-      {/* Action cards */}
       <div className={styles.cardsGrid}>
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <span className={styles.cardTitle}>Táxis</span>
             <span className={styles.cardIcon}>🚕</span>
           </div>
+
           <button className={styles.actionItem} onClick={() => navigate("/gestor/taxis/novo")}>
             <div>
               <div className={styles.actionLabel}>Registar táxi</div>
@@ -103,6 +116,7 @@ export default function GestorDashboard() {
             </div>
             <span className={styles.arrow}>→</span>
           </button>
+
           <button className={styles.actionItem} onClick={() => navigate("/gestor/taxis")}>
             <div>
               <div className={styles.actionLabel}>Gerir táxis</div>
@@ -117,6 +131,7 @@ export default function GestorDashboard() {
             <span className={styles.cardTitle}>Motoristas</span>
             <span className={styles.cardIcon}>👤</span>
           </div>
+
           <button className={styles.actionItem} onClick={() => navigate("/gestor/motoristas/novo")}>
             <div>
               <div className={styles.actionLabel}>Registar motorista</div>
@@ -124,6 +139,7 @@ export default function GestorDashboard() {
             </div>
             <span className={styles.arrow}>→</span>
           </button>
+
           <button className={styles.actionItem} onClick={() => navigate("/gestor/motoristas")}>
             <div>
               <div className={styles.actionLabel}>Gerir motoristas</div>
@@ -132,6 +148,7 @@ export default function GestorDashboard() {
             <span className={styles.arrow}>→</span>
           </button>
         </div>
+
         <div className={styles.card}>
           <div className={styles.cardHeader}>
             <span className={styles.cardTitle}>Preços do serviço</span>

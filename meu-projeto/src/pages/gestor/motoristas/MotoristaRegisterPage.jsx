@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motoristaService } from "../../../services/motoristaService";
 import { api } from "../../../services/api";
+import { useFeedback } from "../../../context/FeedbackContext";
 import styles from "../../../styles/Form.module.css";
 
 function validateNIF(nif) {
@@ -21,6 +22,7 @@ function formatCodigoPostal(value) {
 
 export default function MotoristaRegisterPage() {
   const navigate = useNavigate();
+  const feedback = useFeedback();
 
   const [form, setForm] = useState({
     nome: "",
@@ -56,15 +58,19 @@ export default function MotoristaRegisterPage() {
         codigo_postal: "",
       }));
     } catch (err) {
+      const message = err.message || "Código postal não encontrado.";
+
       setErrors((e) => ({
         ...e,
-        codigo_postal: err.message || "Código postal não encontrado.",
+        codigo_postal: message,
       }));
 
       setForm((f) => ({
         ...f,
         localidade: "",
       }));
+
+      feedback.warning(message);
     } finally {
       setLocalidadeLoading(false);
     }
@@ -81,6 +87,10 @@ export default function MotoristaRegisterPage() {
         ...e,
         [field]: "",
       }));
+    }
+
+    if (apiError) {
+      setApiError("");
     }
 
     if (field === "codigo_postal") {
@@ -190,6 +200,7 @@ export default function MotoristaRegisterPage() {
 
     if (Object.keys(validationErrors).length) {
       setErrors(validationErrors);
+      feedback.warning("Existem campos inválidos. Revê os dados antes de registar.");
       return;
     }
 
@@ -202,10 +213,12 @@ export default function MotoristaRegisterPage() {
         role: "motorista",
       });
 
-      alert("Motorista registado com sucesso!");
+      feedback.success("Motorista registado com sucesso!");
       navigate("/gestor/motoristas");
     } catch (err) {
-      setApiError(err.message || "Erro ao registar motorista.");
+      const message = err.message || "Erro ao registar motorista.";
+      setApiError(message);
+      feedback.error(message);
     } finally {
       setLoading(false);
     }

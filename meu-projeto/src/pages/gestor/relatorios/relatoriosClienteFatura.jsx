@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   obterRelatorioClientesFaturacao,
   obterDetalhesFaturacaoCliente,
   obterDetalheCliente,
-  obterDetalheViagem
-} from '../../../services/relatoriosService';
-import styles from './relatoriosClienteFatura.module.css';
+  obterDetalheViagem,
+} from "../../../services/relatoriosService";
+import { useFeedback } from "../../../context/FeedbackContext";
+import styles from "./relatoriosClienteFatura.module.css";
 
 export default function RelatoriosClienteFatura() {
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const feedback = useFeedback();
+
+  const [startDate, setStartDate] = useState(new Date().toISOString().split("T")[0]);
+  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
 
   const [data, setData] = useState(null);
   const [clientInvoices, setClientInvoices] = useState([]);
@@ -21,9 +24,29 @@ export default function RelatoriosClienteFatura() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const [viewLevel, setViewLevel] = useState('total');
+  const [viewLevel, setViewLevel] = useState("total");
 
-  const carregarRelatorio = async () => {
+  function validarDatas() {
+    if (!startDate || !endDate) {
+      return "Seleciona a data de início e a data de fim.";
+    }
+
+    if (new Date(startDate) > new Date(endDate)) {
+      return "A data de início não pode ser posterior à data de fim.";
+    }
+
+    return null;
+  }
+
+  const carregarRelatorio = async (mostrarSucesso = false) => {
+    const erroDatas = validarDatas();
+
+    if (erroDatas) {
+      setError(erroDatas);
+      feedback.warning(erroDatas);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -35,16 +58,23 @@ export default function RelatoriosClienteFatura() {
       setSelectedClient(null);
       setSelectedDetail(null);
       setSelectedDetailType(null);
-      setViewLevel('total');
+      setViewLevel("total");
+
+      if (mostrarSucesso) {
+        feedback.success("Relatório carregado com sucesso.");
+      }
     } catch (err) {
-      setError(err.message || 'Erro ao carregar relatório de clientes e faturação');
+      const message = err.message || "Erro ao carregar relatório de clientes e faturação";
+      setError(message);
+      feedback.error(message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    carregarRelatorio();
+    carregarRelatorio(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatarEuros = (valor) => {
@@ -56,8 +86,8 @@ export default function RelatoriosClienteFatura() {
   };
 
   const formatarDataHora = (valor) => {
-    if (!valor) return '-';
-    return new Date(valor).toLocaleString('pt-PT');
+    if (!valor) return "-";
+    return new Date(valor).toLocaleString("pt-PT");
   };
 
   const totalClientes = () => {
@@ -77,9 +107,11 @@ export default function RelatoriosClienteFatura() {
 
       setSelectedClient(clientId);
       setClientInvoices(resultado.invoices || []);
-      setViewLevel('detalhes');
+      setViewLevel("detalhes");
     } catch (err) {
-      setError(err.message || 'Erro ao carregar detalhes do cliente');
+      const message = err.message || "Erro ao carregar detalhes do cliente";
+      setError(message);
+      feedback.error(message);
     } finally {
       setDetailsLoading(false);
     }
@@ -92,20 +124,22 @@ export default function RelatoriosClienteFatura() {
     try {
       let resultado;
 
-      if (type === 'client') {
+      if (type === "client") {
         resultado = await obterDetalheCliente(id);
         setSelectedDetail(resultado.client);
       }
 
-      if (type === 'trip') {
+      if (type === "trip") {
         resultado = await obterDetalheViagem(id);
         setSelectedDetail(resultado.trip);
       }
 
       setSelectedDetailType(type);
-      setViewLevel('detalheObjeto');
+      setViewLevel("detalheObjeto");
     } catch (err) {
-      setError(err.message || 'Erro ao carregar detalhes');
+      const message = err.message || "Erro ao carregar detalhes";
+      setError(message);
+      feedback.error(message);
     } finally {
       setDetailsLoading(false);
     }
@@ -127,8 +161,8 @@ export default function RelatoriosClienteFatura() {
         <div className={styles.totalCard}>
           <div
             className={styles.metric}
-            onClick={() => setViewLevel('subtotais')}
-            style={{ cursor: 'pointer' }}
+            onClick={() => setViewLevel("subtotais")}
+            style={{ cursor: "pointer" }}
           >
             <span className={styles.label}>Total de Euros Cobrados:</span>
             <span className={styles.value}>
@@ -153,7 +187,7 @@ export default function RelatoriosClienteFatura() {
 
         <button
           className={styles.expandBtn}
-          onClick={() => setViewLevel('subtotais')}
+          onClick={() => setViewLevel("subtotais")}
         >
           Ver Subtotais por Cliente →
         </button>
@@ -168,7 +202,7 @@ export default function RelatoriosClienteFatura() {
           <div className={styles.header}>
             <button
               className={styles.backBtn}
-              onClick={() => setViewLevel('total')}
+              onClick={() => setViewLevel("total")}
             >
               ← Voltar
             </button>
@@ -186,7 +220,7 @@ export default function RelatoriosClienteFatura() {
         <div className={styles.header}>
           <button
             className={styles.backBtn}
-            onClick={() => setViewLevel('total')}
+            onClick={() => setViewLevel("total")}
           >
             ← Voltar
           </button>
@@ -199,8 +233,8 @@ export default function RelatoriosClienteFatura() {
             <div key={client.client_id} className={styles.subtotalCard}>
               <div className={styles.subtotalHeader}>
                 <span
-                  onClick={() => carregarDetalheObjeto('client', client.client_id)}
-                  style={{ cursor: 'pointer' }}
+                  onClick={() => carregarDetalheObjeto("client", client.client_id)}
+                  style={{ cursor: "pointer" }}
                   title="Ver detalhes do cliente"
                 >
                   {client.client_username || `Cliente ${client.client_id}`}
@@ -214,10 +248,10 @@ export default function RelatoriosClienteFatura() {
               <div className={styles.subtotalDetails}>
                 <span>Faturas: {client.total_invoices || 0}</span>
                 <span>
-                  Valor médio por fatura:{' '}
+                  Valor médio por fatura:{" "}
                   {formatarEuros(
                     Number(client.total_euros || 0) /
-                    Math.max(Number(client.total_invoices || 0), 1)
+                      Math.max(Number(client.total_invoices || 0), 1)
                   )}
                 </span>
               </div>
@@ -242,7 +276,7 @@ export default function RelatoriosClienteFatura() {
         <div className={styles.header}>
           <button
             className={styles.backBtn}
-            onClick={() => setViewLevel('subtotais')}
+            onClick={() => setViewLevel("subtotais")}
           >
             ← Voltar
           </button>
@@ -264,8 +298,8 @@ export default function RelatoriosClienteFatura() {
               <div key={invoice.invoice_id} className={styles.detalheCard}>
                 <div className={styles.detalhHeader}>
                   <strong
-                    onClick={() => carregarDetalheObjeto('trip', invoice.trip_id)}
-                    style={{ cursor: 'pointer' }}
+                    onClick={() => carregarDetalheObjeto("trip", invoice.trip_id)}
+                    style={{ cursor: "pointer" }}
                     title="Ver detalhes da viagem"
                   >
                     Viagem #{invoice.trip_id}
@@ -297,7 +331,7 @@ export default function RelatoriosClienteFatura() {
     }
 
     const titulo =
-      selectedDetailType === 'client'
+      selectedDetailType === "client"
         ? `Detalhes do Cliente ${selectedDetail.id}`
         : `Detalhes da Viagem #${selectedDetail.id}`;
 
@@ -306,7 +340,7 @@ export default function RelatoriosClienteFatura() {
         <div className={styles.header}>
           <button
             className={styles.backBtn}
-            onClick={() => setViewLevel(clientInvoices.length > 0 ? 'detalhes' : 'subtotais')}
+            onClick={() => setViewLevel(clientInvoices.length > 0 ? "detalhes" : "subtotais")}
           >
             ← Voltar
           </button>
@@ -319,9 +353,9 @@ export default function RelatoriosClienteFatura() {
             <div key={key} className={styles.detalheCard}>
               <div className={styles.detalhContent}>
                 <span>
-                  <strong>{key}:</strong>{' '}
-                  {value === null || value === undefined || value === ''
-                    ? '-'
+                  <strong>{key}:</strong>{" "}
+                  {value === null || value === undefined || value === ""
+                    ? "-"
                     : String(value)}
                 </span>
               </div>
@@ -358,10 +392,10 @@ export default function RelatoriosClienteFatura() {
 
           <button
             className={styles.loadBtn}
-            onClick={carregarRelatorio}
+            onClick={() => carregarRelatorio(true)}
             disabled={loading}
           >
-            {loading ? 'Carregando...' : 'Carregar Relatório'}
+            {loading ? "Carregando..." : "Carregar Relatório"}
           </button>
         </div>
       </div>
@@ -370,13 +404,13 @@ export default function RelatoriosClienteFatura() {
 
       {loading && <div className={styles.loading}>Carregando dados...</div>}
 
-      {!loading && data && viewLevel === 'total' && renderTotal()}
+      {!loading && data && viewLevel === "total" && renderTotal()}
 
-      {!loading && data && viewLevel === 'subtotais' && renderSubtotais()}
+      {!loading && data && viewLevel === "subtotais" && renderSubtotais()}
 
-      {!loading && data && viewLevel === 'detalhes' && renderDetalhes()}
+      {!loading && data && viewLevel === "detalhes" && renderDetalhes()}
 
-      {!loading && data && viewLevel === 'detalheObjeto' && renderDetalheObjeto()}
+      {!loading && data && viewLevel === "detalheObjeto" && renderDetalheObjeto()}
     </div>
   );
 }

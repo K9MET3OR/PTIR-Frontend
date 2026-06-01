@@ -1,28 +1,34 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { taxiService } from "../../../services/taxiService";
+import { useFeedback } from "../../../context/FeedbackContext";
 import styles from "./TaxiListPage.module.css";
 
 const ESTADO_LABEL = {
-  disponivel:   { text: "Disponível", cls: "active" },
+  disponivel: { text: "Disponível", cls: "active" },
   indisponivel: { text: "Indisponível", cls: "inactive" },
-  ocupado:      { text: "Ocupado", cls: "busy" },
+  ocupado: { text: "Ocupado", cls: "busy" },
 };
 
 export default function TaxiListPage() {
   const navigate = useNavigate();
+  const feedback = useFeedback();
 
-  const [taxis,   setTaxis]   = useState([]);
-  const [search,  setSearch]  = useState("");
+  const [taxis, setTaxis] = useState([]);
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
     taxiService.list()
       .then((response) => setTaxis(Array.isArray(response?.data) ? response.data : []))
-      .catch(() => setError("Não foi possível carregar a lista de táxis."))
+      .catch(() => {
+        const message = "Não foi possível carregar a lista de táxis.";
+        setError(message);
+        feedback.error(message);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [feedback]);
 
   const filtered = taxis.filter((t) =>
     [t.matricula, t.marca, t.modelo].some((v) =>
@@ -33,13 +39,14 @@ export default function TaxiListPage() {
   async function handleDelete(id) {
     if (!window.confirm("Tens a certeza que queres remover este táxi?")) return;
 
-    alert("Táxi removido com sucesso!");
-
     try {
       await taxiService.remove(id);
+
       setTaxis((prev) => prev.filter((t) => t.id !== id));
+      feedback.success("Táxi removido com sucesso!");
     } catch (err) {
-      alert(err.message ?? "Erro ao remover táxi.");
+      const message = err.message ?? "Erro ao remover táxi.";
+      feedback.error(message);
     }
   }
 
@@ -50,6 +57,7 @@ export default function TaxiListPage() {
           <h1 className={styles.pageTitle}>Táxis</h1>
           <p className={styles.pageSubtitle}>Gerir veículos registados</p>
         </div>
+
         <button className={styles.addBtn} onClick={() => navigate("/gestor/taxis/novo")}>
           + Registar táxi
         </button>
@@ -60,6 +68,7 @@ export default function TaxiListPage() {
           <span className={styles.tableCount}>
             {loading ? "A carregar…" : `${filtered.length} táxi${filtered.length !== 1 ? "s" : ""}`}
           </span>
+
           <input
             placeholder="Pesquisar matrícula, marca..."
             value={search}
@@ -86,6 +95,7 @@ export default function TaxiListPage() {
                   <th>Ações</th>
                 </tr>
               </thead>
+
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
@@ -96,7 +106,11 @@ export default function TaxiListPage() {
                 ) : (
                   filtered.map((taxi) => {
                     const estadoKey = String(taxi.estado || "").trim().toLowerCase();
-                    const estado = ESTADO_LABEL[estadoKey] ?? { text: taxi.estado || "Desconhecido", cls: "inactive" };
+                    const estado = ESTADO_LABEL[estadoKey] ?? {
+                      text: taxi.estado || "Desconhecido",
+                      cls: "inactive",
+                    };
+
                     return (
                       <tr key={taxi.id}>
                         <td className={styles.matricula}>{taxi.matricula}</td>
@@ -115,9 +129,11 @@ export default function TaxiListPage() {
                           <div className={styles.actions}>
                             <button
                               className={styles.editBtn}
-                              onClick={() => navigate(`/gestor/taxis/${taxi.id}/editar`)}>
-                                Editar
+                              onClick={() => navigate(`/gestor/taxis/${taxi.id}/editar`)}
+                            >
+                              Editar
                             </button>
+
                             <button
                               className={styles.deleteBtn}
                               onClick={() => handleDelete(taxi.id)}

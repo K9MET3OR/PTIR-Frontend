@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import RelatoriosTaxiMotorista from './relatoriosTaxiMotorista.jsx';
 import RelatoriosClienteFatura from './relatoriosClienteFatura.jsx';
 import RelatorioReabastecimento from './relatorioReabastecimento.jsx';
 import styles from './RelatoriosPage.module.css';
 
 export default function RelatoriosPage() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('taxis-motoristas');
 
   return (

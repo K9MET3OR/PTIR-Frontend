@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motoristaService } from "../../../services/motoristaService";
+import { useFeedback } from "../../../context/FeedbackContext";
 import styles from "./MotoristaListPage.module.css";
 
 const ESTADO_LABEL = {
@@ -10,6 +11,7 @@ const ESTADO_LABEL = {
 
 export default function MotoristaListPage() {
   const navigate = useNavigate();
+  const feedback = useFeedback();
 
   const [motoristas, setMotoristas] = useState([]);
   const [search, setSearch] = useState("");
@@ -19,9 +21,13 @@ export default function MotoristaListPage() {
   useEffect(() => {
     motoristaService.list()
       .then(setMotoristas)
-      .catch(() => setError("Não foi possível carregar a lista de motoristas."))
+      .catch(() => {
+        const message = "Não foi possível carregar a lista de motoristas.";
+        setError(message);
+        feedback.error(message);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [feedback]);
 
   const filtered = motoristas.filter((m) =>
     [m.nome, m.nif, m.n_carta].some((v) =>
@@ -32,17 +38,17 @@ export default function MotoristaListPage() {
   async function handleDelete(id) {
     if (!window.confirm("Tens a certeza que queres remover este motorista?")) return;
 
-    alert("Motorista removido com sucesso!");
-
     try {
       await motoristaService.remove(id);
+
       setMotoristas((prev) => prev.filter((m) => m.id !== id));
+      feedback.success("Motorista removido com sucesso!");
     } catch (err) {
-      alert(err.message ?? "Erro ao remover motorista.");
+      const message = err.message ?? "Erro ao remover motorista.";
+      feedback.error(message);
     }
   }
 
-  // Verifica se a carta está a expirar em menos de 30 dias
   function cartaExpirando(validade) {
     if (!validade) return false;
     const diff = new Date(validade) - new Date();
@@ -107,6 +113,7 @@ export default function MotoristaListPage() {
                     const estado = ESTADO_LABEL[m.estado] ?? { text: m.estado, cls: "inactive" };
                     const expirando = cartaExpirando(m.validade_carta);
                     const expirada = cartaExpirada(m.validade_carta);
+
                     return (
                       <tr key={m.id}>
                         <td className={styles.nome}>{m.nome}</td>
