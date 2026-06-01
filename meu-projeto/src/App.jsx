@@ -23,6 +23,8 @@ import PedirTaxiPage from "./pages/cliente/PedirTaxiPage";
 import ClientePagamentoPage from "./pages/cliente/ClientePagamentoPage";
 import FaturaPage from "./pages/motorista/FaturaPage";
 
+import GestorPrecosPage from "./pages/gestor/GestorPrecosPage";
+
 
 export default function App() {
   return (
@@ -44,6 +46,7 @@ export default function App() {
               <Route path="/gestor/motoristas/novo" element={<MotoristaRegisterPage />} />
               <Route path="/gestor/motoristas/:id/editar" element={<MotoristaEditPage />} />
               <Route path="/gestor/relatorios" element={<RelatoriosPage />} />
+              <Route path="/gestor/precos" element={<GestorPrecosPage />} />
 
             </Route>
           </Route>

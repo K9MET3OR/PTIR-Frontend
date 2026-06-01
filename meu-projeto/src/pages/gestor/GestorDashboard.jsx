@@ -132,6 +132,32 @@ export default function GestorDashboard() {
             <span className={styles.arrow}>→</span>
           </button>
         </div>
+        <div className={styles.card}>
+          <div className={styles.cardHeader}>
+            <span className={styles.cardTitle}>Preços do serviço</span>
+            <span className={styles.cardIcon}>💶</span>
+          </div>
+
+          <button className={styles.actionItem} onClick={() => navigate("/gestor/precos")}>
+            <div>
+              <div className={styles.actionLabel}>Definir preços</div>
+              <div className={styles.actionDesc}>
+                Preço por minuto e agravamento noturno
+              </div>
+            </div>
+            <span className={styles.arrow}>→</span>
+          </button>
+
+          <button className={styles.actionItem} onClick={() => navigate("/gestor/precos")}>
+            <div>
+              <div className={styles.actionLabel}>Simular viagem fictícia</div>
+              <div className={styles.actionDesc}>
+                Testar cálculo entre duas horas
+              </div>
+            </div>
+            <span className={styles.arrow}>→</span>
+          </button>
+        </div>
       </div>
     </div>
   );
