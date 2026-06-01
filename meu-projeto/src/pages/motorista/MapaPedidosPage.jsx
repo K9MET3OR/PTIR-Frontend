@@ -214,7 +214,9 @@ export default function MapaPedidosPage() {
 
   const [turnoAtivo, setTurnoAtivo] = useState(null);
   const [tempoRestanteTurno, setTempoRestanteTurno] = useState(0);
+  const [tempoAteProximoTurno, setTempoAteProximoTurno] = useState(0);
   const [pedidosPendentesComDistancia, setPedidosPendentesComDistancia] = useState([]);
+
   const [segundosRestantesConfirmacao, setSegundosRestantesConfirmacao] = useState(60);
   const [loadingTurno, setLoadingTurno] = useState(true);
   const [turnosMotorista, setTurnosMotorista] = useState([]);
@@ -771,7 +773,9 @@ export default function MapaPedidosPage() {
   }, [pedidosAguardaConfirmacao.length, viagemAtiva]);
 
   const temPedidoEmCurso =
-    pedidosAguardaConfirmacao.length > 0 || Boolean(viagemAtiva);
+    pedidosAguardaConfirmacao.length > 0 ||
+    Boolean(viagemAtiva) ||
+    Boolean(viagemAguardarPagamento);
 
   useEffect(() => {
     if (temPedidoEmCurso && abaAtiva !== "pedidos") {
@@ -1085,6 +1089,41 @@ export default function MapaPedidosPage() {
     })
     .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
 
+  const proximoTurno = proximosTurnos[0] || null;
+
+  useEffect(() => {
+    if (turnoAtivo || !proximoTurno) {
+      setTempoAteProximoTurno(0);
+      return;
+    }
+
+    function atualizarCountdownProximoTurno() {
+      const inicio = new Date(proximoTurno.start_date);
+
+      if (Number.isNaN(inicio.getTime())) {
+        setTempoAteProximoTurno(0);
+        return;
+      }
+
+      const diferenca = inicio.getTime() - Date.now();
+
+      if (diferenca <= 0) {
+        setTempoAteProximoTurno(0);
+        carregarTurnoAtivo();
+        carregarTurnosMotorista();
+        return;
+      }
+
+      setTempoAteProximoTurno(diferenca);
+    }
+
+    atualizarCountdownProximoTurno();
+
+    const interval = setInterval(atualizarCountdownProximoTurno, 1000);
+
+    return () => clearInterval(interval);
+  }, [turnoAtivo, proximoTurno?.id, proximoTurno?.start_date]);
+
   const markers = [
     ...(!viagemMapaAtual && turnoAtivo ? [taxiBaseMarker] : []),
 
@@ -1219,8 +1258,17 @@ export default function MapaPedidosPage() {
               <div className={styles.turnoAtualLinha}>{turnoAtualTexto}</div>
             </>
           ) : (
-            <p className={styles.subtitle}>Não tens nenhum turno ativo neste momento.</p>
-          )}
+            <>
+              <p className={styles.subtitle}>Não tens nenhum turno ativo neste momento.</p>
+
+              {proximoTurno && (
+                <div className={styles.remainingTimeBannerSmall}>
+                  <span>Próximo turno começa em</span>
+                  <strong>{formatarTempo(tempoAteProximoTurno)}</strong>
+                </div>
+              )}
+            </>
+            )}
         </div>
 
         {turnoAtivo && (

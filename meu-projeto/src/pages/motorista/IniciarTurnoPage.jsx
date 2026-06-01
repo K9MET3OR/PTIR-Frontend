@@ -21,7 +21,7 @@ function arredondarHoraAtual() {
 function arredondarHoraInicio() {
   const agora = new Date();
   agora.setSeconds(0, 0);
-  agora.setMinutes(agora.getMinutes() + 5);
+  agora.setMinutes(agora.getMinutes() + 1);
 
   const horas = String(agora.getHours()).padStart(2, '0');
   const minutos = String(agora.getMinutes()).padStart(2, '0');
@@ -50,6 +50,46 @@ function calcularFimPorDefeito(data, hora) {
   return { dataFim, horaFim };
 }
 
+function formatarTempo(ms) {
+  const totalMs = Math.max(0, Number(ms) || 0);
+  const totalSegundos = Math.floor(totalMs / 1000);
+  const horas = Math.floor(totalSegundos / 3600);
+  const minutos = Math.floor((totalSegundos % 3600) / 60);
+  const segundos = totalSegundos % 60;
+
+  return `${horas}h ${minutos}m ${segundos}s`;
+}
+
+function turnoComecaAgoraOuEmBreve(turno) {
+  if (!turno) return false;
+
+  const agora = new Date();
+  const limite = new Date(agora.getTime() + 5 * 60 * 1000);
+
+  const inicio = new Date(turno.start_date || turno.startDate || turno.start || turno.inicio);
+  const fim = new Date(turno.end_date || turno.endDate || turno.end || turno.fim);
+
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) {
+    return false;
+  }
+
+  return inicio <= limite && fim > agora;
+}
+
+function turnoEstaAtivoAgora(turno) {
+  if (!turno) return false;
+
+  const agora = new Date();
+  const inicio = new Date(turno.start_date || turno.startDate || turno.start || turno.inicio);
+  const fim = new Date(turno.end_date || turno.endDate || turno.end || turno.fim);
+
+  if (Number.isNaN(inicio.getTime()) || Number.isNaN(fim.getTime())) {
+    return false;
+  }
+
+  return turno.status_shift !== 'inactive' && inicio <= agora && agora < fim;
+}
+
 export default function IniciarTurnoPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -69,6 +109,7 @@ export default function IniciarTurnoPage() {
   const [erro, setErro] = useState('');
   const [processando, setProcessando] = useState(false);
   const [turnos, setTurnos] = useState([]);
+  const [tempoAteProximoTurno, setTempoAteProximoTurno] = useState(0);
 
   useEffect(() => {
     carregarTurnos();
@@ -149,6 +190,8 @@ export default function IniciarTurnoPage() {
   }
 
   async function carregarTurnos() {
+    if (!user?.id) return;
+
     try {
       const data = await api.get(`/shift/driver/${user.id}`);
       setTurnos(data.shifts || []);
@@ -179,15 +222,27 @@ export default function IniciarTurnoPage() {
         endDate: fim.toISOString(),
       });
 
-      const shift = data?.shift ?? null;
+      const shift = data?.shift ?? data ?? null;
       const shiftId = shift?.id ?? data?.id ?? data?.shiftId;
 
-      if (shiftId && shift?.status_shift === 'active') {
+      const turnoCriado = {
+        ...(shift || {}),
+        id: shiftId,
+        start_date: shift?.start_date || shift?.startDate || inicio.toISOString(),
+        end_date: shift?.end_date || shift?.endDate || fim.toISOString(),
+      };
+
+      if (shiftId && turnoEstaAtivoAgora(turnoCriado)) {
         localStorage.setItem('turno_id', String(shiftId));
         localStorage.setItem('turno_ativo', 'true');
       }
 
       await carregarTurnos();
+
+      if (turnoComecaAgoraOuEmBreve(turnoCriado)) {
+        navigate('/motorista/mapa', { replace: true });
+        return;
+      }
 
       const novoHoje = formatarDataLocal(new Date());
       const novaHoraAtual = arredondarHoraAtual();
@@ -252,6 +307,40 @@ export default function IniciarTurnoPage() {
       return shift.status_shift !== 'inactive' && inicio > agora;
     })
     .sort((a, b) => new Date(a.start_date) - new Date(b.start_date));
+
+  const proximoTurno = proximosTurnos[0] || null;
+
+  useEffect(() => {
+    if (turnoAtual || !proximoTurno) {
+      setTempoAteProximoTurno(0);
+      return;
+    }
+
+    function atualizarCountdownProximoTurno() {
+      const inicio = new Date(proximoTurno.start_date);
+
+      if (Number.isNaN(inicio.getTime())) {
+        setTempoAteProximoTurno(0);
+        return;
+      }
+
+      const diferenca = inicio.getTime() - Date.now();
+
+      if (diferenca <= 0) {
+        setTempoAteProximoTurno(0);
+        carregarTurnos();
+        return;
+      }
+
+      setTempoAteProximoTurno(diferenca);
+    }
+
+    atualizarCountdownProximoTurno();
+
+    const interval = setInterval(atualizarCountdownProximoTurno, 1000);
+
+    return () => clearInterval(interval);
+  }, [turnoAtual, proximoTurno?.id, proximoTurno?.start_date]);
 
   return (
     <div className={styles.container}>
@@ -416,7 +505,20 @@ export default function IniciarTurnoPage() {
                 </div>
               </div>
             ) : (
-              <p className={styles.description}>Não tens nenhum turno ativo neste momento.</p>
+              <>
+                <p className={styles.description}>Não tens nenhum turno ativo neste momento.</p>
+
+                {proximoTurno && (
+                  <div className={styles.infoBox}>
+                    <p>
+                      <strong>Próximo turno começa em:</strong>{' '}
+                      <span className={styles.alertaSucesso}>
+                        {formatarTempo(tempoAteProximoTurno)}
+                      </span>
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
 

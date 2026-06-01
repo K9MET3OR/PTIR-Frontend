@@ -48,24 +48,32 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.55rem;
   padding: 0.8rem 0.95rem;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
   margin-bottom: 0.85rem;
+  min-width: 0;
 }
 
 .remainingTimeBannerSmall span {
-  font-size: 11px;
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
   color: #c4b7ff;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .remainingTimeBannerSmall strong {
+  flex-shrink: 0;
   font-size: 13px;
   color: #ffffff;
+  white-space: nowrap;
 }
 
 .ativarTurnoBtn {

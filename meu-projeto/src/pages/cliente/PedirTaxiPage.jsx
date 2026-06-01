@@ -9,6 +9,7 @@ import {
   obterDetalheViagem,
   confirmarMotoristaCliente,
   rejeitarMotoristaCliente,
+  listarViagensCliente,
 } from "../../services/tripService";
 import { api } from "../../services/api";
 import { useAuth } from "../../context/AuthContext";
@@ -131,6 +132,125 @@ export default function PedirTaxiPage() {
   useEffect(() => {
     carregarTaxis();
   }, []);
+
+  async function aplicarTripRecuperada(trip) {
+    if (!trip) return;
+
+    setTripId(trip.id);
+    setTripDetalhes(trip);
+    setEstadoViagem(trip.status_trip);
+
+    setOrigemInput(trip.start_location || "");
+    setDestinoInput(trip.end_location || "");
+    setNPessoas(Number(trip.n_people) || 1);
+
+    if (trip.nivel_conforto) {
+      setConforto(trip.nivel_conforto);
+      setSelectedRide(trip.nivel_conforto);
+    }
+
+    if (trip.n_kms !== null && trip.n_kms !== undefined) {
+      setDistanciaKm(Number(trip.n_kms) || 0);
+    }
+
+    try {
+      if (trip.start_location) {
+        const origemRes = await geocodificar(trip.start_location);
+        if (origemRes?.length) {
+          setOrigemCoords({
+            lon: parseFloat(origemRes[0].lon),
+            lat: parseFloat(origemRes[0].lat),
+          });
+        }
+      }
+
+      if (trip.end_location) {
+        const destinoRes = await geocodificar(trip.end_location);
+        if (destinoRes?.length) {
+          setDestinoCoords({
+            lon: parseFloat(destinoRes[0].lon),
+            lat: parseFloat(destinoRes[0].lat),
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Erro ao recuperar coordenadas da viagem:", error);
+    }
+
+    if (trip.status_trip === "pending") {
+      setStep("aguardar");
+      return;
+    }
+
+    if (trip.status_trip === "driver_accepted") {
+      setStep("aceite");
+      return;
+    }
+
+    if (trip.status_trip === "client_confirmed") {
+      setStep("motorista_a_caminho");
+      return;
+    }
+
+    if (trip.status_trip === "in_progress") {
+      setStep("em_viagem");
+      return;
+    }
+
+    if (trip.status_trip === "awaiting_payment") {
+      setStep("pagamento_pendente");
+      return;
+    }
+
+    if (trip.status_trip === "finished") {
+      setStep("finalizada");
+      return;
+    }
+  }
+
+  useEffect(() => {
+    async function recuperarViagemAtivaDoCliente() {
+      if (!user?.id) return;
+
+      try {
+        const response = await listarViagensCliente(user.id);
+        const viagens = response?.trips || [];
+
+        const estadosAtivos = [
+          "awaiting_payment",
+          "in_progress",
+          "client_confirmed",
+          "driver_accepted",
+          "pending",
+        ];
+
+        const viagensAtivas = viagens
+          .filter((trip) => estadosAtivos.includes(trip.status_trip))
+          .sort((a, b) => {
+            const dataA = new Date(a.updated_at || a.created_at || a.start_date || 0).getTime();
+            const dataB = new Date(b.updated_at || b.created_at || b.start_date || 0).getTime();
+
+            return dataB - dataA;
+          });
+
+        const viagemMaisImportante =
+          viagensAtivas.find((trip) => trip.status_trip === "awaiting_payment") ||
+          viagensAtivas.find((trip) => trip.status_trip === "in_progress") ||
+          viagensAtivas.find((trip) => trip.status_trip === "client_confirmed") ||
+          viagensAtivas.find((trip) => trip.status_trip === "driver_accepted") ||
+          viagensAtivas.find((trip) => trip.status_trip === "pending") ||
+          null;
+
+        if (!viagemMaisImportante) return;
+
+        await aplicarTripRecuperada(viagemMaisImportante);
+      } catch (error) {
+        console.error("Erro ao recuperar viagem ativa do cliente:", error);
+      }
+    }
+
+    recuperarViagemAtivaDoCliente();
+  }, [user?.id]);
 
   useEffect(() => {
     if (
@@ -389,7 +509,7 @@ export default function PedirTaxiPage() {
   }, [tripDetalhes, origemCoords, destinoCoords]);
 
   useEffect(() => {
-    async function recuperarTripPendente() {
+    async function recuperarTripPendentePorUrl() {
       const tripIdFromUrl = searchParams.get("tripId");
       const resume = searchParams.get("resume");
 
@@ -400,44 +520,13 @@ export default function PedirTaxiPage() {
         const trip = response?.trip;
         if (!trip) return;
 
-        setTripId(trip.id);
-        setTripDetalhes(trip);
-        setEstadoViagem(trip.status_trip);
-
-        setOrigemInput(trip.start_location || "");
-        setDestinoInput(trip.end_location || "");
-
-        if (trip.start_location) {
-          const origemRes = await geocodificar(trip.start_location);
-          if (origemRes?.length) {
-            setOrigemCoords({
-              lon: parseFloat(origemRes[0].lon),
-              lat: parseFloat(origemRes[0].lat),
-            });
-          }
-        }
-
-        if (trip.end_location) {
-          const destinoRes = await geocodificar(trip.end_location);
-          if (destinoRes?.length) {
-            setDestinoCoords({
-              lon: parseFloat(destinoRes[0].lon),
-              lat: parseFloat(destinoRes[0].lat),
-            });
-          }
-        }
-
-        if (trip.status_trip === "awaiting_payment") {
-          setStep("pagamento_pendente");
-        } else if (trip.status_trip === "finished") {
-          setStep("finalizada");
-        }
+        await aplicarTripRecuperada(trip);
       } catch (error) {
         console.error("Erro ao recuperar viagem pendente:", error);
       }
     }
 
-    recuperarTripPendente();
+    recuperarTripPendentePorUrl();
   }, [searchParams]);
 
   async function carregarTaxis() {
@@ -761,12 +850,15 @@ export default function PedirTaxiPage() {
     })
       .then((response) => {
         if (response.trip && response.trip.id) {
+          localStorage.setItem("cliente_trip_id", response.trip.id);
+
           setTripId(response.trip.id);
           setTripDetalhes(response.trip);
           setEstadoViagem(response.trip.status_trip || "pending");
           setLoading(false);
           setStep("aguardar");
-        } else {
+        }
+        else {
           setErro("Resposta do servidor inválida.");
           setLoading(false);
         }
@@ -826,6 +918,8 @@ export default function PedirTaxiPage() {
     } catch (error) {
       console.error("Erro ao cancelar viagem:", error);
     }
+    
+    localStorage.removeItem("cliente_trip_id");
 
     setStep("form");
     setOrigemInput("");
