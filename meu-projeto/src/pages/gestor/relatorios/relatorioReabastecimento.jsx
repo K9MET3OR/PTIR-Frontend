@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { obterRelatorioReabastecimentos } from '../../../services/relatoriosService';
-import styles from './relatorioReabasticemento.module.css';
+import styles from './relatorioReabastecimento.module.css';
 
 export default function RelatorioReabastecimento() {
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);

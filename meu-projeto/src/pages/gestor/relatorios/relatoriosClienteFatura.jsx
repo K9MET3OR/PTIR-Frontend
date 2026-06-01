@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { obterRelatorioClientesFaturacao } from '../../../services/relatoriosService';
-import styles from './relatoriosCliente-Fatura.module.css';
+import styles from './relatoriosClienteFatura.module.css';
 
 export default function RelatoriosClienteFatura() {
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);

@@ -1,19 +1,33 @@
-.container {
-  width: 100%;
+.root {
   min-height: 100vh;
-  background: #f5f7fa;
+  padding: 2rem 1.5rem;
+  background: linear-gradient(180deg, #09040f 0%, #0c0520 100%);
+  color: #f8f7ff;
+}
+
+.container {
+  background: linear-gradient(180deg, #09040f 0%, #0c0520 100%);
 }
 
 .tabsHeader {
-  background: white;
-  border-bottom: 2px solid #e0e0e0;
-  padding: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(180deg, #09040f 0%, #0c0520 100%);
+  border-bottom: 2px solid #333;
+}
+
+.tab {
+  color: #ccc;
+  /* texto das tabs claro */
+}
+
+.tabActive {
+  color: #667eea;
+  /* destaque da tab ativa */
+  border-bottom-color: #667eea;
 }
 
 .tabsHeader h1 {
   margin: 0 0 20px 0;
-  color: #333;
+  color: #f8f7ff;
   font-size: 28px;
 }
 
@@ -58,6 +72,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

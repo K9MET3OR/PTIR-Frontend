@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { obterRelatorioTaxisMotoristas } from '../../../services/relatoriosService';
-import styles from './relatoriosTaxi-Motorista.module.css';
+import styles from './relatoriosTaxiMotorista.module.css';
 
 export default function RelatoriosTaxiMotorista() {
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
